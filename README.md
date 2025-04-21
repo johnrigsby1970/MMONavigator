@@ -83,7 +83,7 @@ John Rigsby
 
 ## License
 
-This project is not currently licensed
+This project is licensed under the MIT License - see the LICENSE.md file for details
 
 ## Acknowledgments
 
