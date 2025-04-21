@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MMONavigator"
         mc:Ignorable="d"
-        Title="MainWindow" Height="140" Width="250" AllowsTransparency ="True"
+        Title="MainWindow" Height="140" Width="280" AllowsTransparency ="True"
         WindowStyle="None"
         >
        <Window.Background>
@@ -18,7 +18,7 @@
     <Grid Name="myGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="105"/>
-            <ColumnDefinition  Width="140"/>
+            <ColumnDefinition  Width="175"/>
         </Grid.ColumnDefinitions> 
         <Grid.RowDefinitions>
                <RowDefinition Height="30"></RowDefinition>
@@ -42,26 +42,29 @@
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Top" Width="60"/> -->
         
-        <local:OutlinedTextBlock Grid.Row="1" Grid.Column="0"
-                                 Text="Destination:"  
-                                 FontFamily="Verdana" FontSize="10pt" 
-                                 FontWeight="ExtraBold" 
-                                 TextWrapping="Wrap" 
-                                 StrokeThickness=".5" 
-                                 VerticalAlignment="Center" 
-                                 HorizontalAlignment="Center" 
-                                 TextAlignment="Left" 
-                                 Width="100"
-                                 Margin="5,1,0,0"
-                                 Stroke="{StaticResource TextStroke}" 
-                                 Fill="{StaticResource TextFill}"
-        />
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"  Orientation="Horizontal">
+            <local:OutlinedTextBlock
+                                     Text="Destination:"  
+                                     FontFamily="Verdana" FontSize="10pt" 
+                                     FontWeight="ExtraBold" 
+                                     TextWrapping="Wrap" 
+                                     StrokeThickness=".5" 
+                                     VerticalAlignment="Center" 
+                                     HorizontalAlignment="Center" 
+                                     TextAlignment="Left" 
+                                     Width="100"
+                                     Margin="5,1,0,0"
+                                     Stroke="{StaticResource TextStroke}" 
+                                     Fill="{StaticResource TextFill}"
+            />
         
-        <TextBox Grid.Row="1" Grid.Column="1"
-                 Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
-                 Height="20" Margin="1,1,0,0"
-                 FontSize="8pt" 
-                 VerticalAlignment="Center" Width="140"/>
+            <TextBox
+                     Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
+                     Height="20" 
+                     FontSize="8pt" 
+                     VerticalAlignment="Center" Width="140"/>
+        </StackPanel>
+        
         <!-- <Label  -->
         <!--        Grid.Row="2" Grid.Column="0" -->
         <!--        Content="{Binding Tx , UpdateSourceTrigger=PropertyChanged}"   -->
@@ -77,8 +80,8 @@
         <!--        Grid.Row="2" Grid.Column="0" Content="Current:"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Center" Width="60"/> -->
-        
-        <local:OutlinedTextBlock Grid.Row="2" Grid.Column="0"
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"  Orientation="Horizontal">
+        <local:OutlinedTextBlock 
                                  Text="Location:"  
                                  FontFamily="Verdana" FontSize="10pt" 
                                  FontWeight="ExtraBold" 
@@ -93,7 +96,7 @@
                                  Fill="{StaticResource TextFill}"
         />
         
-        <TextBox Grid.Row="2" Grid.Column="1"
+        <TextBox 
                  Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
                  Height="20" Margin="1,1,0,0"
                  FontSize="8pt" 
@@ -115,7 +118,9 @@
         <!--        Content="Direction"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Center" Width="60"/> -->
-
+        <Button Width="20" Height="20" Margin="3" FontFamily="Wingdings 3" ToolTip="Copy to Destination" FontWeight="ExtraBold" Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue" Content="%"></Button>
+        </StackPanel>
+        
         <local:OutlinedTextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" x:Name="labelDirection" 
                                              Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"  
                                              FontFamily="Verdana" FontSize="20pt" 
@@ -125,18 +130,11 @@
                                              VerticalAlignment="Center" 
                                              HorizontalAlignment="Center" 
                                              TextAlignment="Center" 
-                                             Width="245"
+                                             Width="280"
                                              Stroke="{StaticResource TextStroke}" 
                                              Fill="{StaticResource TextFill}"
         />
-        
-        <!-- <Label x:Name="labelDirection" -->
-        <!--        Grid.Row="3"  Grid.Column="0" Grid.ColumnSpan="2"   -->
-        <!--        Content="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"   -->
-        <!--        Height="50" Margin="1,1,0,0"  -->
-        <!--        FontWeight="Bold"  -->
-        <!--        FontSize="28"  -->
-        <!--        Foreground="White" -->
-        <!--        VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Width="235"/> -->
+
+       
     </Grid>
 </Window>

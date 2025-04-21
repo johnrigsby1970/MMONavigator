@@ -31,7 +31,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         HwndSource.FromHwnd(_windowHandle)?.AddHook(HwndHandler);
         Start();
     }
-
+    
     private string? _currentCoordinates = "";
 
     public string? CurrentCoordinates {
@@ -140,6 +140,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    private void CopyLocationToDesination_Click(object sender, RoutedEventArgs e) {
+        TargetCoordinates = CurrentCoordinates;
+    }
+    
     protected virtual void ShowDirection() {
         try {
             GoDirection = string.Empty;
@@ -344,7 +348,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             WindowState = WindowState.Minimized;
         }
     }
-
+    
     /// <summary>
     /// Max
     /// </summary>
