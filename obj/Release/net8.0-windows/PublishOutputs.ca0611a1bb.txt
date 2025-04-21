@@ -1,0 +1,5 @@
+D:\Source\repos\MMONavigator\MMONavigator\bin\Release\net8.0-windows\publish\MMONavigator.exe
+D:\Source\repos\MMONavigator\MMONavigator\bin\Release\net8.0-windows\publish\MMONavigator.dll
+D:\Source\repos\MMONavigator\MMONavigator\bin\Release\net8.0-windows\publish\MMONavigator.deps.json
+D:\Source\repos\MMONavigator\MMONavigator\bin\Release\net8.0-windows\publish\MMONavigator.runtimeconfig.json
+D:\Source\repos\MMONavigator\MMONavigator\bin\Release\net8.0-windows\publish\MMONavigator.pdb

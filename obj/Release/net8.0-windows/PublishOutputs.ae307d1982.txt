@@ -1,0 +1,5 @@
+D:\Source\repos\WpfApp1\WpfApp1\bin\Release\net8.0-windows\publish\WpfApp1.exe
+D:\Source\repos\WpfApp1\WpfApp1\bin\Release\net8.0-windows\publish\WpfApp1.dll
+D:\Source\repos\WpfApp1\WpfApp1\bin\Release\net8.0-windows\publish\WpfApp1.deps.json
+D:\Source\repos\WpfApp1\WpfApp1\bin\Release\net8.0-windows\publish\WpfApp1.runtimeconfig.json
+D:\Source\repos\WpfApp1\WpfApp1\bin\Release\net8.0-windows\publish\WpfApp1.pdb

@@ -1,0 +1,142 @@
+﻿<Window x:Class="MMONavigator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MMONavigator"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="140" Width="250" AllowsTransparency ="True"
+        WindowStyle="None"
+        >
+       <Window.Background>
+              <SolidColorBrush Opacity="0.2" Color="Gray"/>
+       </Window.Background>
+       <Window.Resources>
+              <SolidColorBrush x:Key="TextStroke" Color="black"/>
+              <SolidColorBrush x:Key="TextFill" Color="white"/>
+       </Window.Resources>
+    <Grid Name="myGrid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="105"/>
+            <ColumnDefinition  Width="140"/>
+        </Grid.ColumnDefinitions> 
+        <Grid.RowDefinitions>
+               <RowDefinition Height="30"></RowDefinition>
+
+               <!-- <RowDefinition Height="30"/> -->
+            <RowDefinition Height="30"/>
+            <!-- <RowDefinition Height="30"/> -->
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="50"/>
+        </Grid.RowDefinitions> 
+           
+           <Rectangle Grid.Row="0"  Grid.ColumnSpan="2" Grid.Column="0" Fill="Transparent" MouseLeftButtonDown="Rectangle_MouseLeftButtonDown"></Rectangle>
+           <WrapPanel Grid.Row="0"  Grid.ColumnSpan="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Top" Height="30" Width="Auto">
+                  <Button Width="20" Height="20" Margin="3" Click="MinimizeButton_Click">_</Button>
+                  <!-- <Button Width="20" Height="20" Margin="5" Click="MaximizeButton_Click">口</Button> -->
+                  <Button Width="20" Height="20" Margin="3" Click="CloseButton_Click">X</Button>
+           </WrapPanel>
+           
+        <!-- <Label Grid.Row="1" Grid.Column="0"  -->
+        <!--        Content="Target:"   -->
+        <!--        Height="25" Margin="1,1,0,0" -->
+        <!--        VerticalAlignment="Top" Width="60"/> -->
+        
+        <local:OutlinedTextBlock Grid.Row="1" Grid.Column="0"
+                                 Text="Destination:"  
+                                 FontFamily="Verdana" FontSize="10pt" 
+                                 FontWeight="ExtraBold" 
+                                 TextWrapping="Wrap" 
+                                 StrokeThickness=".5" 
+                                 VerticalAlignment="Center" 
+                                 HorizontalAlignment="Center" 
+                                 TextAlignment="Left" 
+                                 Width="100"
+                                 Margin="5,1,0,0"
+                                 Stroke="{StaticResource TextStroke}" 
+                                 Fill="{StaticResource TextFill}"
+        />
+        
+        <TextBox Grid.Row="1" Grid.Column="1"
+                 Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
+                 Height="20" Margin="1,1,0,0"
+                 FontSize="8pt" 
+                 VerticalAlignment="Center" Width="140"/>
+        <!-- <Label  -->
+        <!--        Grid.Row="2" Grid.Column="0" -->
+        <!--        Content="{Binding Tx , UpdateSourceTrigger=PropertyChanged}"   -->
+        <!--          Height="25" Margin="1,1,0,0" -->
+        <!--          VerticalAlignment="Center" Width="60"/> -->
+        <!-- <Label  -->
+        <!--        Grid.Row="2" Grid.Column="1"  -->
+        <!--        Content="{Binding Ty , UpdateSourceTrigger=PropertyChanged}"   -->
+        <!--        Height="25" Margin="1,1,0,0" -->
+        <!--        VerticalAlignment="Center" Width="60"/> -->
+        
+        <!-- <Label  -->
+        <!--        Grid.Row="2" Grid.Column="0" Content="Current:"   -->
+        <!--        Height="25" Margin="1,1,0,0" -->
+        <!--        VerticalAlignment="Center" Width="60"/> -->
+        
+        <local:OutlinedTextBlock Grid.Row="2" Grid.Column="0"
+                                 Text="Location:"  
+                                 FontFamily="Verdana" FontSize="10pt" 
+                                 FontWeight="ExtraBold" 
+                                 TextWrapping="Wrap" 
+                                 StrokeThickness=".5" 
+                                 VerticalAlignment="Center" 
+                                 HorizontalAlignment="Center" 
+                                 TextAlignment="Left" 
+                                 Width="100"
+                                 Margin="5,1,0,0"
+                                 Stroke="{StaticResource TextStroke}" 
+                                 Fill="{StaticResource TextFill}"
+        />
+        
+        <TextBox Grid.Row="2" Grid.Column="1"
+                 Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
+                 Height="20" Margin="1,1,0,0"
+                 FontSize="8pt" 
+                 VerticalAlignment="Center" Width="140"/>
+        
+        <!-- <Label  -->
+        <!--        Grid.Row="4" Grid.Column="0" -->
+        <!--        Content="{Binding Cx , UpdateSourceTrigger=PropertyChanged}"   -->
+        <!--        Height="25" Margin="1,1,0,0" -->
+        <!--        VerticalAlignment="Center" Width="60"/> -->
+        <!-- <Label  -->
+        <!--        Grid.Row="4" Grid.Column="1"  -->
+        <!--        Content="{Binding Cy , UpdateSourceTrigger=PropertyChanged}"   -->
+        <!--        Height="25" Margin="1,1,0,0" -->
+        <!--        VerticalAlignment="Center" Width="60"/> -->
+        
+        <!-- <Label  -->
+        <!--        Grid.Row="3"  Grid.Column="0"  -->
+        <!--        Content="Direction"   -->
+        <!--        Height="25" Margin="1,1,0,0" -->
+        <!--        VerticalAlignment="Center" Width="60"/> -->
+
+        <local:OutlinedTextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" x:Name="labelDirection" 
+                                             Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"  
+                                             FontFamily="Verdana" FontSize="20pt" 
+                                             FontWeight="ExtraBold" 
+                                             TextWrapping="Wrap" 
+                                             StrokeThickness="1" 
+                                             VerticalAlignment="Center" 
+                                             HorizontalAlignment="Center" 
+                                             TextAlignment="Center" 
+                                             Width="245"
+                                             Stroke="{StaticResource TextStroke}" 
+                                             Fill="{StaticResource TextFill}"
+        />
+        
+        <!-- <Label x:Name="labelDirection" -->
+        <!--        Grid.Row="3"  Grid.Column="0" Grid.ColumnSpan="2"   -->
+        <!--        Content="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"   -->
+        <!--        Height="50" Margin="1,1,0,0"  -->
+        <!--        FontWeight="Bold"  -->
+        <!--        FontSize="28"  -->
+        <!--        Foreground="White" -->
+        <!--        VerticalAlignment="Center" HorizontalAlignment="Center" HorizontalContentAlignment="Center" Width="235"/> -->
+    </Grid>
+</Window>
