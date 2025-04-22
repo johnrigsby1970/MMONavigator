@@ -12,6 +12,7 @@ namespace MMONavigator;
 //https://stackoverflow.com/questions/21461017/wpf-window-with-transparent-background-containing-opaque-controls
 //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
 //https://corey255a1.wixsite.com/wundervision/single-post/simple-wpf-compass-control
+//https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
@@ -20,6 +21,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     private const int WM_CLIPBOARDUPDATE = 0x031D;
     private readonly IntPtr _windowHandle;
     private readonly Regex _rgx = new Regex("[^0-9- .]");
+    
+    //https://stackoverflow.com/questions/206717/how-do-i-replace-multiple-spaces-with-a-single-space-in-c
+    private readonly Regex _rgxDoubleSpaces = new Regex("\\s+"); //double spaces (\s)\s+
+    private readonly Regex _rgxFirstWhiteSpaces = new Regex("(\\s)\\s+");//first whitespace
+    private readonly Regex _rgxMoreThanOneSpace = new Regex("[ ]{2,}", RegexOptions.None);  
 
     public event EventHandler? ClipboardUpdate;
 
@@ -30,6 +36,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         _windowHandle = new WindowInteropHelper(this).EnsureHandle();
         HwndSource.FromHwnd(_windowHandle)?.AddHook(HwndHandler);
         Start();
+    }
+
+    private bool _showSettings;
+    public bool ShowSettings {
+        get => _showSettings;
+        set {
+            _showSettings = value;
+            OnPropertyChanged();
+        }
     }
     
     private string? _currentCoordinates = "";
@@ -54,6 +69,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    private string _correctionDirection = "";
+
+    public string CorrectionDirection {
+        get => _correctionDirection;
+        set {
+            _correctionDirection = value;
+            OnPropertyChanged();
+        }
+    }
+    
     private string? _tX;
 
     public string? Tx {
@@ -94,6 +119,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    private double _currentHeading;
+
+    public double CurrentHeading {
+        get => _currentHeading;
+        set {
+            _currentHeading = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    private double _targetHeading;
+
+    public double TargetHeading {
+        get => _targetHeading;
+        set {
+            _targetHeading = value;
+            OnPropertyChanged();
+        }
+    }
+    
     private string? _goDirection;
 
     public string? GoDirection {
@@ -128,9 +173,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     private string? ScrubEntry(string? value) {
         try {
-            var s = value;
+            var s = value??"";
+            s = s.Replace(",", " ");
             s = s.Replace("/jumploc ", "");
-
+            //s = _rgxDoubleSpaces.Replace(s, " ");
+            s = _rgxFirstWhiteSpaces.Replace(s, " ");
+            //s = _rgxMoreThanOneSpace.Replace(s, " ");
             s = _rgx.Replace(s, "");
             s = s.Trim();
             return s;
@@ -146,11 +194,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     
     protected virtual void ShowDirection() {
         try {
+            leftbutton.Visibility = Visibility.Hidden;
+            rightbutton.Visibility = Visibility.Hidden;
             GoDirection = string.Empty;
             var s = ScrubEntry(CurrentCoordinates);//may have been user entered
 
             if (!string.IsNullOrWhiteSpace(TargetCoordinates)) {
-                var target = TargetCoordinates.Split(' ');
+                var scrubbedTarget = ScrubEntry(TargetCoordinates)??"";
+                var target = scrubbedTarget.Split(' ');
+                
                 var targetValid = true;
                 foreach (var item in target) {
                     if (!decimal.TryParse(item, out decimal _)) {
@@ -214,6 +266,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                         labelDirection.Fill = Brushes.Green;
                     }
 
+                    if (target.Length > 3) {
+                        TargetHeading = direction;
+                    }
+                    
+
+                    if (coordinates.Length > 3) {
+                        CurrentHeading = direction;
+                        TargetHeading = double.Parse(coordinates[3]);
+                        CorrectionDirection = DetermineDirection();
+                        
+                        if (CorrectionDirection == "Left") {
+                            //leftbutton.Visibility = Visibility.Visible;
+                            rightbutton.Visibility = Visibility.Visible;
+                        }
+                        if (CorrectionDirection == "Right") {
+                            //rightbutton.Visibility = Visibility.Visible;
+                            leftbutton.Visibility = Visibility.Visible;
+                        }
+                    }
+                    
                     GoDirection = GetCompassDirection(direction) + $" {Convert.ToInt32(direction)}\u00b0 {Convert.ToInt32(distance)}";
                 }
             }
@@ -223,6 +295,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    //https://stackoverflow.com/questions/60237767/get-left-or-right-position-from-heading-in-degrees
+    private string DetermineDirection() {
+        double diff = (TargetHeading - CurrentHeading + 360) % 360; // Calculate relative difference
+        //if (diff == 0) return "";
+        if (diff > 355 || diff < 5 ) return "";
+        if (diff < 180) {
+            return "Right"; // Target is to the right
+        } else {
+            return "Left";  // Target is to the left
+        }
+    }
+    
     private static string GetCompassDirection(double angle) {
         // Normalize angle to the range [0, 360)
         angle = (angle % 360 + 360) % 360;
@@ -337,7 +421,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     #region Title Bar
 
     //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
-
+    
+    private void HideShowSettings_Click(object sender, RoutedEventArgs e) {
+        ShowSettings = !ShowSettings;
+        if (ShowSettings) {
+            destinationRow.Height = new GridLength(0);
+            targetRow.Height = new GridLength(0);
+        }
+        else {
+            destinationRow.Height = new GridLength(30);
+            targetRow.Height = new GridLength(30);
+        }
+        
+    }
+    
     /// <summary>
     /// Min
     /// </summary>

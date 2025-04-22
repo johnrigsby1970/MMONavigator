@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MMONavigator"
         mc:Ignorable="d"
-        Title="MainWindow" Height="140" Width="280" AllowsTransparency ="True"
+        Title="MainWindow" 
+        Width="Auto" Height="Auto" SizeToContent="WidthAndHeight"
+        AllowsTransparency ="True"
         WindowStyle="None"
         >
        <Window.Background>
@@ -24,19 +26,23 @@
                <RowDefinition Height="30"></RowDefinition>
 
                <!-- <RowDefinition Height="30"/> -->
-            <RowDefinition Height="30"/>
+            <RowDefinition Height="30" Name="destinationRow"/>
             <!-- <RowDefinition Height="30"/> -->
-            <RowDefinition Height="30"/>
+            <RowDefinition Height="30" Name="targetRow"/>
             <RowDefinition Height="50"/>
         </Grid.RowDefinitions> 
            
            <Rectangle Grid.Row="0"  Grid.ColumnSpan="2" Grid.Column="0" Fill="Transparent" MouseLeftButtonDown="Rectangle_MouseLeftButtonDown"></Rectangle>
            <WrapPanel Grid.Row="0"  Grid.ColumnSpan="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Top" Height="30" Width="Auto">
-                  <Button Width="20" Height="20" Margin="3" Click="MinimizeButton_Click">_</Button>
+               <Button Width="20" Height="20" Margin="3" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" 
+                       ToolTip="Toggle Settings" FontWeight="ExtraBold" 
+                       Click="HideShowSettings_Click" Foreground="White" Background="Transparent"></Button>
+
+               <Button Width="20" Height="20" Margin="3" Click="MinimizeButton_Click" Foreground="White" ToolTip="Minimize" Background="Transparent">_</Button>
                   <!-- <Button Width="20" Height="20" Margin="5" Click="MaximizeButton_Click">口</Button> -->
-                  <Button Width="20" Height="20" Margin="3" Click="CloseButton_Click">X</Button>
+                  <Button Width="20" Height="20" Margin="3" Click="CloseButton_Click" Foreground="White" ToolTip="Close" Background="Transparent">X</Button>
            </WrapPanel>
-           
+
         <!-- <Label Grid.Row="1" Grid.Column="0"  -->
         <!--        Content="Target:"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
@@ -118,23 +124,34 @@
         <!--        Content="Direction"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Center" Width="60"/> -->
-        <Button Width="20" Height="20" Margin="3" FontFamily="Wingdings 3" ToolTip="Copy to Destination" FontWeight="ExtraBold" Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue" Content="%"></Button>
+        <Button Width="20" Height="20" Margin="3" Content="&#xF272;" FontFamily="Segoe MDL2 Assets" ToolTip="Copy to Destination" FontWeight="ExtraBold" Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue"></Button>
+
         </StackPanel>
         
-        <local:OutlinedTextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" x:Name="labelDirection" 
-                                             Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"  
-                                             FontFamily="Verdana" FontSize="20pt" 
-                                             FontWeight="ExtraBold" 
-                                             TextWrapping="Wrap" 
-                                             StrokeThickness="1" 
-                                             VerticalAlignment="Center" 
-                                             HorizontalAlignment="Center" 
-                                             TextAlignment="Center" 
-                                             Width="280"
-                                             Stroke="{StaticResource TextStroke}" 
-                                             Fill="{StaticResource TextFill}"
-        />
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"  Orientation="Horizontal">
+            <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3" 
+                     VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" 
+                     Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets" 
+                     ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"></TextBox>
 
+            <local:OutlinedTextBlock x:Name="labelDirection" 
+                                     Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"  
+                                     FontFamily="Verdana" FontSize="20pt" 
+                                     FontWeight="ExtraBold" 
+                                     TextWrapping="Wrap" 
+                                     StrokeThickness="1" 
+                                     VerticalAlignment="Center" 
+                                     HorizontalAlignment="Center" 
+                                     TextAlignment="Center" 
+                                     Width="225"
+                                     Stroke="{StaticResource TextStroke}" 
+                                     Fill="{StaticResource TextFill}"
+            />
+        <TextBox x:Name="rightbutton" 
+                 VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" 
+                 Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets" 
+                 ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"></TextBox>
+        </StackPanel>
        
     </Grid>
 </Window>
