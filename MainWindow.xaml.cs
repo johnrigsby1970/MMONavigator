@@ -13,6 +13,7 @@ namespace MMONavigator;
 //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
 //https://corey255a1.wixsite.com/wundervision/single-post/simple-wpf-compass-control
 //https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
+//https://stackoverflow.com/questions/2842667/how-to-create-a-semi-transparent-window-in-wpf-that-allows-mouse-events-to-pass
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
@@ -35,9 +36,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         Topmost = true;
         _windowHandle = new WindowInteropHelper(this).EnsureHandle();
         HwndSource.FromHwnd(_windowHandle)?.AddHook(HwndHandler);
+        
+        Top = 0; //SystemParameters.PrimaryScreenHeight;
+        Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
         Start();
     }
-
+    
+    // //https://stackoverflow.com/questions/34510416/making-a-wpf-window-click-through-but-not-its-controls
+    // protected override void OnSourceInitialized(EventArgs e)
+    // {
+    //     base.OnSourceInitialized(e);
+    //     var hwnd = new WindowInteropHelper(this).Handle;
+    //     WindowHelper.SetWindowExTransparent(hwnd);
+    // }
+    
     private bool _showSettings;
     public bool ShowSettings {
         get => _showSettings;
@@ -159,11 +171,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     protected virtual void OnClipboardUpdate() {
         try {
-            // var s = Clipboard.GetText();
-            // s = s.Replace("/jumploc ", "");
-            //
-            // s = _rgx.Replace(s, "");
-            // s = s.Trim();
             CurrentCoordinates = ScrubEntry(Clipboard.GetText());
         }
         catch {
@@ -427,10 +434,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         if (ShowSettings) {
             destinationRow.Height = new GridLength(0);
             targetRow.Height = new GridLength(0);
+            minbutton.Width = 0;
+            closebutton.Width = 0;
+            closebutton.Margin = new Thickness(0);
+            minbutton.Margin = new Thickness(0);
+            //settingsbutton.Margin = new Thickness(0);
         }
         else {
             destinationRow.Height = new GridLength(30);
             targetRow.Height = new GridLength(30);
+            minbutton.Width = 20;
+            closebutton.Width = 20;
+            closebutton.Margin = new Thickness(3);
+            minbutton.Margin = new Thickness(3);
+            //settingsbutton.Margin = new Thickness(3);
         }
         
     }

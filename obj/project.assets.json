@@ -15,11 +15,11 @@
   "project": {
     "version": "0.1.0",
     "restore": {
-      "projectUniqueName": "D:\\Source\\repos\\MMONavigator\\MMONavigator\\MMONavigator.csproj",
+      "projectUniqueName": "C:\\Source\\MMONavigator\\MMONavigator.csproj",
       "projectName": "MMONavigator",
-      "projectPath": "D:\\Source\\repos\\MMONavigator\\MMONavigator\\MMONavigator.csproj",
+      "projectPath": "C:\\Source\\MMONavigator\\MMONavigator.csproj",
       "packagesPath": "C:\\Users\\johnr.JR-XPS89\\.nuget\\packages\\",
-      "outputPath": "D:\\Source\\repos\\MMONavigator\\MMONavigator\\obj\\",
+      "outputPath": "C:\\Source\\MMONavigator\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Progress\\ToolboxNuGetPackages",
@@ -56,7 +56,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -80,7 +81,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.408/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.105/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

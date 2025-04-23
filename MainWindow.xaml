@@ -5,72 +5,85 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MMONavigator"
         mc:Ignorable="d"
-        Title="MainWindow" 
-        Width="Auto" Height="Auto" SizeToContent="WidthAndHeight"
-        AllowsTransparency ="True"
-        WindowStyle="None"
-        >
-       <Window.Background>
-              <SolidColorBrush Opacity="0.2" Color="Gray"/>
-       </Window.Background>
-       <Window.Resources>
-              <SolidColorBrush x:Key="TextStroke" Color="black"/>
-              <SolidColorBrush x:Key="TextFill" Color="white"/>
-       </Window.Resources>
+        Title="MainWindow"
+        Width="280" Height="Auto" SizeToContent="WidthAndHeight"
+        AllowsTransparency="True"
+        WindowStartupLocation="Manual"
+        WindowStyle="None">
+    <Window.Background>
+        <SolidColorBrush Opacity="0.0" Color="Gray" />
+    </Window.Background>
+    <Window.Resources>
+        <SolidColorBrush x:Key="TextStroke" Color="black" />
+        <SolidColorBrush x:Key="TextFill" Color="white" />
+        <SolidColorBrush x:Key="TitleBar" Opacity="0.1" Color="White" />
+    </Window.Resources>
     <Grid Name="myGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="105"/>
-            <ColumnDefinition  Width="175"/>
-        </Grid.ColumnDefinitions> 
+            <ColumnDefinition Width="105" />
+            <ColumnDefinition Width="175" />
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-               <RowDefinition Height="30"></RowDefinition>
+            <RowDefinition Height="30"></RowDefinition>
 
-               <!-- <RowDefinition Height="30"/> -->
-            <RowDefinition Height="30" Name="destinationRow"/>
             <!-- <RowDefinition Height="30"/> -->
-            <RowDefinition Height="30" Name="targetRow"/>
-            <RowDefinition Height="50"/>
-        </Grid.RowDefinitions> 
-           
-           <Rectangle Grid.Row="0"  Grid.ColumnSpan="2" Grid.Column="0" Fill="Transparent" MouseLeftButtonDown="Rectangle_MouseLeftButtonDown"></Rectangle>
-           <WrapPanel Grid.Row="0"  Grid.ColumnSpan="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Top" Height="30" Width="Auto">
-               <Button Width="20" Height="20" Margin="3" Content="&#xE713;" FontFamily="Segoe MDL2 Assets" 
-                       ToolTip="Toggle Settings" FontWeight="ExtraBold" 
-                       Click="HideShowSettings_Click" Foreground="White" Background="Transparent"></Button>
+            <RowDefinition Height="30" Name="destinationRow" />
+            <!-- <RowDefinition Height="30"/> -->
+            <RowDefinition Height="30" Name="targetRow" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
 
-               <Button Width="20" Height="20" Margin="3" Click="MinimizeButton_Click" Foreground="White" ToolTip="Minimize" Background="Transparent">_</Button>
-                  <!-- <Button Width="20" Height="20" Margin="5" Click="MaximizeButton_Click">口</Button> -->
-                  <Button Width="20" Height="20" Margin="3" Click="CloseButton_Click" Foreground="White" ToolTip="Close" Background="Transparent">X</Button>
-           </WrapPanel>
+        <Rectangle Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0"
+                   Fill="{StaticResource TitleBar}"
+                   MouseLeftButtonDown="Rectangle_MouseLeftButtonDown">
+        </Rectangle>
+        <WrapPanel Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                   Height="30" Width="Auto">
+            <Button x:Name="settingsbutton" Width="20" Height="20" Margin="3" Content="&#xE713;"
+                    FontFamily="Segoe MDL2 Assets"
+                    ToolTip="Toggle Settings" FontWeight="ExtraBold"
+                    Click="HideShowSettings_Click" Foreground="White" Background="CornflowerBlue">
+            </Button>
+
+            <Button x:Name="minbutton" Width="20" Height="20" Margin="3" Click="MinimizeButton_Click"
+                    Foreground="White" ToolTip="Minimize" Background="CornflowerBlue">
+                _
+            </Button>
+            <!-- <Button Width="20" Height="20" Margin="5" Click="MaximizeButton_Click">口</Button> -->
+            <Button x:Name="closebutton" Width="20" Height="20" Margin="3" Click="CloseButton_Click" Foreground="White"
+                    ToolTip="Close" Background="CornflowerBlue">
+                X
+            </Button>
+        </WrapPanel>
 
         <!-- <Label Grid.Row="1" Grid.Column="0"  -->
         <!--        Content="Target:"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Top" Width="60"/> -->
-        
-        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"  Orientation="Horizontal">
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
+                    Orientation="Horizontal">
             <local:OutlinedTextBlock
-                                     Text="Destination:"  
-                                     FontFamily="Verdana" FontSize="10pt" 
-                                     FontWeight="ExtraBold" 
-                                     TextWrapping="Wrap" 
-                                     StrokeThickness=".5" 
-                                     VerticalAlignment="Center" 
-                                     HorizontalAlignment="Center" 
-                                     TextAlignment="Left" 
-                                     Width="100"
-                                     Margin="5,1,0,0"
-                                     Stroke="{StaticResource TextStroke}" 
-                                     Fill="{StaticResource TextFill}"
-            />
-        
+                Text="Destination:"
+                FontFamily="Verdana" FontSize="10pt"
+                FontWeight="ExtraBold"
+                TextWrapping="Wrap"
+                StrokeThickness=".5"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                TextAlignment="Left"
+                Width="100"
+                Margin="5,1,0,0"
+                Stroke="{StaticResource TextStroke}"
+                Fill="{StaticResource TextFill}" />
+
             <TextBox
-                     Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
-                     Height="20" 
-                     FontSize="8pt" 
-                     VerticalAlignment="Center" Width="140"/>
+                Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                Height="20"
+                FontSize="8pt"
+                VerticalAlignment="Center" Width="140" />
         </StackPanel>
-        
+
         <!-- <Label  -->
         <!--        Grid.Row="2" Grid.Column="0" -->
         <!--        Content="{Binding Tx , UpdateSourceTrigger=PropertyChanged}"   -->
@@ -81,77 +94,82 @@
         <!--        Content="{Binding Ty , UpdateSourceTrigger=PropertyChanged}"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Center" Width="60"/> -->
-        
+
         <!-- <Label  -->
         <!--        Grid.Row="2" Grid.Column="0" Content="Current:"   -->
         <!--        Height="25" Margin="1,1,0,0" -->
         <!--        VerticalAlignment="Center" Width="60"/> -->
-        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"  Orientation="Horizontal">
-        <local:OutlinedTextBlock 
-                                 Text="Location:"  
-                                 FontFamily="Verdana" FontSize="10pt" 
-                                 FontWeight="ExtraBold" 
-                                 TextWrapping="Wrap" 
-                                 StrokeThickness=".5" 
-                                 VerticalAlignment="Center" 
-                                 HorizontalAlignment="Center" 
-                                 TextAlignment="Left" 
-                                 Width="100"
-                                 Margin="5,1,0,0"
-                                 Stroke="{StaticResource TextStroke}" 
-                                 Fill="{StaticResource TextFill}"
-        />
-        
-        <TextBox 
-                 Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  
-                 Height="20" Margin="1,1,0,0"
-                 FontSize="8pt" 
-                 VerticalAlignment="Center" Width="140"/>
-        
-        <!-- <Label  -->
-        <!--        Grid.Row="4" Grid.Column="0" -->
-        <!--        Content="{Binding Cx , UpdateSourceTrigger=PropertyChanged}"   -->
-        <!--        Height="25" Margin="1,1,0,0" -->
-        <!--        VerticalAlignment="Center" Width="60"/> -->
-        <!-- <Label  -->
-        <!--        Grid.Row="4" Grid.Column="1"  -->
-        <!--        Content="{Binding Cy , UpdateSourceTrigger=PropertyChanged}"   -->
-        <!--        Height="25" Margin="1,1,0,0" -->
-        <!--        VerticalAlignment="Center" Width="60"/> -->
-        
-        <!-- <Label  -->
-        <!--        Grid.Row="3"  Grid.Column="0"  -->
-        <!--        Content="Direction"   -->
-        <!--        Height="25" Margin="1,1,0,0" -->
-        <!--        VerticalAlignment="Center" Width="60"/> -->
-        <Button Width="20" Height="20" Margin="3" Content="&#xF272;" FontFamily="Segoe MDL2 Assets" ToolTip="Copy to Destination" FontWeight="ExtraBold" Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue"></Button>
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
+                    Orientation="Horizontal">
+            <local:OutlinedTextBlock
+                Text="Location:"
+                FontFamily="Verdana" FontSize="10pt"
+                FontWeight="ExtraBold"
+                TextWrapping="Wrap"
+                StrokeThickness=".5"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                TextAlignment="Left"
+                Width="100"
+                Margin="5,1,0,0"
+                Stroke="{StaticResource TextStroke}"
+                Fill="{StaticResource TextFill}" />
+
+            <TextBox
+                Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                Height="20" Margin="1,1,0,0"
+                FontSize="8pt"
+                VerticalAlignment="Center" Width="140" />
+
+            <!-- <Label  -->
+            <!--        Grid.Row="4" Grid.Column="0" -->
+            <!--        Content="{Binding Cx , UpdateSourceTrigger=PropertyChanged}"   -->
+            <!--        Height="25" Margin="1,1,0,0" -->
+            <!--        VerticalAlignment="Center" Width="60"/> -->
+            <!-- <Label  -->
+            <!--        Grid.Row="4" Grid.Column="1"  -->
+            <!--        Content="{Binding Cy , UpdateSourceTrigger=PropertyChanged}"   -->
+            <!--        Height="25" Margin="1,1,0,0" -->
+            <!--        VerticalAlignment="Center" Width="60"/> -->
+
+            <!-- <Label  -->
+            <!--        Grid.Row="3"  Grid.Column="0"  -->
+            <!--        Content="Direction"   -->
+            <!--        Height="25" Margin="1,1,0,0" -->
+            <!--        VerticalAlignment="Center" Width="60"/> -->
+            <Button Width="20" Height="20" Margin="3" Content="&#xF272;"
+                    FontFamily="Segoe MDL2 Assets" ToolTip="Copy to Destination" FontWeight="ExtraBold"
+                    Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue">
+            </Button>
 
         </StackPanel>
-        
-        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"  Orientation="Horizontal">
-            <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3" 
-                     VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" 
-                     Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets" 
-                     ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"></TextBox>
 
-            <local:OutlinedTextBlock x:Name="labelDirection" 
-                                     Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"  
-                                     FontFamily="Verdana" FontSize="20pt" 
-                                     FontWeight="ExtraBold" 
-                                     TextWrapping="Wrap" 
-                                     StrokeThickness="1" 
-                                     VerticalAlignment="Center" 
-                                     HorizontalAlignment="Center" 
-                                     TextAlignment="Center" 
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
+                    Orientation="Horizontal">
+            <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
+                     VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
+                     Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets"
+                     ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse">
+            </TextBox>
+
+            <local:OutlinedTextBlock x:Name="labelDirection"
+                                     Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"
+                                     FontFamily="Verdana" FontSize="20pt"
+                                     FontWeight="ExtraBold"
+                                     TextWrapping="Wrap"
+                                     StrokeThickness="1"
+                                     VerticalAlignment="Center"
+                                     HorizontalAlignment="Center"
+                                     TextAlignment="Center"
                                      Width="225"
-                                     Stroke="{StaticResource TextStroke}" 
-                                     Fill="{StaticResource TextFill}"
-            />
-        <TextBox x:Name="rightbutton" 
-                 VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center" 
-                 Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets" 
-                 ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"></TextBox>
+                                     Stroke="{StaticResource TextStroke}"
+                                     Fill="{StaticResource TextFill}" />
+            <TextBox x:Name="rightbutton"
+                     VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
+                     Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets"
+                     ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse">
+            </TextBox>
         </StackPanel>
-       
+
     </Grid>
 </Window>
