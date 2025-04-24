@@ -39,18 +39,23 @@
         </Rectangle>
         <WrapPanel Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Top"
                    Height="30" Width="Auto">
-            <Button x:Name="settingsbutton" Width="20" Height="20" Margin="3" Content="&#xE713;"
-                    FontFamily="Segoe MDL2 Assets"
+            <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
+                    FontFamily="Segoe MDL2 Assets" 
+                    FontSize="12pt"
                     ToolTip="Toggle Settings" FontWeight="ExtraBold"
                     Click="HideShowSettings_Click" Foreground="White" Background="CornflowerBlue">
             </Button>
 
-            <Button x:Name="minbutton" Width="20" Height="20" Margin="3" Click="MinimizeButton_Click"
+            <Button x:Name="minbutton" Width="24" Height="24" 
+                    FontSize="12pt" 
+                    Margin="3" Click="MinimizeButton_Click"
                     Foreground="White" ToolTip="Minimize" Background="CornflowerBlue">
                 _
             </Button>
             <!-- <Button Width="20" Height="20" Margin="5" Click="MaximizeButton_Click">口</Button> -->
-            <Button x:Name="closebutton" Width="20" Height="20" Margin="3" Click="CloseButton_Click" Foreground="White"
+            <Button x:Name="closebutton" Width="24" Height="24" 
+                    FontSize="12pt" 
+                    Margin="3" Click="CloseButton_Click" Foreground="White"
                     ToolTip="Close" Background="CornflowerBlue">
                 X
             </Button>

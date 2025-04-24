@@ -39,6 +39,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         
         Top = 0; //SystemParameters.PrimaryScreenHeight;
         Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
+        leftbutton.Visibility = Visibility.Hidden;
+        rightbutton.Visibility = Visibility.Hidden;
+        ToggleSettings();
         Start();
     }
     
@@ -430,6 +433,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
     
     private void HideShowSettings_Click(object sender, RoutedEventArgs e) {
+        ToggleSettings();
+    }
+
+    private void ToggleSettings() {
         ShowSettings = !ShowSettings;
         if (ShowSettings) {
             destinationRow.Height = new GridLength(0);
@@ -449,7 +456,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             minbutton.Margin = new Thickness(3);
             //settingsbutton.Margin = new Thickness(3);
         }
-        
     }
     
     /// <summary>
