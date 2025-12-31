@@ -7,7 +7,8 @@ Program to provide directions when given destination and current coordinates in 
 I play an online game that copies the current location coordinates to the clipboard when
 a user executes a command. This program will monitor the clipboard and use the current location  
 along with an entered destination location to determine the compass heading necessary to go from the current location
-to the destination location.
+to the destination location. It will update everytime the vurrent location is changed. In the case of this game, every time 
+the user executes /loc which in turn copies a set of coordinates to the system clipbooard.
 
 Destination: 0 0 100
 Location:    0 50 0 0
