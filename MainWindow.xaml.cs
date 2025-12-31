@@ -174,7 +174,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     protected virtual void OnClipboardUpdate() {
         try {
-            CurrentCoordinates = ScrubEntry(Clipboard.GetText());
+            var text = Clipboard.GetText();
+            var value = ScrubEntry(text);
+            if (string.IsNullOrWhiteSpace(value)) return;
+
+            var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2) return;
+
+            foreach (var part in parts) {
+                if (!double.TryParse(part, out _)) {
+                    return;
+                }
+            }
+
+            CurrentCoordinates = value;
         }
         catch {
             GoDirection = string.Empty;
@@ -204,6 +217,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     
     protected virtual void ShowDirection() {
         try {
+            //coordinates can be "x y" or "x z y" or "x z y direction"
             leftbutton.Visibility = Visibility.Hidden;
             rightbutton.Visibility = Visibility.Hidden;
             GoDirection = string.Empty;
@@ -235,11 +249,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                     }
 
                     if (!currentValid) return;
-                    if (coordinates.Length < 3) return;
+                    if (coordinates.Length < 2) return;
 
                     var x1 = double.Parse(coordinates[0]);
                     var x2 = double.Parse(target[0]);
-                    var y1 = double.Parse(coordinates[2]);
+                    var y1 = double.Parse(coordinates.Length== 2 ? coordinates[1]:  coordinates[2]);
                     var y2 = (target.Length > 2) ? double.Parse(target[2]) : double.Parse(target[1]);
 
                     Tx = $"x:{x2}";
@@ -248,8 +262,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                     Cx = $"x:{x1}";
                     Cy = $"y:{y1}";
 
-                    //double direction = GetDirection(double.Parse(target[0]), double.Parse(target[2]), double.Parse(coordinates[0]), double.Parse(coordinates[2]));
-                    double direction = GetDirection(x1, y1, x2, y2);
+                    var direction = GetDirection(x1, y1, x2, y2);
 
                     try {
                         //labelDirection.Foreground = Brushes.White;
@@ -287,11 +300,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                         CorrectionDirection = DetermineDirection();
                         
                         if (CorrectionDirection == "Left") {
-                            //leftbutton.Visibility = Visibility.Visible;
                             rightbutton.Visibility = Visibility.Visible;
                         }
                         if (CorrectionDirection == "Right") {
-                            //rightbutton.Visibility = Visibility.Visible;
                             leftbutton.Visibility = Visibility.Visible;
                         }
                     }
@@ -307,59 +318,41 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     //https://stackoverflow.com/questions/60237767/get-left-or-right-position-from-heading-in-degrees
     private string DetermineDirection() {
-        double diff = (TargetHeading - CurrentHeading + 360) % 360; // Calculate relative difference
-        //if (diff == 0) return "";
-        if (diff > 355 || diff < 5 ) return "";
-        if (diff < 180) {
-            return "Right"; // Target is to the right
-        } else {
-            return "Left";  // Target is to the left
-        }
+        var diff = (TargetHeading - CurrentHeading + 360) % 360; // Calculate relative difference
+        return diff switch {
+            > 355 or < 5 => "",
+            < 180 => "Right",
+            _ => "Left"
+        };
     }
     
     private static string GetCompassDirection(double angle) {
-        // Normalize angle to the range [0, 360)
+        // Normalize the angle to the range [0, 360)
         angle = (angle % 360 + 360) % 360;
 
-        if (angle >= 0 && angle < 22.5) {
-            return "N"; // North
-        }
-        else if (angle >= 22.5 && angle < 67.5) {
-            return "NE"; // Northeast
-        }
-        else if (angle >= 67.5 && angle < 112.5) {
-            return "E"; // East
-        }
-        else if (angle >= 112.5 && angle < 157.5) {
-            return "SE"; // Southeast
-        }
-        else if (angle >= 157.5 && angle < 202.5) {
-            return "S"; // South
-        }
-        else if (angle >= 202.5 && angle < 247.5) {
-            return "SW"; // Southwest
-        }
-        else if (angle >= 247.5 && angle < 292.5) {
-            return "W"; // West
-        }
-        else if (angle >= 292.5 && angle < 337.5) {
-            return "NW"; // Northwest
-        }
-        else {
-            return "N"; // North
-        }
+        return angle switch {
+            >= 0 and < 22.5 => "N",
+            >= 22.5 and < 67.5 => "NE",
+            >= 67.5 and < 112.5 => "E",
+            >= 112.5 and < 157.5 => "SE",
+            >= 157.5 and < 202.5 => "S",
+            >= 202.5 and < 247.5 => "SW",
+            >= 247.5 and < 292.5 => "W",
+            >= 292.5 and < 337.5 => "NW",
+            _ => "N"
+        };
     }
 
     private static double GetDirection(double x1, double y1, double x2, double y2) {
         // Calculate the difference in x and y coordinates
-        double dx = x2 - x1;
-        double dy = y2 - y1;
+        var dx = x2 - x1;
+        var dy = y2 - y1;
 
         // Use Atan2 to calculate the angle in radians
-        double angleRad = Math.Atan2(dy, dx);
+        var angleRad = Math.Atan2(dy, dx);
 
         // Convert the angle from radians to degrees
-        double angleDeg = angleRad * 180 / Math.PI;
+        var angleDeg = angleRad * 180 / Math.PI;
 
         // Normalize the angle to be between 0 and 360 degrees
         while (angleDeg < 0) {
@@ -375,7 +368,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     private static double ReverseAngle(double angleInDegrees) {
         // Ensure the angle is within the 0-360 degree range
-        double normalizedAngle = angleInDegrees % 360;
+        var normalizedAngle = angleInDegrees % 360;
 
         // If the normalized angle is negative, add 360 to make it positive
         if (normalizedAngle < 0) {
@@ -441,21 +434,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         if (ShowSettings) {
             destinationRow.Height = new GridLength(0);
             targetRow.Height = new GridLength(0);
-            minbutton.Width = 0;
-            closebutton.Width = 0;
-            closebutton.Margin = new Thickness(0);
-            minbutton.Margin = new Thickness(0);
-            //settingsbutton.Margin = new Thickness(0);
         }
         else {
             destinationRow.Height = new GridLength(30);
             targetRow.Height = new GridLength(30);
-            minbutton.Width = 20;
-            closebutton.Width = 20;
-            closebutton.Margin = new Thickness(3);
-            minbutton.Margin = new Thickness(3);
-            //settingsbutton.Margin = new Thickness(3);
         }
+    }
+
+    private void TitleBar_MouseEnter(object sender, MouseEventArgs e) {
+        settingsbutton.Visibility = Visibility.Visible;
+        minbutton.Visibility = Visibility.Visible;
+        closebutton.Visibility = Visibility.Visible;
+    }
+
+    private void TitleBar_MouseLeave(object sender, MouseEventArgs e) {
+        settingsbutton.Visibility = Visibility.Collapsed;
+        minbutton.Visibility = Visibility.Collapsed;
+        closebutton.Visibility = Visibility.Collapsed;
     }
     
     /// <summary>

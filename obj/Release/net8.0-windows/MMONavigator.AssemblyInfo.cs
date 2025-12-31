@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyCopyrightAttribute("© 2025 John Rigsby")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+b35b9be33975fd14d58ed3fa3b3d4513bd191967")]
 [assembly: System.Reflection.AssemblyProductAttribute("MMONavigator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MMONavigator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1")]
