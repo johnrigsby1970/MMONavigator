@@ -42,7 +42,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Grid x:Name="dragbutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue"
                       MouseLeftButtonDown="Rectangle_MouseLeftButtonDown" ToolTip="Drag Window">
-                    <TextBlock Text="&#xE7C2;" FontFamily="Segoe Fluent Icons" FontSize="12pt" 
+                    <TextBlock Text="&#xE7C2;" FontFamily="Segoe MDL2 Assets" FontSize="12pt" 
                                Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
                                IsHitTestVisible="False"/>
                 </Grid>
