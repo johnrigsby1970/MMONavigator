@@ -41,7 +41,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         set {
             if (SetField(ref _selectedLocation, value)) {
                 if (value != null) {
-                    TargetCoordinates = value.Coordinates;
+                    TargetCoordinates = value.DisplayName;
                 }
                 OnPropertyChanged(nameof(IsItemInList));
                 OnPropertyChanged(nameof(IsItemNotInList));
@@ -51,7 +51,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     public bool IsItemInList => SelectedLocation != null || Locations.Any(l => {
         var scrubbedL = ScrubEntry(l.Coordinates);
-        var scrubbedT = ScrubEntry(TargetCoordinates);
+        string scrubbedT;
+        if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
+            scrubbedT = ScrubEntry(SelectedLocation.Coordinates) ?? "";
+        } else {
+            scrubbedT = ScrubEntry(TargetCoordinates) ?? "";
+        }
         return !string.IsNullOrEmpty(scrubbedL) && scrubbedL == scrubbedT;
     });
     public bool IsItemNotInList => !IsItemInList;
@@ -300,7 +305,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             var s = ScrubEntry(CurrentCoordinates);//may have been user entered
 
             if (!string.IsNullOrWhiteSpace(TargetCoordinates)) {
-                var scrubbedTarget = ScrubEntry(TargetCoordinates)??"";
+                string scrubbedTarget;
+                if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
+                    scrubbedTarget = ScrubEntry(SelectedLocation.Coordinates) ?? "";
+                } else {
+                    scrubbedTarget = ScrubEntry(TargetCoordinates) ?? "";
+                }
+                
                 var target = scrubbedTarget.Split(' ');
                 
                 var targetValid = true;
