@@ -14,6 +14,7 @@
         <SolidColorBrush Opacity="0.0" Color="Gray" />
     </Window.Background>
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <SolidColorBrush x:Key="TextStroke" Color="black" />
         <SolidColorBrush x:Key="TextFill" Color="white" />
         <SolidColorBrush x:Key="TitleBar" Opacity="0.1" Color="White" />
@@ -26,9 +27,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="30"></RowDefinition>
 
-            <!-- <RowDefinition Height="30"/> -->
             <RowDefinition Height="30" Name="destinationRow" />
-            <!-- <RowDefinition Height="30"/> -->
             <RowDefinition Height="30" Name="targetRow" />
             <RowDefinition Height="50" />
         </Grid.RowDefinitions>
@@ -62,7 +61,6 @@
                         Visibility="Collapsed">
                     _
                 </Button>
-                <!-- <Button Width="20" Height="20" Margin="5" Click="MaximizeButton_Click">口</Button> -->
                 <Button x:Name="closebutton" Width="24" Height="24" 
                         FontSize="12pt" 
                         Margin="3" Click="CloseButton_Click" Foreground="White"
@@ -72,12 +70,7 @@
                 </Button>
             </StackPanel>
         </Grid>
-
-        <!-- <Label Grid.Row="1" Grid.Column="0"  -->
-        <!--        Content="Target:"   -->
-        <!--        Height="25" Margin="1,1,0,0" -->
-        <!--        VerticalAlignment="Top" Width="60"/> -->
-
+        
         <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
                     Orientation="Horizontal">
             <local:OutlinedTextBlock
@@ -94,28 +87,29 @@
                 Stroke="{StaticResource TextStroke}"
                 Fill="{StaticResource TextFill}" />
 
-            <TextBox
-                Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                Height="20"
+            <ComboBox
+                ItemsSource="{Binding Locations}"
+                SelectedItem="{Binding SelectedLocation}"
+                Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                IsEditable="True"
+                DisplayMemberPath="DisplayName"
+                Height="22"
                 FontSize="8pt"
                 VerticalAlignment="Center" Width="140" />
+
+            <Button Width="20" Height="20" Margin="3,0,0,0" Content="+"
+                    ToolTip="Add to List" FontWeight="ExtraBold"
+                    Visibility="{Binding IsItemNotInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Click="AddLocation_Click" Foreground="White" Background="CornflowerBlue">
+            </Button>
+
+            <Button Width="20" Height="20" Margin="3,0,0,0" Content="-"
+                    ToolTip="Remove from List" FontWeight="ExtraBold"
+                    Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Click="RemoveLocation_Click" Foreground="White" Background="OrangeRed">
+            </Button>
         </StackPanel>
 
-        <!-- <Label  -->
-        <!--        Grid.Row="2" Grid.Column="0" -->
-        <!--        Content="{Binding Tx , UpdateSourceTrigger=PropertyChanged}"   -->
-        <!--          Height="25" Margin="1,1,0,0" -->
-        <!--          VerticalAlignment="Center" Width="60"/> -->
-        <!-- <Label  -->
-        <!--        Grid.Row="2" Grid.Column="1"  -->
-        <!--        Content="{Binding Ty , UpdateSourceTrigger=PropertyChanged}"   -->
-        <!--        Height="25" Margin="1,1,0,0" -->
-        <!--        VerticalAlignment="Center" Width="60"/> -->
-
-        <!-- <Label  -->
-        <!--        Grid.Row="2" Grid.Column="0" Content="Current:"   -->
-        <!--        Height="25" Margin="1,1,0,0" -->
-        <!--        VerticalAlignment="Center" Width="60"/> -->
         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
                     Orientation="Horizontal">
             <local:OutlinedTextBlock
@@ -138,22 +132,6 @@
                 FontSize="8pt"
                 VerticalAlignment="Center" Width="140" />
 
-            <!-- <Label  -->
-            <!--        Grid.Row="4" Grid.Column="0" -->
-            <!--        Content="{Binding Cx , UpdateSourceTrigger=PropertyChanged}"   -->
-            <!--        Height="25" Margin="1,1,0,0" -->
-            <!--        VerticalAlignment="Center" Width="60"/> -->
-            <!-- <Label  -->
-            <!--        Grid.Row="4" Grid.Column="1"  -->
-            <!--        Content="{Binding Cy , UpdateSourceTrigger=PropertyChanged}"   -->
-            <!--        Height="25" Margin="1,1,0,0" -->
-            <!--        VerticalAlignment="Center" Width="60"/> -->
-
-            <!-- <Label  -->
-            <!--        Grid.Row="3"  Grid.Column="0"  -->
-            <!--        Content="Direction"   -->
-            <!--        Height="25" Margin="1,1,0,0" -->
-            <!--        VerticalAlignment="Center" Width="60"/> -->
             <Button Width="20" Height="20" Margin="3" Content="&#xF272;"
                     FontFamily="Segoe MDL2 Assets" ToolTip="Copy to Destination" FontWeight="ExtraBold"
                     Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue">

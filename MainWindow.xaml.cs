@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Text.Json;
 
 namespace MMONavigator;
 
@@ -19,6 +22,62 @@ namespace MMONavigator;
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 public partial class MainWindow : Window, INotifyPropertyChanged {
+    public class LocationItem {
+        public string? Name { get; set; }
+        public string? Coordinates { get; set; }
+
+        public string DisplayName {
+            get {
+                if (string.IsNullOrEmpty(Name)) return Coordinates ?? "";
+                return $"{Name} ({Coordinates})";
+            }
+        }
+    }
+    public ObservableCollection<LocationItem> Locations { get; set; } = new();
+
+    private LocationItem? _selectedLocation;
+    public LocationItem? SelectedLocation {
+        get => _selectedLocation;
+        set {
+            if (SetField(ref _selectedLocation, value)) {
+                if (value != null) {
+                    TargetCoordinates = value.Coordinates;
+                }
+                OnPropertyChanged(nameof(IsItemInList));
+                OnPropertyChanged(nameof(IsItemNotInList));
+            }
+        }
+    }
+
+    public bool IsItemInList => SelectedLocation != null || Locations.Any(l => {
+        var scrubbedL = ScrubEntry(l.Coordinates);
+        var scrubbedT = ScrubEntry(TargetCoordinates);
+        return !string.IsNullOrEmpty(scrubbedL) && scrubbedL == scrubbedT;
+    });
+    public bool IsItemNotInList => !IsItemInList;
+
+    private void LoadLocations() {
+        try {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+            if (File.Exists(path)) {
+                string json = File.ReadAllText(path);
+                var list = JsonSerializer.Deserialize<List<LocationItem>>(json);
+                if (list != null) {
+                    Locations.Clear();
+                    foreach (var item in list) Locations.Add(item);
+                }
+            }
+        } catch { }
+    }
+
+    private void SaveLocations() {
+        try {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+            string json = JsonSerializer.Serialize(Locations.ToList());
+            File.WriteAllText(path, json);
+        } catch { }
+    }
+
     private const int WM_CLIPBOARDUPDATE = 0x031D;
     private readonly IntPtr _windowHandle;
     private readonly Regex _rgx = new Regex("[^0-9- .]");
@@ -32,6 +91,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     public MainWindow() {
         InitializeComponent();
+        LoadLocations();
         myGrid.DataContext = this;
         Topmost = true;
         _windowHandle = new WindowInteropHelper(this).EnsureHandle();
@@ -78,9 +138,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     public string? TargetCoordinates {
         get => _targetCoordinates;
         set {
-            _targetCoordinates = value;
-            ShowDirection();
-            OnPropertyChanged();
+            if (SetField(ref _targetCoordinates, value)) {
+                ShowDirection();
+                // If the user typed/pasted something, try to find a matching location item
+                var scrubbed = ScrubEntry(value);
+                var matchingItem = Locations.FirstOrDefault(l => ScrubEntry(l.Coordinates) == scrubbed || value == l.DisplayName);
+                if (matchingItem != null) {
+                    if (_selectedLocation != matchingItem) {
+                        _selectedLocation = matchingItem;
+                        OnPropertyChanged(nameof(SelectedLocation));
+                    }
+                } else {
+                    if (_selectedLocation != null) {
+                        _selectedLocation = null;
+                        OnPropertyChanged(nameof(SelectedLocation));
+                    }
+                }
+                OnPropertyChanged(nameof(IsItemInList));
+                OnPropertyChanged(nameof(IsItemNotInList));
+            }
         }
     }
 
@@ -490,6 +566,42 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
+    private void AddLocation_Click(object sender, RoutedEventArgs e) {
+        var scrubbedTarget = ScrubEntry(TargetCoordinates);
+        if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
+        
+        string name = Microsoft.VisualBasic.Interaction.InputBox("Enter a name for this location:", "Add Location", "");
+        
+        var item = new LocationItem {
+            Name = string.IsNullOrWhiteSpace(name) ? null : name,
+            Coordinates = scrubbedTarget
+        };
+        Locations.Add(item);
+        SelectedLocation = item;
+        SaveLocations();
+    }
+
+    private void RemoveLocation_Click(object sender, RoutedEventArgs e) {
+        var item = SelectedLocation;
+        if (item == null) {
+            var scrubbedTarget = ScrubEntry(TargetCoordinates);
+            item = Locations.FirstOrDefault(l => ScrubEntry(l.Coordinates) == scrubbedTarget);
+        }
+
+        if (item != null) {
+            var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
+            if (result == MessageBoxResult.Yes) {
+                Locations.Remove(item);
+                SelectedLocation = null;
+                // Force update of TargetCoordinates to refresh IsItemInList/IsItemNotInList
+                OnPropertyChanged(nameof(TargetCoordinates));
+                OnPropertyChanged(nameof(IsItemInList));
+                OnPropertyChanged(nameof(IsItemNotInList));
+                SaveLocations();
+            }
+        }
+    }
+
     private void Rectangle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         this.DragMove();
     }
