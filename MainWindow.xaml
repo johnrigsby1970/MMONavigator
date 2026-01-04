@@ -29,6 +29,7 @@
 
             <RowDefinition Height="30" Name="destinationRow" />
             <RowDefinition Height="30" Name="targetRow" />
+            <RowDefinition Height="30" Name="settingsRow" />
             <RowDefinition Height="50" />
         </Grid.RowDefinitions>
 
@@ -140,6 +141,30 @@
         </StackPanel>
 
         <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
+                    Orientation="Horizontal">
+            <local:OutlinedTextBlock
+                Text="Order:"
+                FontFamily="Verdana" FontSize="10pt"
+                FontWeight="ExtraBold"
+                TextWrapping="Wrap"
+                StrokeThickness=".5"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                TextAlignment="Left"
+                Width="100"
+                Margin="5,1,0,0"
+                Stroke="{StaticResource TextStroke}"
+                Fill="{StaticResource TextFill}" />
+
+            <ComboBox
+                ItemsSource="{Binding Settings.AvailableCoordinateOrders}"
+                SelectedItem="{Binding Settings.CoordinateOrder}"
+                Height="22"
+                FontSize="8pt"
+                VerticalAlignment="Center" Width="140" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
                     Orientation="Horizontal">
             <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
                      VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"

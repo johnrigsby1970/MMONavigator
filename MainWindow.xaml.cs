@@ -61,6 +61,44 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     });
     public bool IsItemNotInList => !IsItemInList;
 
+    private AppSettings _settings = new();
+    public AppSettings Settings {
+        get => _settings;
+        set {
+            if (_settings != null) _settings.PropertyChanged -= Settings_PropertyChanged;
+            if (SetField(ref _settings, value)) {
+                if (_settings != null) _settings.PropertyChanged += Settings_PropertyChanged;
+            }
+        }
+    }
+
+    private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(AppSettings.CoordinateOrder)) {
+            ShowDirection();
+        }
+    }
+
+    private void LoadSettings() {
+        try {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            if (File.Exists(path)) {
+                string json = File.ReadAllText(path);
+                var settings = JsonSerializer.Deserialize<AppSettings>(json);
+                if (settings != null) {
+                    Settings = settings;
+                }
+            }
+        } catch { }
+    }
+
+    private void SaveSettings() {
+        try {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            string json = JsonSerializer.Serialize(Settings);
+            File.WriteAllText(path, json);
+        } catch { }
+    }
+
     private void LoadLocations() {
         try {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
@@ -85,17 +123,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     private const int WM_CLIPBOARDUPDATE = 0x031D;
     private readonly IntPtr _windowHandle;
-    private readonly Regex _rgx = new Regex("[^0-9- .]");
-    
-    //https://stackoverflow.com/questions/206717/how-do-i-replace-multiple-spaces-with-a-single-space-in-c
-    private readonly Regex _rgxDoubleSpaces = new Regex("\\s+"); //double spaces (\s)\s+
-    private readonly Regex _rgxFirstWhiteSpaces = new Regex("(\\s)\\s+");//first whitespace
-    private readonly Regex _rgxMoreThanOneSpace = new Regex("[ ]{2,}", RegexOptions.None);  
 
     public event EventHandler? ClipboardUpdate;
 
     public MainWindow() {
         InitializeComponent();
+        _settings.PropertyChanged += Settings_PropertyChanged;
+        LoadSettings();
         LoadLocations();
         myGrid.DataContext = this;
         Topmost = true;
@@ -106,6 +140,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
         leftbutton.Visibility = Visibility.Hidden;
         rightbutton.Visibility = Visibility.Hidden;
+        _showSettings = true;
         ToggleSettings();
         Start();
     }
@@ -275,23 +310,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
-    private string? ScrubEntry(string? value) {
-        try {
-            var s = value??"";
-            s = s.Replace(",", " ");
-            s = s.Replace("/jumploc ", "");
-            //s = _rgxDoubleSpaces.Replace(s, " ");
-            s = _rgxFirstWhiteSpaces.Replace(s, " ");
-            //s = _rgxMoreThanOneSpace.Replace(s, " ");
-            s = _rgx.Replace(s, "");
-            s = s.Trim();
-            return s;
-        }
-        catch {
-            return value;
-        }
-    }
-
+    private string? ScrubEntry(string? value) => Scrubber.ScrubEntry(value);
+  
     private void CopyLocationToDesination_Click(object sender, RoutedEventArgs e) {
         TargetCoordinates = CurrentCoordinates;
     }
@@ -338,10 +358,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
                     if (!currentValid) return;
                     if (coordinates.Length < 2) return;
 
-                    var x1 = double.Parse(coordinates[0]);
-                    var x2 = double.Parse(target[0]);
-                    var y1 = double.Parse(coordinates.Length== 2 ? coordinates[1]:  coordinates[2]);
-                    var y2 = (target.Length > 2) ? double.Parse(target[2]) : double.Parse(target[1]);
+                    double x1, y1, x2, y2;
+                    if (Settings.CoordinateOrder == "y x") {
+                        x1 = double.Parse(coordinates[1]);
+                        y1 = double.Parse(coordinates[0]);
+                        x2 = double.Parse(target[1]);
+                        y2 = double.Parse(target[0]);
+                    } else {
+                        // Default "x z y d"
+                        x1 = double.Parse(coordinates[0]);
+                        x2 = double.Parse(target[0]);
+                        y1 = double.Parse(coordinates.Length == 2 ? coordinates[1] : coordinates[2]);
+                        y2 = (target.Length > 2) ? double.Parse(target[2]) : double.Parse(target[1]);
+                    }
 
                     Tx = $"x:{x2}";
                     Ty = $"y:{y2}";
@@ -521,10 +550,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         if (ShowSettings) {
             destinationRow.Height = new GridLength(0);
             targetRow.Height = new GridLength(0);
+            settingsRow.Height = new GridLength(0);
         }
         else {
             destinationRow.Height = new GridLength(30);
             targetRow.Height = new GridLength(30);
+            settingsRow.Height = new GridLength(30);
         }
     }
 
@@ -568,6 +599,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     /// <param name="sender"></param>
     /// <param name="e"></param>
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
+        SaveSettings();
         Stop();
         Close();
     }
