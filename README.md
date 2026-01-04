@@ -24,7 +24,8 @@ therefore you need to face North and the distance between you and the destinatio
 
 ### Dependencies
 
-* This program is coded to run on Windows 10 and above using .Net 8.
+* This program is coded to run on Windows 10 and above using .Net 8. You may need to install the .Net Desktop Runtime.
+* .NET Desktop Runtime can be found at https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 
 ### Installing
 
