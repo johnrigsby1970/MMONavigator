@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -135,6 +134,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         Topmost = true;
         _windowHandle = new WindowInteropHelper(this).EnsureHandle();
         HwndSource.FromHwnd(_windowHandle)?.AddHook(HwndHandler);
+        KeepOnTop();
+        Deactivated += (s, e) => KeepOnTop();
         
         Top = 0; //SystemParameters.PrimaryScreenHeight;
         Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
@@ -311,124 +312,101 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     }
 
     private string? ScrubEntry(string? value) => Scrubber.ScrubEntry(value);
-  
+
+    private record struct CoordinateData(double X, double Y, double? Heading);
+
+    private CoordinateData? ParseCoordinates(string? input) {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        var scrubbed = ScrubEntry(input);
+        if (string.IsNullOrWhiteSpace(scrubbed)) return null;
+
+        var parts = scrubbed.Split(' ');
+        if (parts.Length < 2) return null;
+
+        if (!double.TryParse(parts[0], out var p0) || !double.TryParse(parts[1], out var p1))
+            return null;
+
+        double? heading = null;
+        if (Settings.CoordinateOrder == "y x") {
+            return new CoordinateData(p1, p0, null);
+        }
+
+        // Default "x z y d"
+        double y = parts.Length == 2 ? p1 : 0;
+        if (parts.Length > 2) {
+            if (double.TryParse(parts[2], out var p2)) {
+                y = p2;
+                if (parts.Length > 3 && double.TryParse(parts[3], out var p3)) {
+                    heading = p3;
+                }
+            }
+        }
+
+        return new CoordinateData(p0, y, heading);
+    }
+
     private void CopyLocationToDesination_Click(object sender, RoutedEventArgs e) {
         TargetCoordinates = CurrentCoordinates;
     }
     
     protected virtual void ShowDirection() {
         try {
-            //coordinates can be "x y" or "x z y" or "x z y direction"
             leftbutton.Visibility = Visibility.Hidden;
             rightbutton.Visibility = Visibility.Hidden;
             GoDirection = string.Empty;
-            var s = ScrubEntry(CurrentCoordinates);//may have been user entered
 
-            if (!string.IsNullOrWhiteSpace(TargetCoordinates)) {
-                string scrubbedTarget;
-                if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
-                    scrubbedTarget = ScrubEntry(SelectedLocation.Coordinates) ?? "";
-                } else {
-                    scrubbedTarget = ScrubEntry(TargetCoordinates) ?? "";
-                }
-                
-                var target = scrubbedTarget.Split(' ');
-                
-                var targetValid = true;
-                foreach (var item in target) {
-                    if (!decimal.TryParse(item, out decimal _)) {
-                        targetValid = false;
-                        //return;
-                    }
-                }
+            var current = ParseCoordinates(CurrentCoordinates);
+            if (current == null) return;
 
-                if (!targetValid) return;
-                if (target.Length <= 1) return;
-
-                 if (!string.IsNullOrWhiteSpace(s)) {
-                    var coordinates = s.Split(' ');
-                    var currentValid = true;
-                    foreach (var item in coordinates) {
-                        if (!decimal.TryParse(item, out decimal _)) {
-                            currentValid = false;
-                            //continue;
-                        }
-                    }
-
-                    if (!currentValid) return;
-                    if (coordinates.Length < 2) return;
-
-                    double x1, y1, x2, y2;
-                    if (Settings.CoordinateOrder == "y x") {
-                        x1 = double.Parse(coordinates[1]);
-                        y1 = double.Parse(coordinates[0]);
-                        x2 = double.Parse(target[1]);
-                        y2 = double.Parse(target[0]);
-                    } else {
-                        // Default "x z y d"
-                        x1 = double.Parse(coordinates[0]);
-                        x2 = double.Parse(target[0]);
-                        y1 = double.Parse(coordinates.Length == 2 ? coordinates[1] : coordinates[2]);
-                        y2 = (target.Length > 2) ? double.Parse(target[2]) : double.Parse(target[1]);
-                    }
-
-                    Tx = $"x:{x2}";
-                    Ty = $"y:{y2}";
-
-                    Cx = $"x:{x1}";
-                    Cy = $"y:{y1}";
-
-                    var direction = GetDirection(x1, y1, x2, y2);
-
-                    try {
-                        //labelDirection.Foreground = Brushes.White;
-                        labelDirection.Fill = Brushes.White;
-                        if (coordinates.Length > 3) {
-                            //4th number is facing in compass degrees
-                            if (double.Parse(coordinates[3]) >= direction - 2 && double.Parse(coordinates[3]) <= direction + 2) {
-                                labelDirection.Fill = Brushes.Green;
-                            }
-                            else if (double.Parse(coordinates[3]) >= direction - 4 && double.Parse(coordinates[3]) <= direction + 4) {
-                                labelDirection.Fill = Brushes.YellowGreen;
-                            }
-                            else if (double.Parse(coordinates[3]) >= direction - 6 && double.Parse(coordinates[3]) <= direction + 6) {
-                                labelDirection.Fill = Brushes.Yellow;
-                            }
-                        }
-                    }
-                    catch {
-                        //ignore
-                    }
-
-                    double distance = Math.Sqrt(Math.Pow(x2 - x1, 2) + Math.Pow(y2 - y1, 2));
-                    if (distance <= 10) {
-                        labelDirection.Fill = Brushes.Green;
-                    }
-
-                    if (target.Length > 3) {
-                        TargetHeading = direction;
-                    }
-                    
-
-                    if (coordinates.Length > 3) {
-                        CurrentHeading = direction;
-                        TargetHeading = double.Parse(coordinates[3]);
-                        CorrectionDirection = DetermineDirection();
-                        
-                        if (CorrectionDirection == "Left") {
-                            rightbutton.Visibility = Visibility.Visible;
-                        }
-                        if (CorrectionDirection == "Right") {
-                            leftbutton.Visibility = Visibility.Visible;
-                        }
-                    }
-                    
-                    GoDirection = GetCompassDirection(direction) + $" {Convert.ToInt32(direction)}\u00b0 {Convert.ToInt32(distance)}";
-                }
+            string targetInput = TargetCoordinates ?? string.Empty;
+            if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
+                targetInput = SelectedLocation.Coordinates ?? string.Empty;
             }
-        }
-        catch {
+            var target = ParseCoordinates(targetInput);
+            if (target == null) return;
+
+            Tx = $"x:{target.Value.X}";
+            Ty = $"y:{target.Value.Y}";
+            Cx = $"x:{current.Value.X}";
+            Cy = $"y:{current.Value.Y}";
+
+            var direction = GetDirection(current.Value.X, current.Value.Y, target.Value.X, target.Value.Y);
+            double distance = Math.Sqrt(Math.Pow(target.Value.X - current.Value.X, 2) + Math.Pow(target.Value.Y - current.Value.Y, 2));
+
+            UpdateDirectionUI(current.Value, target.Value, direction, distance);
+
+            GoDirection = GetCompassDirection(direction) + $" {Convert.ToInt32(direction)}\u00b0 {Convert.ToInt32(distance)}";
+        } catch {
             GoDirection = string.Empty;
+        }
+    }
+
+    private void UpdateDirectionUI(CoordinateData current, CoordinateData target, double direction, double distance) {
+        labelDirection.Fill = Brushes.White;
+
+        if (current.Heading.HasValue) {
+            double h = current.Heading.Value;
+            if (h >= direction - 2 && h <= direction + 2) labelDirection.Fill = Brushes.Green;
+            else if (h >= direction - 4 && h <= direction + 4) labelDirection.Fill = Brushes.YellowGreen;
+            else if (h >= direction - 6 && h <= direction + 6) labelDirection.Fill = Brushes.Yellow;
+        }
+
+        if (distance <= 10) {
+            labelDirection.Fill = Brushes.Green;
+        }
+
+        if (target.Heading.HasValue) {
+            TargetHeading = direction;
+        }
+
+        if (current.Heading.HasValue) {
+            CurrentHeading = direction;
+            TargetHeading = current.Heading.Value;
+            CorrectionDirection = DetermineDirection();
+
+            if (CorrectionDirection == "Left") rightbutton.Visibility = Visibility.Visible;
+            if (CorrectionDirection == "Right") leftbutton.Visibility = Visibility.Visible;
         }
     }
 
@@ -503,6 +481,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     private void Start() {
         NativeMethods.AddClipboardFormatListener(_windowHandle);
+        KeepOnTop();
+    }
+
+    private void KeepOnTop() {
+        NativeMethods.SetWindowPos(_windowHandle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
 
     private void Stop() {
@@ -511,6 +494,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         if (msg == WM_CLIPBOARDUPDATE) {
+            KeepOnTop();
             // fire event
             ClipboardUpdate?.Invoke(this, new EventArgs());
             // execute command
@@ -535,6 +519,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOACTIVATE = 0x0010;
     }
 
     #region Title Bar

@@ -8,6 +8,7 @@
         Title="MainWindow"
         Width="280" Height="Auto" SizeToContent="WidthAndHeight"
         AllowsTransparency="True"
+        Topmost="True"
         WindowStartupLocation="Manual"
         WindowStyle="None">
     <Window.Background>
