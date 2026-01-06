@@ -281,6 +281,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    private double _northRotation;
+    public double NorthRotation {
+        get => _northRotation;
+        set {
+            _northRotation = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private double _destinationRotation;
+    public double DestinationRotation {
+        get => _destinationRotation;
+        set {
+            _destinationRotation = value;
+            OnPropertyChanged();
+        }
+    }
+
     public static readonly DependencyProperty ClipboardUpdateCommandProperty =
         DependencyProperty.Register("ClipboardUpdateCommand", typeof(ICommand), typeof(MainWindow), new FrameworkPropertyMetadata(null));
 
@@ -404,6 +422,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             CurrentHeading = direction;
             TargetHeading = current.Heading.Value;
             CorrectionDirection = DetermineDirection();
+
+            NorthRotation = -TargetHeading;
+            DestinationRotation = CurrentHeading - TargetHeading;
 
             if (CorrectionDirection == "Left") rightbutton.Visibility = Visibility.Visible;
             if (CorrectionDirection == "Right") leftbutton.Visibility = Visibility.Visible;

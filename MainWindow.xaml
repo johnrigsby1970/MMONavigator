@@ -32,6 +32,7 @@
             <RowDefinition Height="30" Name="targetRow" />
             <RowDefinition Height="30" Name="settingsRow" />
             <RowDefinition Height="50" />
+            <RowDefinition Height="120" Name="compassRow" />
         </Grid.RowDefinitions>
 
         <Rectangle Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0"
@@ -191,6 +192,28 @@
                      ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse">
             </TextBox>
         </StackPanel>
+
+        <Grid Grid.Row="5" Grid.ColumnSpan="2" Height="120" Background="Transparent">
+            <!-- Compass Circle -->
+            <Ellipse Width="80" Height="80" Stroke="Gold" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+            <!-- North Indicator -->
+            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RenderTransform>
+                    <RotateTransform Angle="{Binding NorthRotation}" CenterX="40" CenterY="40"/>
+                </Grid.RenderTransform>
+                <Line X1="40" Y1="0" X2="40" Y2="10" Stroke="Gold" StrokeThickness="3"/>
+                <TextBlock Text="N" Foreground="Gold" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-20,0,0"/>
+            </Grid>
+
+            <!-- Destination Dot -->
+            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RenderTransform>
+                    <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40"/>
+                </Grid.RenderTransform>
+                <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"/>
+            </Grid>
+        </Grid>
 
     </Grid>
 </Window>
