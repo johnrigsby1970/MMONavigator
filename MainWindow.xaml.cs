@@ -144,6 +144,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         _showSettings = true;
         ToggleSettings();
         Start();
+
+        // Enable click-through for the entire window if needed, 
+        // but the requirement specifies the circle area and objects.
+        // We handle it in XAML with IsHitTestVisible="False" for the compass row.
     }
     
     // //https://stackoverflow.com/questions/34510416/making-a-wpf-window-click-through-but-not-its-controls
@@ -281,6 +285,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    private int _distanceInt;
+    public int DistanceInt {
+        get => _distanceInt;
+        set {
+            _distanceInt = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private Brush _compassBrush = Brushes.Gold;
+    public Brush CompassBrush {
+        get => _compassBrush;
+        set {
+            _compassBrush = value;
+            OnPropertyChanged();
+        }
+    }
+
     private double _northRotation;
     public double NorthRotation {
         get => _northRotation;
@@ -393,8 +415,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
             double distance = Math.Sqrt(Math.Pow(target.Value.X - current.Value.X, 2) + Math.Pow(target.Value.Y - current.Value.Y, 2));
 
             UpdateDirectionUI(current.Value, target.Value, direction, distance);
-
-            GoDirection = GetCompassDirection(direction) + $" {Convert.ToInt32(direction)}\u00b0 {Convert.ToInt32(distance)}";
+//GoDirection = GetCompassDirection(direction) + $" {Convert.ToInt32(direction)}\u00b0 {Convert.ToInt32(distance)}";
+            GoDirection = "Go " + GetCompassDirection(direction) + $" {Convert.ToInt32(distance)}m";
         } catch {
             GoDirection = string.Empty;
         }
@@ -402,6 +424,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
 
     private void UpdateDirectionUI(CoordinateData current, CoordinateData target, double direction, double distance) {
         labelDirection.Fill = Brushes.White;
+
+        DistanceInt = (int)distance;
+        CompassBrush = distance <= 100 ? Brushes.DodgerBlue : Brushes.Gold;
 
         if (current.Heading.HasValue) {
             double h = current.Heading.Value;
@@ -446,14 +471,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         angle = (angle % 360 + 360) % 360;
 
         return angle switch {
-            >= 0 and < 22.5 => "N",
-            >= 22.5 and < 67.5 => "NE",
-            >= 67.5 and < 112.5 => "E",
-            >= 112.5 and < 157.5 => "SE",
-            >= 157.5 and < 202.5 => "S",
-            >= 202.5 and < 247.5 => "SW",
-            >= 247.5 and < 292.5 => "W",
-            >= 292.5 and < 337.5 => "NW",
+            >= 0 and < 22.5 => "North",
+            >= 22.5 and < 67.5 => "NorthEast",
+            >= 67.5 and < 112.5 => "East",
+            >= 112.5 and < 157.5 => "SouthEastE",
+            >= 157.5 and < 202.5 => "South",
+            >= 202.5 and < 247.5 => "SouthWest",
+            >= 247.5 and < 292.5 => "West",
+            >= 292.5 and < 337.5 => "NorthWest",
             _ => "N"
         };
     }

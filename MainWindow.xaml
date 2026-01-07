@@ -176,7 +176,7 @@
 
             <local:OutlinedTextBlock x:Name="labelDirection"
                                      Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"
-                                     FontFamily="Verdana" FontSize="20pt"
+                                     FontFamily="Verdana" FontSize="12pt"
                                      FontWeight="ExtraBold"
                                      TextWrapping="Wrap"
                                      StrokeThickness="1"
@@ -193,21 +193,90 @@
             </TextBox>
         </StackPanel>
 
-        <Grid Grid.Row="5" Grid.ColumnSpan="2" Height="120" Background="Transparent">
+        <Grid Grid.Row="5" Grid.ColumnSpan="2" Height="120" Background="Transparent" IsHitTestVisible="False">
             <!-- Compass Circle -->
-            <Ellipse Width="80" Height="80" Stroke="Gold" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-            <!-- North Indicator -->
-            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <!-- Distance in center -->
+            <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold" 
+                       HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"/>
+
+            <!-- Indicators -->
+            <Grid Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid.RenderTransform>
-                    <RotateTransform Angle="{Binding NorthRotation}" CenterX="40" CenterY="40"/>
+                    <RotateTransform Angle="{Binding NorthRotation}" CenterX="60" CenterY="60"/>
                 </Grid.RenderTransform>
-                <Line X1="40" Y1="0" X2="40" Y2="10" Stroke="Gold" StrokeThickness="3"/>
-                <TextBlock Text="N" Foreground="Gold" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-20,0,0"/>
+
+                <!-- North -->
+                <Line X1="60" Y1="20" X2="60" Y2="30" Stroke="{Binding CompassBrush}" StrokeThickness="3"/>
+                <TextBlock Text="N" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="14pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"/>
+
+                <!-- NorthEast -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="45" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="NE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
+
+                <!-- East -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="90" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="E" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
+
+                <!-- SouthEast -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="135" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="SE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
+
+                <!-- South -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="180" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="S" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
+
+                <!-- SouthWest -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="225" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="SW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
+
+                <!-- West -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="270" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="W" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
+
+                <!-- NorthWest -->
+                <Grid Width="120" Height="120">
+                    <Grid.RenderTransform>
+                        <RotateTransform Angle="315" CenterX="60" CenterY="60"/>
+                    </Grid.RenderTransform>
+                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
+                    <TextBlock Text="NW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                </Grid>
             </Grid>
 
             <!-- Destination Dot -->
-            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                 <Grid.RenderTransform>
                     <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40"/>
                 </Grid.RenderTransform>
