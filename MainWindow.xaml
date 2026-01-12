@@ -31,7 +31,8 @@
             <RowDefinition Height="30" Name="destinationRow" />
             <RowDefinition Height="30" Name="targetRow" />
             <RowDefinition Height="30" Name="settingsRow" />
-            <RowDefinition Height="50" />
+            <RowDefinition Height="30" Name="timerRow" />
+            <RowDefinition Height="50" Name="directionRow" />
             <RowDefinition Height="120" Name="compassRow" />
         </Grid.RowDefinitions>
 
@@ -52,6 +53,13 @@
                         FontSize="12pt"
                         ToolTip="Toggle Settings" FontWeight="ExtraBold"
                         Click="HideShowSettings_Click" Foreground="White" Background="CornflowerBlue"
+                        Visibility="Collapsed">
+                </Button>
+                <Button x:Name="timerbutton" Width="24" Height="24" Margin="3" Content="&#xED5A;"
+                        FontFamily="Segoe MDL2 Assets" 
+                        FontSize="12pt"
+                        ToolTip="Toggle Timers" FontWeight="ExtraBold"
+                        Click="HideShowTimers_Click" Foreground="White" Background="CornflowerBlue"
                         Visibility="Collapsed">
                 </Button>
             </StackPanel>
@@ -167,6 +175,46 @@
         </StackPanel>
 
         <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
+                    Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button Width="60" Height="24" Margin="3" 
+                    Background="{Binding Timer5.Background}" 
+                    Foreground="{Binding Timer5.Foreground}"
+                    Click="Timer5_Click" FontWeight="Bold">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding Timer5.DisplayText}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Width="60" Height="24" Margin="3" 
+                    Background="{Binding Timer10.Background}" 
+                    Foreground="{Binding Timer10.Foreground}"
+                    Click="Timer10_Click" FontWeight="Bold">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding Timer10.DisplayText}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Width="60" Height="24" Margin="3" 
+                    Background="{Binding Timer15.Background}" 
+                    Foreground="{Binding Timer15.Foreground}"
+                    Click="Timer15_Click" FontWeight="Bold">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding Timer15.DisplayText}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Width="60" Height="24" Margin="3" 
+                    Background="{Binding Timer20.Background}" 
+                    Foreground="{Binding Timer20.Foreground}"
+                    Click="Timer20_Click" FontWeight="Bold">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding Timer20.DisplayText}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
                     Orientation="Horizontal">
             <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
                      VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
@@ -193,7 +241,7 @@
             </TextBox>
         </StackPanel>
 
-        <Grid Grid.Row="5" Grid.ColumnSpan="2" Height="120" Background="Transparent" IsHitTestVisible="False">
+        <Grid Grid.Row="6" Grid.ColumnSpan="2" Height="120" Background="Transparent" IsHitTestVisible="False">
             <!-- Compass Circle -->
             <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 

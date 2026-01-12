@@ -8,6 +8,8 @@ using System.Windows.Media;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Threading;
+using System.Media;
 
 namespace MMONavigator;
 
@@ -33,6 +35,113 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
     public ObservableCollection<LocationItem> Locations { get; set; } = new();
+
+    public class TimerController : INotifyPropertyChanged {
+        private readonly int _initialMinutes;
+        private int _secondsLeft;
+        private DispatcherTimer? _timer;
+        private string _displayText;
+        private Brush _background = Brushes.CornflowerBlue;
+        private Brush _foreground = Brushes.White;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public TimerController(int minutes) {
+            _initialMinutes = minutes;
+            _secondsLeft = minutes * 60;
+            _displayText = minutes.ToString();
+        }
+
+        public string DisplayText {
+            get => _displayText;
+            set {
+                _displayText = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayText)));
+            }
+        }
+
+        public Brush Background {
+            get => _background;
+            set {
+                _background = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Background)));
+            }
+        }
+
+        public Brush Foreground {
+            get => _foreground;
+            set {
+                _foreground = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Foreground)));
+            }
+        }
+
+        public void Toggle() {
+            if (_timer != null) {
+                Stop();
+            } else {
+                Start();
+            }
+        }
+
+        private void Start() {
+            _secondsLeft = _initialMinutes * 60;
+            UpdateDisplay();
+            _timer = new DispatcherTimer {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
+        }
+
+        public void Stop() {
+            if (_timer != null) {
+                _timer.Stop();
+                _timer = null;
+            }
+            _secondsLeft = _initialMinutes * 60;
+            DisplayText = _initialMinutes.ToString();
+            Background = Brushes.CornflowerBlue;
+            Foreground = Brushes.White;
+        }
+
+        private void Timer_Tick(object? sender, EventArgs e) {
+            _secondsLeft--;
+            if (_secondsLeft <= 0) {
+                Stop();
+                SystemSounds.Hand.Play();
+                return;
+            }
+            UpdateDisplay();
+        }
+
+        private void UpdateDisplay() {
+            int minutes = _secondsLeft / 60;
+            int seconds = _secondsLeft % 60;
+            DisplayText = $"{minutes}:{seconds:D2}";
+
+            if (_secondsLeft < 10) {
+                Background = Brushes.Red;
+                Foreground = Brushes.White;
+            } else if (_secondsLeft < 60) {
+                Background = Brushes.Yellow;
+                Foreground = Brushes.Black;
+            } else {
+                Background = Brushes.CornflowerBlue;
+                Foreground = Brushes.White;
+            }
+        }
+    }
+
+    public TimerController Timer5 { get; } = new(5);
+    public TimerController Timer10 { get; } = new(10);
+    public TimerController Timer15 { get; } = new(15);
+    public TimerController Timer20 { get; } = new(20);
+
+    private void Timer5_Click(object sender, RoutedEventArgs e) => Timer5.Toggle();
+    private void Timer10_Click(object sender, RoutedEventArgs e) => Timer10.Toggle();
+    private void Timer15_Click(object sender, RoutedEventArgs e) => Timer15.Toggle();
+    private void Timer20_Click(object sender, RoutedEventArgs e) => Timer20.Toggle();
 
     private LocationItem? _selectedLocation;
     public LocationItem? SelectedLocation {
@@ -141,8 +250,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
         leftbutton.Visibility = Visibility.Hidden;
         rightbutton.Visibility = Visibility.Hidden;
-        _showSettings = true;
+        _showSettings = false; // By default hidden
         ToggleSettings();
+        _showTimers = false; // By default hidden
+        ToggleTimers();
         Start();
 
         // Enable click-through for the entire window if needed, 
@@ -163,6 +274,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         get => _showSettings;
         set {
             _showSettings = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private bool _showTimers;
+    public bool ShowTimers {
+        get => _showTimers;
+        set {
+            _showTimers = value;
             OnPropertyChanged();
         }
     }
@@ -584,6 +704,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         ToggleSettings();
     }
 
+    private void HideShowTimers_Click(object sender, RoutedEventArgs e) {
+        ToggleTimers();
+    }
+
     private void ToggleSettings() {
         ShowSettings = !ShowSettings;
         if (ShowSettings) {
@@ -598,14 +722,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
         }
     }
 
+    private void ToggleTimers() {
+        ShowTimers = !ShowTimers;
+        if (ShowTimers) {
+            timerRow.Height = new GridLength(0);
+        }
+        else {
+            timerRow.Height = new GridLength(30);
+        }
+    }
+
     private void TitleBar_MouseEnter(object sender, MouseEventArgs e) {
         settingsbutton.Visibility = Visibility.Visible;
+        timerbutton.Visibility = Visibility.Visible;
         minbutton.Visibility = Visibility.Visible;
         closebutton.Visibility = Visibility.Visible;
     }
 
     private void TitleBar_MouseLeave(object sender, MouseEventArgs e) {
         settingsbutton.Visibility = Visibility.Collapsed;
+        timerbutton.Visibility = Visibility.Collapsed;
         minbutton.Visibility = Visibility.Collapsed;
         closebutton.Visibility = Visibility.Collapsed;
     }
