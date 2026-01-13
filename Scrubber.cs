@@ -9,7 +9,8 @@ public static class Scrubber {
     public static string? ScrubEntry(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return value;
         
-        //Used AI to alter this code
+        // If the string is unreasonably long for coordinates, ignore it
+        if (value.Length > 100) return value;
         
         // The input to ScrubEntry should never allow multiple lines. If found, return the value
         if (value.Contains('\n') || value.Contains('\r')) return value;

@@ -452,6 +452,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged {
     protected virtual void OnClipboardUpdate() {
         try {
             var text = Clipboard.GetText();
+            if (text.Length > 100) return; 
             var value = ScrubEntry(text);
             if (string.IsNullOrWhiteSpace(value)) return;
 
