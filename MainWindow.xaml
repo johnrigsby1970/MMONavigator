@@ -19,6 +19,9 @@
         <SolidColorBrush x:Key="TextStroke" Color="black" />
         <SolidColorBrush x:Key="TextFill" Color="white" />
         <SolidColorBrush x:Key="TitleBar" Opacity="0.1" Color="White" />
+        <local:MainWindow x:Key="MainWindow" />
+        <x:Static Member="local:MainWindow.StandardRowHeight" x:Key="StandardRowHeight" />
+        <x:Static Member="local:MainWindow.StandardGridRowHeight" x:Key="StandardGridRowHeight" />
     </Window.Resources>
     <Grid Name="myGrid">
         <Grid.ColumnDefinitions>
@@ -26,12 +29,12 @@
             <ColumnDefinition Width="175" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="30"></RowDefinition>
+            <RowDefinition Height="{StaticResource StandardGridRowHeight}"></RowDefinition>
 
-            <RowDefinition Height="30" Name="destinationRow" />
-            <RowDefinition Height="30" Name="targetRow" />
-            <RowDefinition Height="30" Name="settingsRow" />
-            <RowDefinition Height="30" Name="timerRow" />
+            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="destinationRow" />
+            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="targetRow" />
+            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="settingsRow" />
+            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="timerRow" />
             <RowDefinition Height="50" Name="directionRow" />
             <RowDefinition Height="120" Name="compassRow" />
         </Grid.RowDefinitions>
@@ -40,7 +43,7 @@
                    Fill="{StaticResource TitleBar}"
                    MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
         </Rectangle>
-        <Grid Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0" Height="30" VerticalAlignment="Top"
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0" Height="{StaticResource StandardRowHeight}" VerticalAlignment="Top"
               MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button x:Name="dragbutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue"
@@ -111,13 +114,13 @@
             <Button Width="20" Height="20" Margin="3,0,0,0" Content="+"
                     ToolTip="Add to List" FontWeight="ExtraBold"
                     Visibility="{Binding IsItemNotInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Click="AddLocation_Click" Foreground="White" Background="CornflowerBlue">
+                    Command="{Binding AddLocationCommand}" Foreground="White" Background="CornflowerBlue">
             </Button>
 
             <Button Width="20" Height="20" Margin="3,0,0,0" Content="-"
                     ToolTip="Remove from List" FontWeight="ExtraBold"
                     Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Click="RemoveLocation_Click" Foreground="White" Background="OrangeRed">
+                    Command="{Binding RemoveLocationCommand}" Foreground="White" Background="OrangeRed">
             </Button>
         </StackPanel>
 
@@ -145,7 +148,7 @@
 
             <Button Width="20" Height="20" Margin="3" Content="&#xF272;"
                     FontFamily="Segoe MDL2 Assets" ToolTip="Copy to Destination" FontWeight="ExtraBold"
-                    Click="CopyLocationToDesination_Click" Foreground="White" Background="CornflowerBlue">
+                    Command="{Binding CopyLocationToDestinationCommand}" Foreground="White" Background="CornflowerBlue">
             </Button>
 
         </StackPanel>
@@ -179,7 +182,7 @@
             <Button Width="60" Height="24" Margin="3" 
                     Background="{Binding Timer5.Background}" 
                     Foreground="{Binding Timer5.Foreground}"
-                    Click="Timer5_Click" FontWeight="Bold">
+                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <TextBlock Text="{Binding Timer5.DisplayText}" VerticalAlignment="Center"/>
@@ -188,7 +191,7 @@
             <Button Width="60" Height="24" Margin="3" 
                     Background="{Binding Timer10.Background}" 
                     Foreground="{Binding Timer10.Foreground}"
-                    Click="Timer10_Click" FontWeight="Bold">
+                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer10}" FontWeight="Bold">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <TextBlock Text="{Binding Timer10.DisplayText}" VerticalAlignment="Center"/>
@@ -197,7 +200,7 @@
             <Button Width="60" Height="24" Margin="3" 
                     Background="{Binding Timer15.Background}" 
                     Foreground="{Binding Timer15.Foreground}"
-                    Click="Timer15_Click" FontWeight="Bold">
+                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer15}" FontWeight="Bold">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <TextBlock Text="{Binding Timer15.DisplayText}" VerticalAlignment="Center"/>
@@ -206,7 +209,7 @@
             <Button Width="60" Height="24" Margin="3" 
                     Background="{Binding Timer20.Background}" 
                     Foreground="{Binding Timer20.Foreground}"
-                    Click="Timer20_Click" FontWeight="Bold">
+                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer20}" FontWeight="Bold">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
                     <TextBlock Text="{Binding Timer20.DisplayText}" VerticalAlignment="Center"/>
@@ -219,7 +222,8 @@
             <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
                      VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
                      Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets"
-                     ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse">
+                     ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
+                     Visibility="{Binding LeftButtonVisibility}">
             </TextBox>
 
             <local:OutlinedTextBlock x:Name="labelDirection"
@@ -233,11 +237,12 @@
                                      TextAlignment="Center"
                                      Width="225"
                                      Stroke="{StaticResource TextStroke}"
-                                     Fill="{StaticResource TextFill}" />
+                                     Fill="{Binding LabelDirectionFill}" />
             <TextBox x:Name="rightbutton"
                      VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
                      Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets"
-                     ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse">
+                     ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
+                     Visibility="{Binding RightButtonVisibility}">
             </TextBox>
         </StackPanel>
 
@@ -324,11 +329,15 @@
             </Grid>
 
             <!-- Destination Dot -->
-            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                  Visibility="{Binding DestinationVisibility}">
                 <Grid.RenderTransform>
-                    <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40"/>
+                    <TransformGroup>
+                        <TranslateTransform Y="{Binding DestinationOffset}"/>
+                        <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40"/>
+                    </TransformGroup>
                 </Grid.RenderTransform>
-                <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"/>
+                <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
 

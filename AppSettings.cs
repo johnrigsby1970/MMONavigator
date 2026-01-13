@@ -16,6 +16,28 @@ public class AppSettings : INotifyPropertyChanged {
         }
     }
 
+    private bool _showSettings = true;
+    public bool ShowSettings {
+        get => _showSettings;
+        set {
+            if (_showSettings != value) {
+                _showSettings = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private bool _showTimers = false;
+    public bool ShowTimers {
+        get => _showTimers;
+        set {
+            if (_showTimers != value) {
+                _showTimers = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x" };
 
     public event PropertyChangedEventHandler? PropertyChanged;
