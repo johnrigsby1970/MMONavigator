@@ -2,9 +2,47 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace MMONavigator;
+namespace MMONavigator.Models;
+
+public enum WatchMode {
+    Clipboard,
+    File
+}
 
 public class AppSettings : INotifyPropertyChanged {
+    private WatchMode _watchMode = WatchMode.Clipboard;
+    public WatchMode WatchMode {
+        get => _watchMode;
+        set {
+            if (_watchMode != value) {
+                _watchMode = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private string _logFilePath = string.Empty;
+    public string LogFilePath {
+        get => _logFilePath;
+        set {
+            if (_logFilePath != value) {
+                _logFilePath = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private string _logFileRegex = @"Your Location is.*?(-?\d+(?:\.\d+)?)\D+?(-?\d+(?:\.\d+)?)(?:\D+?(-?\d+(?:\.\d+)?))?";
+    public string LogFileRegex {
+        get => _logFileRegex;
+        set {
+            if (_logFileRegex != value) {
+                _logFileRegex = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     private string _coordinateOrder = "x z y d";
     public string CoordinateOrder {
         get => _coordinateOrder;
@@ -38,7 +76,7 @@ public class AppSettings : INotifyPropertyChanged {
         }
     }
 
-    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x" };
+    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x", "x y" };
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -5,11 +5,17 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
 using Microsoft.VisualBasic.CompilerServices;
+using MMONavigator.Helpers;
+using MMONavigator.Interfaces;
+using MMONavigator.Models;
+using MMONavigator.Services;
+using MMONavigator.Views;
 
-namespace MMONavigator;
+namespace MMONavigator.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged {
     private readonly ISettingsService _settingsService;
+    private readonly IWatcherService _watcherService;
     private const double ProximityDistanceThreshold = 100;
     private const double ArrivalDistance = 10;
     private const double CircleRadius = 40;
@@ -107,8 +113,17 @@ public class MainViewModel : INotifyPropertyChanged {
             SaveSettings();
         } else if (e.PropertyName == nameof(AppSettings.ShowSettings) || e.PropertyName == nameof(AppSettings.ShowTimers)) {
             SaveSettings();
+        } else if (e.PropertyName == nameof(AppSettings.WatchMode) ||
+                   e.PropertyName == nameof(AppSettings.LogFilePath) ||
+                   e.PropertyName == nameof(AppSettings.LogFileRegex)) {
+            // Restart watcher when settings change
+            if (_lastWindowHandle != IntPtr.Zero) {
+                StartWatcher(_lastWindowHandle);
+            }
         }
     }
+
+    private IntPtr _lastWindowHandle;
 
     private string? _currentCoordinates = "";
     public string? CurrentCoordinates {
@@ -237,8 +252,19 @@ public class MainViewModel : INotifyPropertyChanged {
     public ICommand RemoveLocationCommand { get; }
     public ICommand TimerCommand { get; }
 
-    public MainViewModel(ISettingsService settingsService) {
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(Settings)) {
+            if (_lastWindowHandle != IntPtr.Zero) {
+                StartWatcher(_lastWindowHandle);
+            }
+        }
+    }
+
+    public MainViewModel(ISettingsService settingsService, IWatcherService watcherService) {
         _settingsService = settingsService;
+        _watcherService = watcherService;
+        _watcherService.LocationUpdated += (s, coords) => CurrentCoordinates = coords;
+        this.PropertyChanged += ViewModel_PropertyChanged;
         SwapSettingsSubscriptions(null, _settings);
         LoadSettings();
         LoadLocations();
@@ -252,7 +278,22 @@ public class MainViewModel : INotifyPropertyChanged {
         });
     }
 
-    public MainViewModel() : this(new SettingsService()) { }
+    public MainViewModel() : this(new SettingsService(), new WatcherService()) { }
+
+    public void StartWatcher(IntPtr windowHandle) {
+        _lastWindowHandle = windowHandle;
+        _watcherService.Start(Settings, windowHandle);
+    }
+
+    public void StopWatcher() {
+        _watcherService.Stop();
+    }
+
+    public void HandleClipboardUpdate() {
+        if (_watcherService is WatcherService ws) {
+            ws.HandleClipboardUpdate();
+        }
+    }
 
     public void LoadSettings() {
         Settings = _settingsService.LoadSettings();
@@ -317,21 +358,44 @@ public class MainViewModel : INotifyPropertyChanged {
         }
     }
 
+    private string? _locationTooltip;
+    public string? LocationTooltip {
+        get => _locationTooltip;
+        set => SetField(ref _locationTooltip, value);
+    }
+
+    private string? _destinationTooltip;
+    public string? DestinationTooltip {
+        get => _destinationTooltip;
+        set => SetField(ref _destinationTooltip, value);
+    }
+
     public void ShowDirection() {
         try {
             LeftButtonVisibility = Visibility.Hidden;
             RightButtonVisibility = Visibility.Hidden;
             DestinationVisibility = Visibility.Hidden;
             GoDirection = string.Empty;
+            LocationTooltip = null;
+            DestinationTooltip = null;
 
-            if (!Scrubber.TryParse(CurrentCoordinates, Settings.CoordinateOrder, out var current)) return;
+            if (Scrubber.TryParse(CurrentCoordinates, Settings.CoordinateOrder, out var current)) {
+                LocationTooltip = FormatTooltip(current);
+            } else {
+                return;
+            }
 
             string targetInput = TargetCoordinates ?? string.Empty;
             string? coordinatesToParse = targetInput;
             if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
                 coordinatesToParse = SelectedLocation.Coordinates;
             }
-            if (!Scrubber.TryParse(coordinatesToParse, Settings.CoordinateOrder, out var target)) return;
+            
+            if (Scrubber.TryParse(coordinatesToParse, Settings.CoordinateOrder, out var target)) {
+                DestinationTooltip = FormatTooltip(target);
+            } else {
+                return;
+            }
 
             DestinationVisibility = Visibility.Visible;
 
@@ -349,6 +413,12 @@ public class MainViewModel : INotifyPropertyChanged {
             System.Diagnostics.Debug.WriteLine($"Error showing direction: {ex.Message}");
             GoDirection = string.Empty;
         }
+    }
+
+    private string FormatTooltip(CoordinateData data) {
+        string zPart = data.Z.HasValue ? $", Z: {data.Z}" : "";
+        string direction = data.Heading.HasValue ? $", Facing: {NavigationCalculator.GetCompassDirection(data.Heading.Value)} ({data.Heading.Value:F1}°)" : "";
+        return $"X: {data.X}, Y: {data.Y}{zPart}{direction}";
     }
 
     private void UpdateDirectionUI(CoordinateData current, CoordinateData target, double direction, double distance) {

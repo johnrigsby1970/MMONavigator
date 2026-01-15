@@ -5,7 +5,7 @@ using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Windows.Media;
 
-namespace MMONavigator;
+namespace MMONavigator.Controls;
 
 //https://stackoverflow.com/questions/93650/apply-stroke-to-a-textblock-in-wpf
 //https://learn.microsoft.com/en-us/windows/apps/develop/platform/xaml/xaml-resource-dictionary

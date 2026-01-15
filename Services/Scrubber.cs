@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace MMONavigator;
+namespace MMONavigator.Services;
 
-public record struct CoordinateData(double X, double Y, double? Heading);
+public record struct CoordinateData(double X, double Y, double? Z, double? Heading);
 
 public static class Scrubber {
     private static readonly Regex _numericRegex = new Regex(@"-?\d+(\.\d+)?", RegexOptions.Compiled);
@@ -19,6 +19,8 @@ public static class Scrubber {
     private const byte DirectionIndexInIndexInXZYD = 3;
     private const byte YIndexInXY = 1;
     
+    private const byte ZIndexInXZY = 1;
+
     public static bool TryParse(string? input, string coordinateOrder, out CoordinateData result) {
         result = default;
         var scrubbed = ScrubEntry(input);
@@ -33,17 +35,24 @@ public static class Scrubber {
         }
 
         if (coordinateOrder == "y x") {
-            result = new CoordinateData(values[XIndexInYX], values[YIndexInYX], null);
+            result = new CoordinateData(values[XIndexInYX], values[YIndexInYX], null, null);
+            return true;
+        }
+
+        if (coordinateOrder == "x y") {
+            result = new CoordinateData(values[XIndexInXY], values[YIndexInXY], null, null);
             return true;
         }
 
         // Default "x z y d"
         double x = values[XIndexInXZY];
         double y = DefaultY;
+        double? z = null;
         double? heading = null;
     
         //x z y and a possible fourth component of the direction (or facing)
         if (values.Length >= CoordinateCountForNorthUpSouth) {
+            z = values[ZIndexInXZY];
             y = values[YIndexInXZY];
             if (values.Length >= MaxCoordinateComponents) {
                 heading = values[DirectionIndexInIndexInXZYD];
@@ -53,7 +62,7 @@ public static class Scrubber {
             y = values[YIndexInXY];
         }
 
-        result = new CoordinateData(x, y, heading);
+        result = new CoordinateData(x, y, z, heading);
         return true;
     }
     

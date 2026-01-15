@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Input;
 
-namespace MMONavigator;
+namespace MMONavigator.Views;
 
 public partial class InputDialog : Window {
     public string Answer => InputTextBox.Text;

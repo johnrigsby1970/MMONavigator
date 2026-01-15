@@ -3,7 +3,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Media;
 
-namespace MMONavigator;
+namespace MMONavigator.Services;
 
 public class TimerController : INotifyPropertyChanged {
     private readonly int _initialMinutes;

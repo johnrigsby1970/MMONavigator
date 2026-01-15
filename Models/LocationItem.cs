@@ -1,4 +1,4 @@
-﻿namespace MMONavigator;
+﻿namespace MMONavigator.Models;
 
 public class LocationItem {
     public string? Name { get; set; }

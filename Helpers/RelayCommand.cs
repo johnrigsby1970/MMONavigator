@@ -1,6 +1,6 @@
 ﻿using System.Windows.Input;
 
-namespace MMONavigator;
+namespace MMONavigator.Helpers;
 
 public class RelayCommand : ICommand {
     private readonly Action<object?> _execute;

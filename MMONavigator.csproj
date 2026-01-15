@@ -13,4 +13,11 @@
         <AssemblyVersion>0.1</AssemblyVersion>
     </PropertyGroup>
 
+    <ItemGroup>
+        <Compile Remove="MMONavigator.Tests\**" />
+        <EmbeddedResource Remove="MMONavigator.Tests\**" />
+        <None Remove="MMONavigator.Tests\**" />
+        <Page Remove="MMONavigator.Tests\**" />
+    </ItemGroup>
+
 </Project>

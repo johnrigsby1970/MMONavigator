@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using MMONavigator.Models;
 
-namespace MMONavigator;
+namespace MMONavigator.Services;
 
 public interface ISettingsService {
     AppSettings LoadSettings();

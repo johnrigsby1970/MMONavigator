@@ -1,4 +1,4 @@
-﻿namespace MMONavigator;
+﻿namespace MMONavigator.Services;
 
 public static class NavigationCalculator {
     private const byte RightOfStraightThreshold = 5;
