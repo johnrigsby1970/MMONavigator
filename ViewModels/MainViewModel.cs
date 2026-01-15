@@ -22,6 +22,8 @@ public class MainViewModel : INotifyPropertyChanged {
     private const double HeadingTolerancePerfect = 2.0;
     private const double HeadingToleranceGood = 4.0;
     private const double HeadingToleranceFair = 6.0;
+    private const double MovementThreshold = 1.0;
+    private CoordinateData? _lastCoordinateData;
     
     public ObservableCollection<LocationItem> Locations { get; set; } = new();
 
@@ -381,6 +383,19 @@ public class MainViewModel : INotifyPropertyChanged {
 
             if (Scrubber.TryParse(CurrentCoordinates, Settings.CoordinateOrder, out var current)) {
                 LocationTooltip = FormatTooltip(current);
+                
+                if (!current.Heading.HasValue && _lastCoordinateData.HasValue) {
+                    double moveDistance = Math.Sqrt(Math.Pow(current.X - _lastCoordinateData.Value.X, 2) + Math.Pow(current.Y - _lastCoordinateData.Value.Y, 2));
+                    if (moveDistance >= MovementThreshold) {
+                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X, _lastCoordinateData.Value.Y, current.X, current.Y);
+                        current = current with { Heading = movementHeading };
+                    }
+                    else {
+                        // If not moving, maintain last heading if it existed
+                        current = current with { Heading = _lastCoordinateData.Value.Heading };
+                    }
+                }
+                _lastCoordinateData = current;
             } else {
                 return;
             }
