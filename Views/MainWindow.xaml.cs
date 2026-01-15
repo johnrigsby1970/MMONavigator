@@ -298,6 +298,7 @@ public partial class MainWindow : Window {
             _viewModel.Settings.LogFilePath = dialog.LogFilePath;
             _viewModel.Settings.LogFileRegex = dialog.LogFileRegex;
             _viewModel.Settings.CoordinateOrder = dialog.CoordinateOrder;
+            _viewModel.Settings.CoordinateSystem = dialog.CoordinateSystem;
             
             _viewModel.SaveSettings();
         }

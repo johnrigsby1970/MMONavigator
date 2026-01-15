@@ -9,6 +9,11 @@ public enum WatchMode {
     File
 }
 
+public enum CoordinateSystem {
+    RightHanded, // +X = East, +Y = North
+    LeftHanded   // +X = West, +Y = North
+}
+
 public class AppSettings : INotifyPropertyChanged {
     private WatchMode _watchMode = WatchMode.Clipboard;
     public WatchMode WatchMode {
@@ -16,6 +21,17 @@ public class AppSettings : INotifyPropertyChanged {
         set {
             if (_watchMode != value) {
                 _watchMode = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
+    public CoordinateSystem CoordinateSystem {
+        get => _coordinateSystem;
+        set {
+            if (_coordinateSystem != value) {
+                _coordinateSystem = value;
                 OnPropertyChanged();
             }
         }
@@ -76,7 +92,7 @@ public class AppSettings : INotifyPropertyChanged {
         }
     }
 
-    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x", "x y" };
+    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x z", "x y z" };
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

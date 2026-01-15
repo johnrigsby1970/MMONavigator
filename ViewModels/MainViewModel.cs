@@ -110,7 +110,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
-        if (e.PropertyName == nameof(AppSettings.CoordinateOrder)) {
+        if (e.PropertyName == nameof(AppSettings.CoordinateOrder) || e.PropertyName == nameof(AppSettings.CoordinateSystem)) {
             ShowDirection();
             SaveSettings();
         } else if (e.PropertyName == nameof(AppSettings.ShowSettings) || e.PropertyName == nameof(AppSettings.ShowTimers)) {
@@ -387,7 +387,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 if (!current.Heading.HasValue && _lastCoordinateData.HasValue) {
                     double moveDistance = Math.Sqrt(Math.Pow(current.X - _lastCoordinateData.Value.X, 2) + Math.Pow(current.Y - _lastCoordinateData.Value.Y, 2));
                     if (moveDistance >= MovementThreshold) {
-                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X, _lastCoordinateData.Value.Y, current.X, current.Y);
+                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X, _lastCoordinateData.Value.Y, current.X, current.Y, Settings.CoordinateSystem);
                         current = current with { Heading = movementHeading };
                     }
                     else {
@@ -419,7 +419,7 @@ public class MainViewModel : INotifyPropertyChanged {
             Cx = $"x:{current.X}";
             Cy = $"y:{current.Y}";
 
-            var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y);
+            var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y, Settings.CoordinateSystem);
             double distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
 
             UpdateDirectionUI(current, target, direction, distance);

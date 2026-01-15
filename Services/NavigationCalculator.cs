@@ -1,4 +1,6 @@
-﻿namespace MMONavigator.Services;
+﻿using MMONavigator.Models;
+
+namespace MMONavigator.Services;
 
 public static class NavigationCalculator {
     private const byte RightOfStraightThreshold = 5;
@@ -22,7 +24,7 @@ public static class NavigationCalculator {
         };
     }
 
-    public static double GetDirection(double x1, double y1, double x2, double y2) {
+    public static double GetDirection(double x1, double y1, double x2, double y2, CoordinateSystem coordinateSystem = CoordinateSystem.RightHanded) {
         //We need to account for Cartesian vs. Compass. Where standard math
         //(Cartesian), 0° is Right (East), and 90° is Up (North). Like on a protractor.
         //In the game, 0° is Up (North), and 90° is Right (East).
@@ -32,12 +34,14 @@ public static class NavigationCalculator {
 
         var dx = x2 - x1;
         var dy = y2 - y1;
-        // var angleRad = Math.Atan2(dy, dx);
-        // var angleDeg = angleRad * 180 / Math.PI;
-        // while (angleDeg < 0) angleDeg += 360;
-        // while (angleDeg >= 360) angleDeg -= 360;
-        // return ReverseAngle(angleDeg);
-        
+
+        if (coordinateSystem == CoordinateSystem.LeftHanded) {
+            // In left-handed system, +X is West.
+            // Standard Navigation expects +X to be East.
+            // So we negate dx to treat it as if +X was East.
+            dx = -dx;
+        }
+
         // By swapping dx and dy, 0 degrees becomes North (Up) 
         // and positive results go Clockwise (East).
         var angleRad = Math.Atan2(dx, dy);

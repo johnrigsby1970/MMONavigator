@@ -12,6 +12,7 @@ public partial class WatcherConfigurationDialog : Window {
     public string LogFilePath => FilePathTextBox.Text;
     public string LogFileRegex => RegexTextBox.Text;
     public string CoordinateOrder => OrderComboBox.SelectedItem?.ToString() ?? "x z y d";
+    public CoordinateSystem CoordinateSystem => (CoordinateSystem)SystemComboBox.SelectedItem;
 
     public WatcherConfigurationDialog(AppSettings settings) {
         InitializeComponent();
@@ -25,6 +26,9 @@ public partial class WatcherConfigurationDialog : Window {
         FilePathTextBox.Text = settings.LogFilePath;
         RegexTextBox.Text = settings.LogFileRegex;
         
+        SystemComboBox.ItemsSource = Enum.GetValues(typeof(CoordinateSystem));
+        SystemComboBox.SelectedItem = settings.CoordinateSystem;
+
         OrderComboBox.ItemsSource = settings.AvailableCoordinateOrders;
         OrderComboBox.SelectedItem = settings.CoordinateOrder;
     }
