@@ -30,12 +30,6 @@ public partial class MainWindow : Window {
     private const int WM_CLIPBOARDUPDATE = 0x031D;
     private readonly IntPtr _windowHandle;
 
-    public event EventHandler? ClipboardUpdate;
-
-    private FileSystemWatcher? _fileWatcher;
-    private long _lastFilePosition = 0;
-    private readonly object _fileLock = new object();
-
     public MainWindow() {
         InitializeComponent();
         _viewModel = new MainViewModel();
@@ -61,23 +55,21 @@ public partial class MainWindow : Window {
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
 
-        Start();
+        _viewModel.StartWatcher(_windowHandle);
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainViewModel.Settings)) {
-            System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] ViewModel.Settings changed, re-subscribing");
             _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
-            Start();
+            _viewModel.StartWatcher(_windowHandle);
         }
     }
 
     private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
-        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] MainWindow.Settings_PropertyChanged: {e.PropertyName}");
         if (e.PropertyName == nameof(AppSettings.WatchMode) || 
             e.PropertyName == nameof(AppSettings.LogFilePath) ||
             e.PropertyName == nameof(AppSettings.LogFileRegex)) {
-            Start();
+            _viewModel.StartWatcher(_windowHandle);
         }
     }
 
@@ -93,151 +85,8 @@ public partial class MainWindow : Window {
         set => _showTimers = value;
     }
 
-    private void OnClipboardUpdate() {
-        if (_viewModel.Settings.WatchMode != WatchMode.Clipboard) return;
-        try {
-            var text = Clipboard.GetText();
-            if (string.IsNullOrEmpty(text)) return;
-            if (text.Length > Scrubber.MaxLength) return;
-
-            if (Scrubber.TryParse(text, _viewModel.Settings.CoordinateOrder, out _)) {
-                _viewModel.CurrentCoordinates = Scrubber.ScrubEntry(text) ?? string.Empty;
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Clipboard updated: {_viewModel.CurrentCoordinates}");
-            }
-        }
-        catch (COMException) {
-            // Clipboard might be locked by another process
-        }
-        catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine($"Error processing clipboard: {ex.Message}");
-            _viewModel.GoDirection = string.Empty;
-        }
-    }
-
-    private void Start() {
-        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Starting watcher, Mode: {_viewModel.Settings.WatchMode}");
-        Stop();
-        if (_viewModel.Settings.WatchMode == WatchMode.Clipboard) {
-            NativeMethods.AddClipboardFormatListener(_windowHandle);
-        } else {
-            SetupFileWatcher();
-        }
-        KeepOnTop();
-    }
-
-    private void SetupFileWatcher() {
-        if (string.IsNullOrEmpty(_viewModel.Settings.LogFilePath)) {
-            System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Log file path is empty, not starting watcher.");
-            return;
-        }
-
-        try {
-            string? directory = Path.GetDirectoryName(_viewModel.Settings.LogFilePath);
-            string? fileName = Path.GetFileName(_viewModel.Settings.LogFilePath);
-
-            if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName)) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid path or filename: {directory} / {fileName}");
-                return;
-            }
-
-            if (!Directory.Exists(directory)) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Directory does not exist: {directory}");
-                return;
-            }
-
-            _fileWatcher = new FileSystemWatcher(directory, fileName);
-            _fileWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime;
-            _fileWatcher.Changed += OnFileChanged;
-            _fileWatcher.Created += OnFileChanged;
-            _fileWatcher.Deleted += OnFileDeleted;
-            _fileWatcher.Renamed += (s, e) => OnFileChanged(s, e);
-            _fileWatcher.EnableRaisingEvents = true;
-
-            // Initial read to end
-            InitializeFilePosition();
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher setup for: {_viewModel.Settings.LogFilePath}");
-        }
-        catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Error setting up file watcher: {ex.Message}");
-        }
-    }
-
-    private void InitializeFilePosition() {
-        lock (_fileLock) {
-            if (File.Exists(_viewModel.Settings.LogFilePath)) {
-                using (var stream = new FileStream(_viewModel.Settings.LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                    _lastFilePosition = stream.Length;
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Initial file position: {_lastFilePosition}");
-                }
-            } else {
-                _lastFilePosition = 0;
-            }
-        }
-    }
-
-    private void OnFileChanged(object sender, FileSystemEventArgs e) {
-        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] File changed: {e.ChangeType} - {e.FullPath}");
-        lock (_fileLock) {
-            if (!File.Exists(e.FullPath)) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] File does not exist: {e.FullPath}");
-                return;
-            }
-
-            try {
-                using (var stream = new FileStream(e.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Stream length: {stream.Length}, Last position: {_lastFilePosition}");
-                    if (stream.Length < _lastFilePosition) {
-                        // File was probably truncated or replaced
-                        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] File truncated. Resetting position.");
-                        _lastFilePosition = 0;
-                    }
-
-                    if (stream.Length > _lastFilePosition) {
-                        stream.Position = _lastFilePosition;
-                        using (var reader = new StreamReader(stream)) {
-                            string? line;
-                            string? lastMatch = null;
-                            while ((line = reader.ReadLine()) != null) {
-                                if (string.IsNullOrWhiteSpace(line)) continue;
-                                if (LogParser.TryParseLogLine(line, _viewModel.Settings.LogFileRegex, out string coordinates)) {
-                                    lastMatch = coordinates;
-                                }
-                            }
-
-                            if (lastMatch != null) {
-                                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Updating coordinates to: {lastMatch}");
-                                Dispatcher.Invoke(() => {
-                                    _viewModel.CurrentCoordinates = lastMatch;
-                                });
-                            }
-                            _lastFilePosition = stream.Position;
-                        }
-                    }
-                }
-            }
-            catch (IOException ex) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] IOException reading log file: {ex.Message}");
-            }
-            catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Error reading log file: {ex.Message}");
-            }
-        }
-    }
-
-    private void OnFileDeleted(object sender, FileSystemEventArgs e) {
-        lock (_fileLock) {
-            _lastFilePosition = 0;
-        }
-    }
-
     private void Stop() {
-        System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Stopping watcher");
-        NativeMethods.RemoveClipboardFormatListener(_windowHandle);
-        if (_fileWatcher != null) {
-            _fileWatcher.EnableRaisingEvents = false;
-            _fileWatcher.Dispose();
-            _fileWatcher = null;
-        }
+        _viewModel.StopWatcher();
     }
 
     private void KeepOnTop() {
@@ -250,11 +99,7 @@ public partial class MainWindow : Window {
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         if (msg == WM_CLIPBOARDUPDATE) {
             KeepOnTop();
-            // fire event
-            ClipboardUpdate?.Invoke(this, new EventArgs());
-
-            // call virtual method
-            OnClipboardUpdate();
+            _viewModel.HandleClipboardUpdate();
         }
 
         handled = false;
@@ -364,7 +209,7 @@ public partial class MainWindow : Window {
     protected override void OnClosed(EventArgs e) {
         _viewModel.SaveSettings();
         HwndSource.FromHwnd(_windowHandle)?.RemoveHook(HwndHandler);
-        Stop();
+        _viewModel.StopWatcher();
         base.OnClosed(e);
     }
 

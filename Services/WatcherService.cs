@@ -134,6 +134,7 @@ public class WatcherService : IWatcherService {
                             while ((line = reader.ReadLine()) != null) {
                                 if (string.IsNullOrWhiteSpace(line)) continue;
                                 if (LogParser.TryParseLogLine(line, _settings.LogFileRegex, out string coordinates)) {
+                                    System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Log parsed: {coordinates}");
                                     lastMatch = coordinates;
                                 }
                             }
