@@ -266,10 +266,17 @@ public class MainViewModel : INotifyPropertyChanged {
         set => SetField(ref _labelDirectionFill, value);
     }
 
+    private Visibility _showCoffeeIcon = Visibility.Collapsed;
+    public Visibility ShowCoffeeIcon {
+        get => _showCoffeeIcon;
+        set => SetField(ref _showCoffeeIcon, value);
+    }
+
     public ICommand CopyLocationToDestinationCommand { get; }
     public ICommand AddLocationCommand { get; }
     public ICommand RemoveLocationCommand { get; }
     public ICommand TimerCommand { get; }
+    public ICommand BuyMeACoffeeCommand { get; }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(Settings)) {
@@ -294,6 +301,16 @@ public class MainViewModel : INotifyPropertyChanged {
         RemoveLocationCommand = new RelayCommand(_ => RemoveLocation());
         TimerCommand = new RelayCommand(p => {
             if (p is TimerController timer) timer.Toggle();
+        });
+        BuyMeACoffeeCommand = new RelayCommand(_ => {
+            try {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+                    FileName = "https://buymeacoffee.com/johnrigsby",
+                    UseShellExecute = true
+                });
+            } catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Error opening URL: {ex.Message}");
+            }
         });
     }
 
@@ -458,6 +475,7 @@ public class MainViewModel : INotifyPropertyChanged {
 
         DistanceInt = (int)distance;
         CompassBrush = distance <= ProximityDistanceThreshold ? Brushes.DodgerBlue : Brushes.Gold;
+        ShowCoffeeIcon = distance <= ArrivalDistance ? Visibility.Visible : Visibility.Collapsed;
 
         if (current.Heading.HasValue) {
             double h = current.Heading.Value;

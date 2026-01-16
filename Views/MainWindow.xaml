@@ -231,16 +231,30 @@
             </TextBox>
         </StackPanel>
 
-        <Grid Grid.Row="6" Grid.ColumnSpan="2" Height="120" Background="Transparent" IsHitTestVisible="False">
-            <!-- Compass Circle -->
-            <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Grid Grid.Row="6" Grid.ColumnSpan="2" Height="120" Background="Transparent">
+            <Grid IsHitTestVisible="False">
+                <!-- Compass Circle -->
+                <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-            <!-- Distance in center -->
-            <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold" 
-                       HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"/>
+                <!-- Distance in center -->
+                <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold" 
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"/>
+            </Grid>
+
+            <!-- Coffee cup icon -->
+            <Button Command="{Binding BuyMeACoffeeCommand}"
+                    Visibility="{Binding ShowCoffeeIcon}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Margin="100,100,0,0"
+                    Background="Transparent" BorderThickness="0"
+                    Padding="0" Cursor="Hand"
+                    ToolTip="Buy me a coffee!">
+                <TextBlock Text="&#xE8E1;" FontFamily="Segoe MDL2 Assets" 
+                           FontSize="10pt" Foreground="{Binding CompassBrush}"/>
+            </Button>
 
             <!-- Indicators -->
-            <Grid Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                 <Grid.RenderTransform>
                     <RotateTransform Angle="{Binding NorthRotation}" CenterX="60" CenterY="60"/>
                 </Grid.RenderTransform>
