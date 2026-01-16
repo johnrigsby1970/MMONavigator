@@ -15,6 +15,9 @@ public static class Scrubber {
     private const byte XIndexInXY = 0;
     private const byte XIndexInYX = 1;
     private const byte YIndexInYX = 0;
+    private const byte XIndexInYXZ = 1;
+    private const byte YIndexInYXZ = 0;
+    private const byte ZIndexInYXZ = 2;
     private const byte YIndexInXZY = 2;
     private const byte DirectionIndexInIndexInXZYD = 3;
     private const byte YIndexInXY = 1;
@@ -36,6 +39,12 @@ public static class Scrubber {
 
         if (coordinateOrder == "y x") {
             result = new CoordinateData(values[XIndexInYX], values[YIndexInYX], null, null);
+            return true;
+        }
+
+        if (coordinateOrder == "y x z") {
+            double zVal = values.Length > ZIndexInYXZ ? values[ZIndexInYXZ] : 0;
+            result = new CoordinateData(values[XIndexInYXZ], values[YIndexInYXZ], zVal, null);
             return true;
         }
 

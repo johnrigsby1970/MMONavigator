@@ -103,25 +103,42 @@ public class MainViewModel : INotifyPropertyChanged {
     private void SwapSettingsSubscriptions(AppSettings? oldSettings, AppSettings? newSettings) {
         if (oldSettings != null) {
             oldSettings.PropertyChanged -= Settings_PropertyChanged;
+            foreach (var profile in oldSettings.Profiles) {
+                profile.PropertyChanged -= Profile_PropertyChanged;
+            }
         }
         if (newSettings != null) {
             newSettings.PropertyChanged += Settings_PropertyChanged;
+            foreach (var profile in newSettings.Profiles) {
+                profile.PropertyChanged -= Profile_PropertyChanged; // Prevent double subscription
+                profile.PropertyChanged += Profile_PropertyChanged;
+            }
+        }
+    }
+
+    private void Profile_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (sender is GameProfile profile && profile.Name == Settings.LastSelectedProfileName) {
+            ShowDirection();
+            if (e.PropertyName == nameof(GameProfile.WatchMode) || e.PropertyName == nameof(GameProfile.LogFilePath)) {
+                if (_lastWindowHandle != IntPtr.Zero) {
+                    StartWatcher(_lastWindowHandle);
+                }
+            }
+            SaveSettings();
         }
     }
 
     private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
-        if (e.PropertyName == nameof(AppSettings.CoordinateOrder) || e.PropertyName == nameof(AppSettings.CoordinateSystem)) {
+        if (e.PropertyName == nameof(AppSettings.LastSelectedProfileName)) {
+            // Re-subscribe to the new SelectedProfile if needed, but since we use the property directly,
+            // we just need to trigger a refresh of things that depend on it.
+            if (_lastWindowHandle != IntPtr.Zero) {
+                StartWatcher(_lastWindowHandle);
+            }
             ShowDirection();
             SaveSettings();
         } else if (e.PropertyName == nameof(AppSettings.ShowSettings) || e.PropertyName == nameof(AppSettings.ShowTimers)) {
             SaveSettings();
-        } else if (e.PropertyName == nameof(AppSettings.WatchMode) ||
-                   e.PropertyName == nameof(AppSettings.LogFilePath) ||
-                   e.PropertyName == nameof(AppSettings.LogFileRegex)) {
-            // Restart watcher when settings change
-            if (_lastWindowHandle != IntPtr.Zero) {
-                StartWatcher(_lastWindowHandle);
-            }
         }
     }
 
@@ -381,13 +398,13 @@ public class MainViewModel : INotifyPropertyChanged {
             LocationTooltip = null;
             DestinationTooltip = null;
 
-            if (Scrubber.TryParse(CurrentCoordinates, Settings.CoordinateOrder, out var current)) {
+            if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var current)) {
                 LocationTooltip = FormatTooltip(current);
                 
                 if (!current.Heading.HasValue && _lastCoordinateData.HasValue) {
                     double moveDistance = Math.Sqrt(Math.Pow(current.X - _lastCoordinateData.Value.X, 2) + Math.Pow(current.Y - _lastCoordinateData.Value.Y, 2));
                     if (moveDistance >= MovementThreshold) {
-                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X, _lastCoordinateData.Value.Y, current.X, current.Y, Settings.CoordinateSystem);
+                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X, _lastCoordinateData.Value.Y, current.X, current.Y, Settings.SelectedProfile.CoordinateSystem);
                         current = current with { Heading = movementHeading };
                     }
                     else {
@@ -406,7 +423,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 coordinatesToParse = SelectedLocation.Coordinates;
             }
             
-            if (Scrubber.TryParse(coordinatesToParse, Settings.CoordinateOrder, out var target)) {
+            if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var target)) {
                 DestinationTooltip = FormatTooltip(target);
             } else {
                 return;
@@ -419,7 +436,7 @@ public class MainViewModel : INotifyPropertyChanged {
             Cx = $"x:{current.X}";
             Cy = $"y:{current.Y}";
 
-            var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y, Settings.CoordinateSystem);
+            var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y, Settings.SelectedProfile.CoordinateSystem);
             double distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
 
             UpdateDirectionUI(current, target, direction, distance);

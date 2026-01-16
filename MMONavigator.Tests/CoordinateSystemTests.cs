@@ -53,16 +53,19 @@ public class CoordinateSystemTests
         var watcherService = new MoqWatcherService();
         var vm = new MainViewModel(settingsService, watcherService);
         
-        vm.Settings.CoordinateOrder = "x y";
+        vm.Settings.SelectedProfile.CoordinateOrder = "x y";
         vm.CurrentCoordinates = "0 0";
         vm.TargetCoordinates = "10 0"; // East in RightHanded, West in LeftHanded
+        vm.ShowDirection();
 
         // Default is RightHanded
-        vm.Settings.CoordinateSystem = CoordinateSystem.RightHanded;
+        vm.Settings.SelectedProfile.CoordinateSystem = CoordinateSystem.RightHanded;
+        vm.ShowDirection();
         Assert.Contains("East", vm.GoDirection);
 
         // Switch to LeftHanded
-        vm.Settings.CoordinateSystem = CoordinateSystem.LeftHanded;
+        vm.Settings.SelectedProfile.CoordinateSystem = CoordinateSystem.LeftHanded;
+        vm.ShowDirection();
         Assert.Contains("West", vm.GoDirection);
     }
 

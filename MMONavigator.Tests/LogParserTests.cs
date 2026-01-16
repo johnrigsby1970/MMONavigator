@@ -1,3 +1,4 @@
+using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
 using MMONavigator.Services;
@@ -8,7 +9,7 @@ namespace MMONavigator.Tests;
 
 public class LogParserTests
 {
-    private const string DefaultRegex = @"Your Location is.*?(-?\d+(?:\.\d+)?)\D+?(-?\d+(?:\.\d+)?)(?:\D+?(-?\d+(?:\.\d+)?))?";
+    private const string DefaultRegex = Constants.EQLocationRegex;
 
     [Theory]
     [InlineData("Your location is 0, 0, 100", "0 0 100")]
@@ -118,6 +119,14 @@ public class LogParserTests
         Scrubber.TryParse(input, "x z y d", out var resultXZYD);
         Assert.Equal(10, resultXZYD.X);
         Assert.Equal(30, resultXZYD.Y);
+
+        // y x z order
+        // values[0]=10, values[1]=20, values[2]=30
+        // result.X = values[1] = 20, result.Y = values[0] = 10, result.Z = values[2] = 30
+        Scrubber.TryParse(input, "y x z", out var resultYXZ);
+        Assert.Equal(20, resultYXZ.X);
+        Assert.Equal(10, resultYXZ.Y);
+        Assert.Equal(30, resultYXZ.Z);
     }
 
     [Fact]
@@ -127,10 +136,13 @@ public class LogParserTests
         var watcherService = new MoqWatcherService();
         var vm = new MainViewModel(settingsService, watcherService);
         
-        // Input "10 20" with "y x" order: Y=10, X=20
-        vm.Settings.CoordinateOrder = "y x";
+        // y x order
+        // values[0] is 10, values[1] is 20
+        // result.X = values[1] = 20, result.Y = values[0] = 10
+        vm.Settings.SelectedProfile.CoordinateOrder = "y x";
         vm.CurrentCoordinates = "10 20";
         vm.TargetCoordinates = "0 0"; // Target at origin
+        vm.ShowDirection();
         
         // If Y=10, X=20, distance to 0,0 is sqrt(10^2 + 20^2) = sqrt(500) approx 22.36
         Assert.Equal(22, vm.DistanceInt);
@@ -138,13 +150,16 @@ public class LogParserTests
         // Now change order to "x z y d" (Default)
         // Input "10 20" means X=10, Y=20 (from values[1] which doesn't exist? Wait.)
         // Scrubber.TryParse for "x z y d" and 2 components uses values[XIndexInXY=0] and values[YIndexInXY=1]
-        vm.Settings.CoordinateOrder = "x z y d";
+        vm.Settings.SelectedProfile.CoordinateOrder = "x z y d";
         vm.CurrentCoordinates = "10 20";
+        vm.ShowDirection();
         // Now X=10, Y=20. Distance to 0,0 is still sqrt(10^2 + 20^2) = 22.36
         // Let's use 10 0 for CurrentCoordinates
         vm.CurrentCoordinates = "10 0";
+        vm.ShowDirection();
         // y x: Y=10, X=0. Distance 10.
-        vm.Settings.CoordinateOrder = "y x";
+        vm.Settings.SelectedProfile.CoordinateOrder = "y x";
+        vm.ShowDirection();
         Assert.Equal(10, vm.DistanceInt);
         
         // x z y d: X=10, Y=0. Distance 10.
@@ -152,23 +167,27 @@ public class LogParserTests
         
         // Let's check GoDirection string which includes compass direction
         // y x: Y=10, X=0. Target 0,0. Vector to target is (0-0, 0-10) = (0, -10). That is South.
-        vm.Settings.CoordinateOrder = "y x";
+        vm.Settings.SelectedProfile.CoordinateOrder = "y x";
         vm.CurrentCoordinates = "10 0";
         vm.TargetCoordinates = "0 0";
+        vm.ShowDirection();
         Assert.Contains("South", vm.GoDirection);
 
         // x z y d: X=10, Y=0. Target 0,0. Vector to target is (0-10, 0-0) = (-10, 0). That is West.
-        vm.Settings.CoordinateOrder = "x z y d";
+        vm.Settings.SelectedProfile.CoordinateOrder = "x z y d";
+        vm.ShowDirection();
         Assert.Contains("West", vm.GoDirection);
 
         // x y: X=10, Y=0. Target 0,0. Vector to target is (0-10, 0-0) = (-10, 0). That is West.
-        vm.Settings.CoordinateOrder = "x y";
+        vm.Settings.SelectedProfile.CoordinateOrder = "x y";
         vm.CurrentCoordinates = "10 0";
         vm.TargetCoordinates = "0 0";
+        vm.ShowDirection();
         Assert.Contains("West", vm.GoDirection);
         
         // x y: X=0, Y=10. Target 0,0. Vector (0, -10). That is South.
         vm.CurrentCoordinates = "0 10";
+        vm.ShowDirection();
         Assert.Contains("South", vm.GoDirection);
     }
 

@@ -66,9 +66,7 @@ public partial class MainWindow : Window {
     }
 
     private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
-        if (e.PropertyName == nameof(AppSettings.WatchMode) || 
-            e.PropertyName == nameof(AppSettings.LogFilePath) ||
-            e.PropertyName == nameof(AppSettings.LogFileRegex)) {
+        if (e.PropertyName == nameof(AppSettings.LastSelectedProfileName)) {
             _viewModel.StartWatcher(_windowHandle);
         }
     }
@@ -136,16 +134,13 @@ public partial class MainWindow : Window {
         if (dialog.ShowDialog() == true) {
             System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Watcher configuration dialog OK");
             
-            // Suspend property changed handling during multiple updates if needed,
-            // but here we want each change to potentially trigger a restart if they are individual.
-            // Actually, setting multiple properties on the same Settings object will fire multiple events.
-            _viewModel.Settings.WatchMode = dialog.WatchMode;
-            _viewModel.Settings.LogFilePath = dialog.LogFilePath;
-            _viewModel.Settings.LogFileRegex = dialog.LogFileRegex;
-            _viewModel.Settings.CoordinateOrder = dialog.CoordinateOrder;
-            _viewModel.Settings.CoordinateSystem = dialog.CoordinateSystem;
+            // The dialog now manages profiles and settings directly on the passed _viewModel.Settings
+            // We just need to ensure they are saved and the view model is notified of potential changes
+            // that might not have fired PropertyChanged yet (though they should have).
             
             _viewModel.SaveSettings();
+            // Force a refresh of the watcher just in case
+            _viewModel.StartWatcher(new WindowInteropHelper(this).Handle);
         }
     }
 

@@ -16,12 +16,12 @@ public class WatcherService : IWatcherService {
     private AppSettings? _settings;
 
     public void Start(AppSettings settings, IntPtr windowHandle) {
-        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Starting watcher service, Mode: {settings.WatchMode}");
+        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Starting watcher service, Mode: {settings.SelectedProfile.WatchMode}");
         Stop();
         _settings = settings;
         _windowHandle = windowHandle;
 
-        if (settings.WatchMode == WatchMode.Clipboard) {
+        if (settings.SelectedProfile.WatchMode == WatchMode.Clipboard) {
             NativeMethods.AddClipboardFormatListener(_windowHandle);
         } else {
             SetupFileWatcher();
@@ -41,13 +41,13 @@ public class WatcherService : IWatcherService {
     }
 
     public void HandleClipboardUpdate() {
-        if (_settings?.WatchMode != WatchMode.Clipboard) return;
+        if (_settings?.SelectedProfile.WatchMode != WatchMode.Clipboard) return;
         try {
             var text = Clipboard.GetText();
             if (string.IsNullOrEmpty(text)) return;
             if (text.Length > Scrubber.MaxLength) return;
 
-            if (Scrubber.TryParse(text, _settings.CoordinateOrder, out _)) {
+            if (Scrubber.TryParse(text, _settings.SelectedProfile.CoordinateOrder, out _)) {
                 string coordinates = Scrubber.ScrubEntry(text) ?? string.Empty;
                 LocationUpdated?.Invoke(this, coordinates);
                 System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Clipboard updated: {coordinates}");
@@ -62,14 +62,14 @@ public class WatcherService : IWatcherService {
     }
 
     private void SetupFileWatcher() {
-        if (_settings == null || string.IsNullOrEmpty(_settings.LogFilePath)) {
+        if (_settings == null || string.IsNullOrEmpty(_settings.SelectedProfile.LogFilePath)) {
             System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Log file path is empty, not starting watcher.");
             return;
         }
 
         try {
-            string? directory = Path.GetDirectoryName(_settings.LogFilePath);
-            string? fileName = Path.GetFileName(_settings.LogFilePath);
+            string? directory = Path.GetDirectoryName(_settings.SelectedProfile.LogFilePath);
+            string? fileName = Path.GetFileName(_settings.SelectedProfile.LogFilePath);
 
             if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName)) {
                 System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid path or filename: {directory} / {fileName}");
@@ -90,7 +90,7 @@ public class WatcherService : IWatcherService {
             _fileWatcher.EnableRaisingEvents = true;
 
             InitializeFilePosition();
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher setup for: {_settings.LogFilePath}");
+            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher setup for: {_settings.SelectedProfile.LogFilePath}");
         }
         catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Error setting up file watcher: {ex.Message}");
@@ -100,8 +100,8 @@ public class WatcherService : IWatcherService {
     private void InitializeFilePosition() {
         if (_settings == null) return;
         lock (_fileLock) {
-            if (File.Exists(_settings.LogFilePath)) {
-                using (var stream = new FileStream(_settings.LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+            if (File.Exists(_settings.SelectedProfile.LogFilePath)) {
+                using (var stream = new FileStream(_settings.SelectedProfile.LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
                     _lastFilePosition = stream.Length;
                     System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Initial file position: {_lastFilePosition}");
                 }
@@ -133,7 +133,7 @@ public class WatcherService : IWatcherService {
                             string? lastMatch = null;
                             while ((line = reader.ReadLine()) != null) {
                                 if (string.IsNullOrWhiteSpace(line)) continue;
-                                if (LogParser.TryParseLogLine(line, _settings.LogFileRegex, out string coordinates)) {
+                                if (LogParser.TryParseLogLine(line, _settings.SelectedProfile.LogFileRegex, out string coordinates)) {
                                     System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Log parsed: {coordinates}");
                                     lastMatch = coordinates;
                                 }

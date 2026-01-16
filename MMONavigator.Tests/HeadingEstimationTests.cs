@@ -15,7 +15,7 @@ public class HeadingEstimationTests
         var watcherService = new MoqWatcherService();
         var vm = new MainViewModel(settingsService, watcherService);
         
-        vm.Settings.CoordinateOrder = "x y";
+        vm.Settings.SelectedProfile.CoordinateOrder = "x y";
         vm.TargetCoordinates = "100 100"; // Ensure target is set so ShowDirection proceeds
         
         // Initial position
@@ -39,7 +39,7 @@ public class HeadingEstimationTests
         var watcherService = new MoqWatcherService();
         var vm = new MainViewModel(settingsService, watcherService);
         
-        vm.Settings.CoordinateOrder = "x y";
+        vm.Settings.SelectedProfile.CoordinateOrder = "x y";
         vm.TargetCoordinates = "100 100";
         
         // Move East to establish heading
@@ -61,7 +61,7 @@ public class HeadingEstimationTests
         var watcherService = new MoqWatcherService();
         var vm = new MainViewModel(settingsService, watcherService);
         
-        vm.Settings.CoordinateOrder = "x z y d"; // Default order with 4th component
+        vm.Settings.SelectedProfile.CoordinateOrder = "x z y d"; // Default order with 4th component
         vm.TargetCoordinates = "100 100 100";
         
         // 10 0 20 180 (X=10, Z=0, Y=20, Heading=180)

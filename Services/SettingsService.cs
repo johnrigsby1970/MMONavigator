@@ -22,12 +22,16 @@ public class SettingsService : ISettingsService {
         try {
             if (File.Exists(_settingsPath)) {
                 string json = File.ReadAllText(_settingsPath);
-                return JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                settings.MigrateLegacySettings();
+                return settings;
             }
         } catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
         }
-        return new AppSettings();
+        var newSettings = new AppSettings();
+        newSettings.MigrateLegacySettings();
+        return newSettings;
     }
 
     public void SaveSettings(AppSettings settings) {

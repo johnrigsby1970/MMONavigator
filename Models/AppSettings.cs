@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
+using MMONavigator.Helpers;
 
 namespace MMONavigator.Models;
 
@@ -15,61 +18,77 @@ public enum CoordinateSystem {
 }
 
 public class AppSettings : INotifyPropertyChanged {
-    private WatchMode _watchMode = WatchMode.Clipboard;
-    public WatchMode WatchMode {
-        get => _watchMode;
+    private ObservableCollection<GameProfile> _profiles = new();
+    public ObservableCollection<GameProfile> Profiles {
+        get => _profiles;
         set {
-            if (_watchMode != value) {
-                _watchMode = value;
+            _profiles = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private string _lastSelectedProfileName = "Default";
+    public string LastSelectedProfileName {
+        get => _lastSelectedProfileName;
+        set {
+            if (_lastSelectedProfileName != value) {
+                _lastSelectedProfileName = value;
                 OnPropertyChanged();
             }
         }
     }
 
-    private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
-    public CoordinateSystem CoordinateSystem {
-        get => _coordinateSystem;
-        set {
-            if (_coordinateSystem != value) {
-                _coordinateSystem = value;
-                OnPropertyChanged();
+    [JsonIgnore]
+    public GameProfile SelectedProfile {
+        get {
+            var profile = Profiles.FirstOrDefault(p => p.Name == LastSelectedProfileName);
+            if (profile == null) {
+                if (Profiles.Count == 0) {
+                    profile = new GameProfile { Name = "Default" };
+                    Profiles.Add(profile);
+                } else {
+                    profile = Profiles[0];
+                }
+                LastSelectedProfileName = profile.Name;
             }
+            return profile;
         }
     }
 
-    private string _logFilePath = string.Empty;
-    public string LogFilePath {
-        get => _logFilePath;
-        set {
-            if (_logFilePath != value) {
-                _logFilePath = value;
-                OnPropertyChanged();
-            }
+    // Legacy properties for backward compatibility during deserialization
+    [JsonPropertyName("WatchMode")]
+    public WatchMode? LegacyWatchMode { get; set; }
+    [JsonPropertyName("CoordinateSystem")]
+    public CoordinateSystem? LegacyCoordinateSystem { get; set; }
+    [JsonPropertyName("LogFilePath")]
+    public string? LegacyLogFilePath { get; set; }
+    [JsonPropertyName("LogFileRegex")]
+    public string? LegacyLogFileRegex { get; set; }
+    [JsonPropertyName("CoordinateOrder")]
+    public string? LegacyCoordinateOrder { get; set; }
+
+    public void MigrateLegacySettings() {
+        if (Profiles.Count == 0 && (LegacyWatchMode.HasValue || !string.IsNullOrEmpty(LegacyLogFilePath))) {
+            var watchMode = LegacyWatchMode ?? WatchMode.Clipboard;
+            var defaultProfile = new GameProfile {
+                Name = "Default",
+                WatchMode = watchMode,
+                CoordinateSystem = LegacyCoordinateSystem ?? (watchMode == WatchMode.File ? CoordinateSystem.LeftHanded : CoordinateSystem.RightHanded),
+                LogFilePath = LegacyLogFilePath ?? string.Empty,
+                LogFileRegex = LegacyLogFileRegex ?? Constants.EQLocationRegex,
+                CoordinateOrder = LegacyCoordinateOrder ?? (watchMode == WatchMode.File ? "y x z" : "x z y d")
+            };
+            Profiles.Add(defaultProfile);
+            LastSelectedProfileName = defaultProfile.Name;
+        }
+
+        if (Profiles.Count == 0) {
+            Profiles.Add(new GameProfile { Name = "Default" });
+            LastSelectedProfileName = "Default";
         }
     }
 
-    private string _logFileRegex = @"Your Location is.*?(-?\d+(?:\.\d+)?)\D+?(-?\d+(?:\.\d+)?)(?:\D+?(-?\d+(?:\.\d+)?))?";
-    public string LogFileRegex {
-        get => _logFileRegex;
-        set {
-            if (_logFileRegex != value) {
-                _logFileRegex = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
-    private string _coordinateOrder = "x z y d";
-    public string CoordinateOrder {
-        get => _coordinateOrder;
-        set {
-            if (_coordinateOrder != value) {
-                _coordinateOrder = value;
-                OnPropertyChanged();
-            }
-        }
-    }
-
+    // Application level settings
     private bool _showSettings = true;
     public bool ShowSettings {
         get => _showSettings;
@@ -92,7 +111,7 @@ public class AppSettings : INotifyPropertyChanged {
         }
     }
 
-    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x z", "x y z" };
+    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x z", "y x", "x y z" };
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
