@@ -111,8 +111,6 @@ public class AppSettings : INotifyPropertyChanged {
         }
     }
 
-    public List<string> AvailableCoordinateOrders { get; set; } = new List<string> { "x z y d", "y x z", "y x", "x y z" };
-
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {

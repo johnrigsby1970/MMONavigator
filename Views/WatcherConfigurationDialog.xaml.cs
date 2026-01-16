@@ -33,7 +33,7 @@ public partial class WatcherConfigurationDialog : Window {
         ProfileComboBox.SelectedItem = selectedProfile;
 
         SystemComboBox.ItemsSource = Enum.GetValues(typeof(CoordinateSystem));
-        OrderComboBox.ItemsSource = _settings.AvailableCoordinateOrders;
+        OrderComboBox.ItemsSource = Constants.AvailableCoordinateOrders;
 
         ClipboardRadio.Checked += WatchMode_Checked;
         FileRadio.Checked += WatchMode_Checked;
