@@ -1,101 +1,159 @@
 <Window x:Class="MMONavigator.Views.WatcherConfigurationDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Configure Watcher" Height="400" Width="400"
+        xmlns:local="clr-namespace:MMONavigator"
+        Title="Configure Watcher" Height="500" Width="450"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="#2D2D30" Foreground="White">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
     </Window.Resources>
     <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="40" />
         </Grid.RowDefinitions>
 
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <Grid>
+            <Grid Margin="5">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="180"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0"  
-                           TextWrapping="Wrap" 
-                           Margin="0,0,0,5" FontWeight="Bold">
-                    Setup your current game profile or create a new one.
-                    <LineBreak />
-                    <LineBreak />
-                    The program needs to know where your game writes the player location. Some games, like Pantheon Rise of the Fallen, write it to the system clipboard so that a user can copy/paste. While others, like Everquest, log it to a file by program or character. In this case, you may need to turn on logging.
-                    <LineBreak />
-                    <LineBreak />
-                    In both Pantheon and Everquest, the program writes when the user executes /loc command.
-                </TextBlock>
-                <TextBlock Grid.Row="1" Text="Game Profile:" Margin="0,0,0,5" FontWeight="Bold"/>
+                <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,5">
+                    <TextBlock
+                        TextWrapping="Wrap"
+                        Margin="0,0,0,5" FontWeight="Bold">
+                        Setup your current game profile or create a new one.
+                        <LineBreak />
+                        <LineBreak />
+                        The program needs to know where your game writes the player location.
+                    </TextBlock>
+                    <TextBlock
+                        x:Name="ExtraContent"
+                        TextWrapping="Wrap"
+                        Margin="0,0,0,5" FontWeight="Bold"
+                        Visibility="Collapsed">
+                        <LineBreak />
+                        Some games, like Pantheon - Rise of the Fallen, write to the system clipboard. This program can monitor
+                        changes to the clipboard and update the direction you need to travel to get to your destination. 
+                        The coordinate system is RightHanded and log entries are made
+                        in "x z y d" format, where d is direction of facing.
+                        <LineBreak />
+                        <LineBreak />
+                        While others, like Everquest,
+                        log to a file by character name. In this case, you may need to turn on logging and each
+                        character will need its own game profile. The coordinate system is LeftHanded and log entries are made in "y x z" format.
+                        <LineBreak />
+                        <LineBreak />
+                        In both Pantheon and Everquest, the program updates when the user executes /loc command in the game.
+                        <LineBreak />
+                        <LineBreak />
+                        It should be noted, this program does not packet sniff. There are three ways the character's 
+                        location is updated in this program, watching changes to the clipboard, watching for changes to 
+                        designated log file, or manually.
+                    </TextBlock>
+
+                    <Button
+                        Content="Read More"
+                        x:Name="ReadMoreBtn"
+                        Click="ReadMore_Click"
+                        Width="100"
+                        HorizontalAlignment="Left"
+                        Margin="0 5 0 5" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="Game Profile:" Margin="0,0,0,5" FontWeight="Bold" />
+
                 <Grid Grid.Row="2" Margin="0,0,0,15">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ComboBox x:Name="ProfileComboBox" IsEditable="True" Background="#3E3E42" Foreground="Black" 
-                              SelectionChanged="ProfileComboBox_SelectionChanged"/>
-                    <Button x:Name="AddProfileButton" Grid.Column="1" Content="+" Width="20" Margin="5,0,0,0" Click="AddProfile_Click" 
-                            ToolTip="Add Profile" Background="CornflowerBlue" Foreground="White" FontWeight="Bold"/>
-                    <Button x:Name="DuplicateProfileButton" Grid.Column="1" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" Width="20" Margin="5,0,0,0" Click="DuplicateProfile_Click" 
-                            ToolTip="Duplicate Profile" Background="CornflowerBlue" Foreground="White" FontWeight="Bold" Visibility="Collapsed"/>
-                    <Button x:Name="RemoveProfileButton" Grid.Column="2" Content="-" Width="20" Margin="5,0,0,0" Click="RemoveProfile_Click" 
-                            ToolTip="Remove Profile" Background="OrangeRed" Foreground="White" FontWeight="Bold"/>
+                    <ComboBox x:Name="ProfileComboBox" 
+                              IsEditable="True" 
+                              Height="22"
+                              FontSize="8pt"
+                              Background="#3E3E42"
+                              Foreground="Black"
+                              SelectionChanged="ProfileComboBox_SelectionChanged" />
+                    <StackPanel Grid.Column="1"  Orientation="Horizontal" Margin="0,0,0,0">
+                    <Button x:Name="AddProfileButton" 
+                            Content="+" 
+                            Width="20" 
+                            Margin="5,0,0,0"
+                            Click="AddProfile_Click"
+                            ToolTip="Add Profile" Background="CornflowerBlue" Foreground="White"
+                            FontWeight="Bold" />
+                    <Button x:Name="DuplicateProfileButton" Content="&#xE8C8;"
+                            FontFamily="Segoe MDL2 Assets" Width="20" Margin="5,0,0,0"
+                            Click="DuplicateProfile_Click"
+                            ToolTip="Duplicate Profile" Background="CornflowerBlue" Foreground="White"
+                            FontWeight="Bold" Visibility="Collapsed" />
+                    <Button x:Name="RemoveProfileButton" Content="-" Width="20"
+                            Margin="5,0,0,0" Click="RemoveProfile_Click"
+                            ToolTip="Remove Profile" Background="OrangeRed" Foreground="White"
+                            FontWeight="Bold" />
+                    </StackPanel>
                 </Grid>
 
-                <TextBlock Grid.Row="3" Text="Watch Mode:" Margin="0,0,0,5" FontWeight="Bold"/>
+                <TextBlock Grid.Row="3" Text="Watch Mode:" Margin="0,0,0,5" FontWeight="Bold" />
+
                 <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,15">
-                    <RadioButton x:Name="ClipboardRadio" Content="System Clipboard" Foreground="White" Margin="0,0,20,0" VerticalAlignment="Center"/>
-                    <RadioButton x:Name="FileRadio" Content="Log File" Foreground="White" VerticalAlignment="Center"/>
+                    <RadioButton x:Name="ClipboardRadio" Content="System Clipboard" Foreground="White"
+                                 Margin="0,0,20,0" VerticalAlignment="Center" />
+                    <RadioButton x:Name="FileRadio" Content="Log File" Foreground="White"
+                                 VerticalAlignment="Center" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="5" Text="Log File Path:" Margin="0,0,0,5" FontWeight="Bold" 
-                           Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <Grid Grid.Row="6" Margin="0,0,0,15" Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Grid.Row="5" Text="Log File Path:" Margin="0,0,0,5" FontWeight="Bold"
+                           Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <Grid Grid.Row="6" Margin="0,0,0,15"
+                      Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="FilePathTextBox" Background="#3E3E42" Foreground="White" BorderBrush="#555555" Padding="2" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Content="..." Width="30" Margin="5,0,0,0" Click="BrowseButton_Click" Background="#3E3E42" Foreground="White"/>
+                    <TextBox x:Name="FilePathTextBox" Background="#3E3E42" Foreground="White"
+                             BorderBrush="#555555" Padding="2" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="..." Width="30" Margin="5,0,0,0"
+                            Click="BrowseButton_Click" Background="#3E3E42" Foreground="White" />
                 </Grid>
 
                 <TextBlock Grid.Row="7" Text="Log File Regex:" Margin="0,0,0,5" FontWeight="Bold"
-                           Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                           Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
                 <TextBox x:Name="RegexTextBox" Grid.Row="8" Margin="0,0,0,15"
                          Background="#3E3E42" Foreground="White" BorderBrush="#555555" Padding="2"
                          AcceptsReturn="True" TextWrapping="Wrap" VerticalAlignment="Top"
-                         Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                         Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                 <StackPanel Grid.Row="9" Orientation="Horizontal" Margin="0,0,0,15">
-                    <TextBlock Text="System:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+                    <TextBlock Text="System:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" />
                     <ComboBox x:Name="SystemComboBox" Width="100" Margin="0,0,20,0" VerticalAlignment="Center"
-                              Background="#3E3E42" Foreground="Black"/>
+                              Background="#3E3E42" Foreground="Black" />
 
-                    <TextBlock Text="Order:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+                    <TextBlock Text="Order:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" />
                     <ComboBox x:Name="OrderComboBox" Width="100" VerticalAlignment="Center"
-                              Background="#3E3E42" Foreground="Black"/>
+                              Background="#3E3E42" Foreground="Black" />
                 </StackPanel>
             </Grid>
         </ScrollViewer>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Content="OK" Width="75" Margin="0,0,10,0" Click="OkButton_Click" IsDefault="True"
-                    Background="#3E3E42" Foreground="White"/>
+                    Background="#3E3E42" Foreground="White" />
             <Button Content="Cancel" Width="75" Click="CancelButton_Click" IsCancel="True"
-                    Background="#3E3E42" Foreground="White"/>
+                    Background="#3E3E42" Foreground="White" />
         </StackPanel>
     </Grid>
 </Window>

@@ -1,7 +1,10 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Win32;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
@@ -9,7 +12,7 @@ using MMONavigator.ViewModels;
 
 namespace MMONavigator.Views;
 
-public partial class WatcherConfigurationDialog : Window {
+public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged {
     private readonly AppSettings _settings;
     private GameProfile? _currentProfile;
     private bool _isUpdatingUI = false;
@@ -43,7 +46,27 @@ public partial class WatcherConfigurationDialog : Window {
         LoadProfile(selectedProfile);
         UpdateProfileButtons();
     }
-
+    
+    private bool _readMore;
+    public bool ReadMore {
+        get => _readMore;
+        set => SetField(ref _readMore, value);
+    }
+    
+    private void ReadMore_Click(object sender, RoutedEventArgs e) {
+        ReadMore = !ReadMore;
+        if (ReadMore)
+        {
+            ExtraContent.Visibility = Visibility.Visible;
+            ReadMoreBtn.Content = "Read Less";
+        }
+        else
+        {
+            ExtraContent.Visibility = Visibility.Collapsed;
+            ReadMoreBtn.Content = "Read More";
+        }
+    }
+    
     private void ProfileComboBox_TextChanged(object sender, TextChangedEventArgs e) {
         UpdateProfileButtons();
     }
@@ -55,7 +78,7 @@ public partial class WatcherConfigurationDialog : Window {
         bool exists = _settings.Profiles.Any(p => p.Name.Trim().Equals(currentText, StringComparison.OrdinalIgnoreCase));
 
         if (isDefault || isEmpty) {
-            AddProfileButton.Visibility = Visibility.Collapsed;
+            AddProfileButton.Visibility = Visibility.Visible;
             DuplicateProfileButton.Visibility = isDefault && exists ? Visibility.Visible : Visibility.Collapsed;
             RemoveProfileButton.Visibility = isDefault && exists ? Visibility.Collapsed : (exists ? Visibility.Visible : Visibility.Collapsed);
         } else {
@@ -258,5 +281,16 @@ public partial class WatcherConfigurationDialog : Window {
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
         DialogResult = false;
+    }
+    
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
     }
 }

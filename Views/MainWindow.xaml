@@ -211,7 +211,7 @@
                 </Button>
 
                 <Button Width="20" Height="20" Margin="0,3,3,3"
-                        ToolTip="Configure Watcher" FontWeight="ExtraBold"
+                        ToolTip="Configure Location Watcher" FontWeight="ExtraBold"
                         Click="ConfigureWatcher_Click" Foreground="White" Background="CornflowerBlue">
                     ...
                 </Button>
