@@ -1,80 +1,104 @@
 ﻿# MMONavigator
 
-Program to provide directions when given destination and current coordinates in x z y format.
+This app will provide you with a directional indicator from your 
+current position to your destination, as defined by the coordinates 
+you provide.  It will update that direction based on triggers 
+initiated by you (ex: typing /loc to get your current position or using a macro to do the same, repeatedly).
+
+## Dependencies
+
+* This program is coded to run on Windows 10 and above using Microsoft .Net 8 runtime. 
+* You will need to install the Microsoft .Net Desktop Runtime.
+* Microsoft .NET Desktop Runtime can be found at https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 
 ## Description
 
 I play an online game that copies the current location coordinates to the clipboard when
 a user executes a command. This program will monitor the clipboard and use the current location  
 along with an entered destination location to determine the compass heading necessary to go from the current location
-to the destination location. It will update everytime the vurrent location is changed. In the case of this game, every time 
-the user executes /loc which in turn copies a set of coordinates to the system clipbooard.
+to the destination location. It will update every time the current location is changed. 
 
-Destination: 0 0 100
-Location:    0 50 0 0
+Someone might use this to help guide them to a corpse after a revive instead of waiting for a summons. They might 
+use it to guide them to the entrnce of a dungeon or set of related mobs. They might use a series of saved destinations 
+as waypoints to guide them across dangerous territory.
 
-Result: N 0° 100  (green)
+One hurdle to these scenarios is that this program doesn't know anything about your game. 
+There could be a mountain between you and your destination. A zone entrance could require a detour. Use this until you 
+hit a roadblock, guide yourself around it, and then start using the compass again to get you back on course.
 
-* Your destination location is x:0 y:100 and your current location is x:0 y:0 (center of coordinate system) 
-therefore you need to face North and the distance between you and the destination is 100 units of measure. 
-* You are at an elevation of 50, which is ignored by this program at this time.
-* You are facing North, so the text will be highlighted in green.
+This game does not do packet sniffing. It has one feature, it can capture your location from a desired source. 
+After that, it can determine a direction from a lcoation and destination and illustrate that on a compass.
 
 ## Getting Started
 
-### Dependencies
-
-* This program is coded to run on Windows 10 and above using .Net 8. You may need to install the .Net Desktop Runtime.
-* .NET Desktop Runtime can be found at https://dotnet.microsoft.com/en-us/download/dotnet/8.0
-
 ### Installing
 
-* Download the zip file and locate the MMONavigator.exe program in the bin/release folder
-* You will need the .net 8 desktop runtime installed. If prompted, download and install the runtime.
+* Using the gree <> Code button, download the zip file of this repository.
+* Download and extract the zip file to a directory on your computer. The location is not important, but you need to 
+* remember where you put it.
 * Build it yourself or execute the published file in the folder MMONavigator-master\bin\Release\net8.0-windows\publish
+* Locate and run the MMONavigator.exe program
+* You will need the .net 8 desktop runtime installed. If prompted, download and install the runtime.
+
 * Windows will warn you "Don't Run!" the first time you execute the program. Choose the "More info" link to show the "Run anyway" button.
-(again, you can build it yourself)
+* Click this Run anyway button.
+* The program is setup to run using a default game profile for Pantheon - Rise of the Fallen. You may set it up to run for any game 
+  that has a coordinate system. It readily works with Everquest.
+
 
 ### Executing program
 
 * Execute MMONavigator.exe. You will be told the program should not be trusted. This program is not signed with 
 a code signing certificate. Trust it or not. That is up to you. Inspect and compile the code yourself from this 
-repository.
+repository if you do not want to trust the compiled program. 100% of the code is open source and available.
+* The reason for the prompt is that the compiled code is not signed with a certificate. 
+* A certificate costs $600. This software is currently free to use. One that is signed will cost money. 
+* Happy to do it if someone coughs up the money.
+
+### Initial experience
+
+* The program will appear at the top center of your screen. In a game like Pantheon - Rise of the Fallen, it will wrap around the game compass. 
+* The program will be transparent and will not obscure your game with the exception of the game compass.
+* The initial game profile is set to Pantheon - Rise of the Fallen.
+* The game will watch your clipboard for location updates. Type /loc to set the location in this program.
+* Set a desired destination location and the program will update the direction to the destination.
+* The program will update the direction every time the location is changed.
+* Lets say you die, and ther eisnt a summoner available. Type /loc to get your current location. Then press the target button to the right of the 
+* location to compy the lcoation as your destination. Now revive and type /loc.
+* The program will update the directions to guide you to your corpse.
+* Another use case is to guide you to a known location in the world, say a named mob in the middle of a forest.
+
+### Use with Everquest or Project 1999.
+
+* In Everquest the location is written to a log file. It only writes to the log file once you turn logging on in game.
+* The program will watch the log file for location updates. Type /loc to set the location in this program.
+* Enter a destination, or if you have a corpse, copy the location to destination, revive yourself and start pressing /loc as it guides you to your corpse.
 
 ## Help
 
-The program expects coordinates in the following format:
-x z y f
+When you get within 100 meters of the destination, the green target circle will move towards the center of the compass. The compass will turn from yellow to blue.
 
-where f is the facing in compass degrees.
-
-2134 592 -567 0
-
-c:2134
-y:-567
-z:592
-f:0 degrees, which is North
-
-It expects these numbers to be separated by a single space and will not process bad data. 
-
-As you navigate your world, execute the /loc or other command to cause the coordinates to be written to the clipboard. 
-This program will watch the clipboard and adjust the suggested heading. 
-
-The program will remain always on top in Windows. So if your game goes full screen this program will remain visible.
-It is not part of your game, is not reading packets from your game. If your game does not write to the clipboard, you 
-may copy the location yourself with CTRL + C to cause the lcoation to be saved to the clipboard yourself.
-
-When the suggested heading is within 2 degrees one way or the other, the text will turn green. A little more off and it 
+When the suggested heading is within 2 degrees one way or the other, the text description of your desired direction will turn green. A little more off and it
 will be lighter green, and then yellow, and then white. 
 
-Execute the location command or otherwise cause the location to be saved to the clipboard to cause the direction to 
-update.
-
-You can enter the desitnation and current location manually and the direction will udpate on each change. You do not
+You can enter the destination and current location manually, and the direction will update on each change. You do not
 need to run a game to run this program. It can be used with any system that has x, y coordinates.
 
-If you do not have z (elevation) you can put in any number or leave it blank and only enter 2 numbers for x,y. The 
-program does not use z and f directly and supports a set of two, three, or four numbers.
+When entering locations manually, if you do not have z (elevation) you can put in any number or leave it blank and only enter 2 numbers for x,y. The 
+program does not use z and d directly and supports a set of two, three, or four numbers.
+
+You can use buttons on the toolbar, which are hidden until you mouse over the toolbar or the finger icon. The finger icon lets you drag the compass around the screen to a better position.
+
+The gear icon is for settings. It will toggle viewing the destination and location entry text boxes. Next to the location you will find a button to copy the current location to the desintation text box. 
+The button net to that lets you setup game profiles which are how you configure the program to watch for changes in location.
+
+You can have a game profile for Pantheon, which reads the location from the system clipboard and a game profile for Everquest, which reads it from the log file associated to each of your characters. You would need a profile for each character in Everquest. In Pantheon you only need the one game profile. 
+
+You can switch between game profiles on the configure game profile dialog.
+
+You can find coordinates for a location by using https://shalazam.info/maps/1?.
+
+Next to the desitnation text box is a button that lets you name and remember the lcoation. The destination text box is also a drop down list. You can select from this list or forget previously saved locations. Think waypoints. Load one, go to it, load the next, go to it.
 
 ## Authors
 
