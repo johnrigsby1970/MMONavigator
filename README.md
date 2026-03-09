@@ -34,7 +34,7 @@ The compass will point the way.
 This game does not do packet sniffing. It has one feature, it can capture your location from a desired source. 
 After that, it can determine a direction from a location and destination and illustrate that on a compass.
 
-Are you cheating? No. If you know the desntation and current location, you can figure all of this out in your head. 
+Are you cheating? No. If you know the destination and current location, you can figure all of this out in your head. 
 This is just faster.
 
 ## Getting Started
@@ -47,7 +47,7 @@ This is just faster.
 * Build it yourself or execute the published file in the folder MMONavigator-master\bin\Release\net8.0-windows\publish
 * Locate and run the MMONavigator.exe program
 * You will need the .net 8 desktop runtime installed. If prompted, download and install the runtime.
-* Windows will warn you "Don't Run!" the first time you execute the program. Choose the "More info" link to show the "Run anyway" button.
+* Windows will warn you "Don't Run!" (explained below) the first time you execute the program. Choose the "More info" link to show the "Run anyway" button.
 * Click this "Run anyway" button.
 * The program is set up to run using a default game profile for Pantheon - Rise of the Fallen. You may set it up to run for any game 
   that has a coordinate system. It readily works with Everquest.
@@ -58,7 +58,7 @@ This is just faster.
 * Execute MMONavigator.exe. As mentioned above, you will be told the program should not be trusted. This program is not signed with 
 a code signing certificate. Trust it or not. That is up to you. Inspect and compile the code yourself from this 
 repository if you do not want to trust the compiled program. 100% of the code is open source and available.
-* The reason for the prompt is that the compiled code is not signed with a certificate. What that means is that its technically 
+* The reason for the prompt is that the compiled code is not signed with a certificate. What that means is that it is  
 * possible a hacker could alter it after it is built. If it is signed, a hacker cannot do that. 
 * The program is built and directly uploaded to GitHub. Unless the hacker can break in to GitHub, the code is safe.
 * A certificate costs $600 per year. This software is currently free to use. One that is signed will cost money. 
@@ -67,20 +67,22 @@ repository if you do not want to trust the compiled program. 100% of the code is
 ### Initial experience
 
 * The program will appear at the top center of your screen. In a game like Pantheon - Rise of the Fallen, it will wrap around the game compass. 
-* The program will be transparent and will not obscure your game with the exception of the game compass.
-* The finger icon button will always show. By default this will appear to the left of the game compass, in the case of Pantheon.
+* The program will be transparent and will not obscure your game except the game compass.
+* The finger icon button will always show. By default, this will appear to the left of the game compass, in the case of Pantheon.
 * The initial game profile is set to Pantheon - Rise of the Fallen.
 * The game will watch your clipboard for location updates. Type /loc to set the location in this program.
 * Set a desired destination location and the program will update the direction to the destination.
 * The program will update the direction every time the location is changed.
-* Lets say you die, and there isnt a summoner available. Type /loc to get your current location. Then press the target button to the right of the 
+* Lets say you die, and there isn't a summoner available. Type /loc to get your current location. Then press the target button to the right of the 
 * location to compy the location as your destination. Now revive and type /loc.
 * The program will update the directions to guide you to your corpse.
 * Another use case is to guide you to a known location in the world, say a named mob in the middle of a forest.
 
 ### Use with Everquest or Project 1999.
 
-* In Everquest the location is written to a log file. It only writes to the log file once you turn logging on in game.
+* Since the program is defaulted to Pantheon style coordinate system, you will need to edit the watcher configuration to use the Everquest style. Go to the gear icon and click the right ost button next to the location text box.
+* Select the game profile you want to use.
+* In Everquest the location is written to a log file. It only writes to the log file once you turn logging on in your game.
 * The program will watch the log file for location updates. Type /loc to set the location in this program.
 * Enter a destination, or if you have a corpse, copy the location to destination, revive yourself and start pressing /loc as it guides you to your corpse.
 
@@ -92,7 +94,7 @@ repository if you do not want to trust the compiled program. 100% of the code is
 ## Help
 
 You can minimize the program to the taskbar. This program is always running and will always run on top when it is maximized. 
-However, it is not directly tied to the game you are playing. So if you mimimize it and want to get it back, you'll need to pop out of your game back to the Windows task bar to maximize it again.
+However, it is not directly tied to the game you are playing. So if you minimize it and want to get it back, you'll need to pop out of your game back to the Windows task bar to maximize it again.
 
 You may toggle the compass on and off, which will hide the compass and other controls until you need them again.
 
@@ -112,9 +114,9 @@ program does not use z and d directly and supports a set of two, three, or four 
 You can use buttons on the toolbar, which are hidden until you mouse over the toolbar or the finger icon. The finger icon lets you drag the compass around the screen to a better position.
 
 The gear icon is for settings. It will toggle viewing the destination and location entry text boxes. Next to the location you will find a button to copy the current location to the desintation text box. 
-The button net to that lets you setup game profiles which are how you configure the program to watch for changes in location.
+The button next to that lets you set up game profiles which are how you configure the program to watch for changes in location.
 
-You can have a game profile for Pantheon, which reads the location from the system clipboard and a game profile for Everquest, which reads it from the log file associated to each of your characters. You would need a profile for each character in Everquest. In Pantheon you only need the one game profile. 
+You can have a game profile for Pantheon, which reads the location from the system clipboard, and a game profile for Everquest, which reads it from the log file associated to each of your characters. You would need a profile for each character in Everquest. In Pantheon you only need the one game profile. 
 
 You can switch between game profiles on the configure game profile dialog.
 
