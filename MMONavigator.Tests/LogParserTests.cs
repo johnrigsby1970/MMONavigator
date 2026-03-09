@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
