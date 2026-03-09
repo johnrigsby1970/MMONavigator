@@ -10,11 +10,12 @@
         Width="280" Height="Auto" SizeToContent="WidthAndHeight"
         AllowsTransparency="True"
         Topmost="True"
+        Background="Transparent"
         WindowStartupLocation="Manual"
         WindowStyle="None">
-    <Window.Background>
-        <SolidColorBrush Opacity="0.0" Color="Gray" />
-    </Window.Background>
+    <!-- <Window.Background> -->
+    <!--     <SolidColorBrush Color="Transparent" /> -->
+    <!-- </Window.Background> -->
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <SolidColorBrush x:Key="TextStroke" Color="black" />
@@ -30,54 +31,60 @@
             <ColumnDefinition Width="175" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="{StaticResource StandardGridRowHeight}"></RowDefinition>
-
-            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="destinationRow" />
-            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="targetRow" />
-            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="settingsRow" />
-            <RowDefinition Height="{StaticResource StandardGridRowHeight}" Name="timerRow" />
-            <RowDefinition Height="50" Name="directionRow" />
-            <RowDefinition Height="120" Name="compassRow" />
+            <RowDefinition Height="30"></RowDefinition>
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Rectangle Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0"
+        <Rectangle Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                    Fill="{StaticResource TitleBar}"
                    MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
         </Rectangle>
-        <Grid Grid.Row="0" Grid.ColumnSpan="2" Grid.Column="0" Height="{StaticResource StandardRowHeight}" VerticalAlignment="Top"
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Height="{StaticResource StandardRowHeight}"
+              VerticalAlignment="Top" Background="Transparent"
               MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <Button x:Name="dragbutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue"
                         PreviewMouseLeftButtonDown="Rectangle_MouseLeftButtonDown" ToolTip="Drag Window"
-                        Content="&#xF271;" FontFamily="Segoe MDL2 Assets" FontSize="12pt" 
+                        Content="&#xF271;" FontFamily="Segoe MDL2 Assets" FontSize="12pt"
                         Foreground="White" FontWeight="ExtraBold">
                 </Button>
                 <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
-                        FontFamily="Segoe MDL2 Assets" 
+                        FontFamily="Segoe MDL2 Assets"
                         FontSize="12pt"
                         ToolTip="Toggle Settings" FontWeight="ExtraBold"
                         Click="HideShowSettings_Click" Foreground="White" Background="CornflowerBlue"
+                        IsEnabled="{Binding MainContentVisibility}"
                         Visibility="Collapsed">
                 </Button>
-                <Button x:Name="timerbutton" Width="24" Height="24" Margin="3" Content="&#xED5A;"
-                        FontFamily="Segoe MDL2 Assets" 
+                <Button x:Name="timerbutton" Width="24" Height="24" Margin="3"
+                        Content="&#xED5A;"
+                        FontFamily="Segoe MDL2 Assets"
                         FontSize="12pt"
                         ToolTip="Toggle Timers" FontWeight="ExtraBold"
+                        IsEnabled="{Binding MainContentVisibility}"
                         Click="HideShowTimers_Click" Foreground="White" Background="CornflowerBlue"
                         Visibility="Collapsed">
                 </Button>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="minbutton" Width="24" Height="24" 
-                        FontSize="12pt" 
+                <Button x:Name="togglebutton" Width="24" Height="24"
+                        Content="&#xE7B3;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="12pt"
+                        Margin="3" Click="ToggleVisibityButton_Click"
+                        Foreground="White" ToolTip="Toggle Directions" Background="CornflowerBlue"
+                        Visibility="Collapsed">
+                </Button>
+                <Button x:Name="minbutton" Width="24" Height="24"
+                        FontSize="12pt"
                         Margin="3" Click="MinimizeButton_Click"
                         Foreground="White" ToolTip="Minimize" Background="CornflowerBlue"
                         Visibility="Collapsed">
                     _
                 </Button>
-                <Button x:Name="closebutton" Width="24" Height="24" 
-                        FontSize="12pt" 
+                <Button x:Name="closebutton" Width="24" Height="24"
+                        FontSize="12pt"
                         Margin="3" Click="CloseButton_Click" Foreground="White"
                         ToolTip="Close" Background="CornflowerBlue"
                         Visibility="Collapsed">
@@ -85,260 +92,336 @@
                 </Button>
             </StackPanel>
         </Grid>
-        
-        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
-                    Orientation="Horizontal">
-            <controls:OutlinedTextBlock
-                Text="Destination:"
-                FontFamily="Verdana" FontSize="10pt"
-                FontWeight="ExtraBold"
-                TextWrapping="Wrap"
-                StrokeThickness=".5"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center"
-                TextAlignment="Left"
-                Width="100"
-                Margin="5,1,0,0"
-                Stroke="{StaticResource TextStroke}"
-                Fill="{StaticResource TextFill}" />
 
-            <ComboBox
-                ItemsSource="{Binding Locations}"
-                SelectedItem="{Binding SelectedLocation}"
-                Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                IsEditable="True"
-                DisplayMemberPath="DisplayName"
-                Height="22"
-                FontSize="8pt"
-                VerticalAlignment="Center" Width="140"
-                ToolTip="{Binding DestinationTooltip}" />
+        <Grid Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+              Visibility="{Binding MainContentVisibility, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Name="destinationRow">
+                    <RowDefinition.Style>
+                        <Style TargetType="RowDefinition">
+                            <Setter Property="Height" Value="30"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowSettings}" Value="False">
+                                    <Setter Property="Height" Value="0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </RowDefinition.Style>
+                </RowDefinition>
+                <RowDefinition Name="targetRow">
+                    <RowDefinition.Style>
+                        <Style TargetType="RowDefinition">
+                            <Setter Property="Height" Value="30"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowSettings}" Value="False">
+                                    <Setter Property="Height" Value="0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </RowDefinition.Style>
+                </RowDefinition>
+                <RowDefinition Name="timerRow">
+                    <RowDefinition.Style>
+                        <Style TargetType="RowDefinition">
+                            <Setter Property="Height" Value="30"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowTimers}" Value="False">
+                                    <Setter Property="Height" Value="0"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </RowDefinition.Style>
+                </RowDefinition>
+                <RowDefinition Height="50" Name="directionRow" />
+                <RowDefinition Height="Auto" Name="compassRow" />
+            </Grid.RowDefinitions>
 
-            <Button Width="20" Height="20" Margin="3,0,0,0" Content="+"
-                    ToolTip="Add to List" FontWeight="ExtraBold"
-                    Visibility="{Binding IsItemNotInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Command="{Binding AddLocationCommand}" Foreground="White" Background="CornflowerBlue">
-            </Button>
+            <StackPanel Grid.Row="0" Grid.Column="0" FlowDirection="LeftToRight"
+                        Orientation="Horizontal"
+                        Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <controls:OutlinedTextBlock
+                    Text="Destination:"
+                    FontFamily="Verdana" FontSize="10pt"
+                    FontWeight="ExtraBold"
+                    TextWrapping="Wrap"
+                    StrokeThickness=".5"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    TextAlignment="Left"
+                    Width="100"
+                    Margin="5,1,0,0"
+                    Stroke="{StaticResource TextStroke}"
+                    Fill="{StaticResource TextFill}" />
 
-            <Button Width="20" Height="20" Margin="3,0,0,0" Content="-"
-                    ToolTip="Remove from List" FontWeight="ExtraBold"
-                    Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    Command="{Binding RemoveLocationCommand}" Foreground="White" Background="OrangeRed">
-            </Button>
-        </StackPanel>
+                <ComboBox
+                    ItemsSource="{Binding Locations}"
+                    SelectedItem="{Binding SelectedLocation}"
+                    Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    IsEditable="True"
+                    DisplayMemberPath="DisplayName"
+                    Height="22"
+                    FontSize="8pt"
+                    VerticalAlignment="Center" Width="140"
+                    ToolTip="{Binding DestinationTooltip}" />
 
-        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
-                    Orientation="Horizontal">
-            <controls:OutlinedTextBlock
-                Text="Location:"
-                FontFamily="Verdana" FontSize="10pt"
-                FontWeight="ExtraBold"
-                TextWrapping="Wrap"
-                StrokeThickness=".5"
-                VerticalAlignment="Center"
-                HorizontalAlignment="Center"
-                TextAlignment="Left"
-                Width="100"
-                Margin="5,1,0,0"
-                Stroke="{StaticResource TextStroke}"
-                Fill="{StaticResource TextFill}" />
+                <Button Width="20" Height="20" Margin="3,0,0,0" Content="+"
+                        ToolTip="Remember Destination" FontWeight="ExtraBold"
+                        Visibility="{Binding IsItemNotInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Command="{Binding AddLocationCommand}" Foreground="White" Background="CornflowerBlue">
+                </Button>
 
-            <TextBox
-                Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                Height="20" Margin="1,1,0,0"
-                FontSize="8pt"
-                VerticalAlignment="Center" Width="120"
-                ToolTip="{Binding LocationTooltip}" />
+                <Button Width="20" Height="20" Margin="3,0,0,0" Content="-"
+                        ToolTip="Forget Destination" FontWeight="ExtraBold"
+                        Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Command="{Binding RemoveLocationCommand}" Foreground="White" Background="OrangeRed">
+                </Button>
+            </StackPanel>
 
-            <Button Width="20" Height="20" Margin="3" Content="&#xF272;"
-                    FontFamily="Segoe MDL2 Assets" ToolTip="Copy to Destination" FontWeight="ExtraBold"
-                    Command="{Binding CopyLocationToDestinationCommand}" Foreground="White" Background="CornflowerBlue">
-            </Button>
+            <StackPanel Grid.Row="1" Grid.Column="0" FlowDirection="LeftToRight"
+                        Orientation="Horizontal"
+                        Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <controls:OutlinedTextBlock
+                    Text="Location:"
+                    FontFamily="Verdana" FontSize="10pt"
+                    FontWeight="ExtraBold"
+                    TextWrapping="Wrap"
+                    StrokeThickness=".5"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    TextAlignment="Left"
+                    Width="100"
+                    Margin="5,1,0,0"
+                    Stroke="{StaticResource TextStroke}"
+                    Fill="{StaticResource TextFill}" />
 
-            <Button Width="20" Height="20" Margin="0,3,3,3" Content="&#xE7B3;"
-                    FontFamily="Segoe MDL2 Assets" ToolTip="Configure Watcher" FontWeight="ExtraBold"
-                    Click="ConfigureWatcher_Click" Foreground="White" Background="CornflowerBlue">
-            </Button>
+                <TextBox
+                    Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    Height="20" Margin="1,1,0,0"
+                    FontSize="8pt"
+                    VerticalAlignment="Center" Width="120"
+                    ToolTip="{Binding LocationTooltip}" />
 
-        </StackPanel>
+                <Button Width="20" Height="20" Margin="3" Content="&#xF272;"
+                        FontFamily="Segoe MDL2 Assets" ToolTip="Copy Location to Destination" FontWeight="ExtraBold"
+                        Command="{Binding CopyLocationToDestinationCommand}" Foreground="White"
+                        Background="CornflowerBlue">
+                </Button>
 
+                <Button Width="20" Height="20" Margin="0,3,3,3"
+                        ToolTip="Configure Watcher" FontWeight="ExtraBold"
+                        Click="ConfigureWatcher_Click" Foreground="White" Background="CornflowerBlue">
+                    ...
+                </Button>
 
-        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
-                    Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Width="60" Height="24" Margin="3" 
-                    Background="{Binding Timer5.Background}" 
-                    Foreground="{Binding Timer5.Foreground}"
-                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="{Binding Timer5.DisplayText}" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <Button Width="60" Height="24" Margin="3" 
-                    Background="{Binding Timer10.Background}" 
-                    Foreground="{Binding Timer10.Foreground}"
-                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer10}" FontWeight="Bold">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="{Binding Timer10.DisplayText}" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <Button Width="60" Height="24" Margin="3" 
-                    Background="{Binding Timer15.Background}" 
-                    Foreground="{Binding Timer15.Foreground}"
-                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer15}" FontWeight="Bold">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="{Binding Timer15.DisplayText}" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <Button Width="60" Height="24" Margin="3" 
-                    Background="{Binding Timer20.Background}" 
-                    Foreground="{Binding Timer20.Foreground}"
-                    Command="{Binding TimerCommand}" CommandParameter="{Binding Timer20}" FontWeight="Bold">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <TextBlock Text="{Binding Timer20.DisplayText}" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-        </StackPanel>
+            </StackPanel>
+            
+            <StackPanel Grid.Row="2" Grid.Column="0" FlowDirection="LeftToRight"
+                        Orientation="Horizontal" HorizontalAlignment="Center"
+                        Visibility="{Binding ShowTimers, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Button Width="60" Height="24" Margin="3"
+                        Background="{Binding Timer5.Background}"
+                        Foreground="{Binding Timer5.Foreground}"
+                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                   Margin="0,0,5,0" />
+                        <TextBlock Text="{Binding Timer5.DisplayText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Width="60" Height="24" Margin="3"
+                        Background="{Binding Timer10.Background}"
+                        Foreground="{Binding Timer10.Foreground}"
+                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer10}" FontWeight="Bold">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                   Margin="0,0,5,0" />
+                        <TextBlock Text="{Binding Timer10.DisplayText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Width="60" Height="24" Margin="3"
+                        Background="{Binding Timer15.Background}"
+                        Foreground="{Binding Timer15.Foreground}"
+                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer15}" FontWeight="Bold">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                   Margin="0,0,5,0" />
+                        <TextBlock Text="{Binding Timer15.DisplayText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+                <Button Width="60" Height="24" Margin="3"
+                        Background="{Binding Timer20.Background}"
+                        Foreground="{Binding Timer20.Foreground}"
+                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer20}" FontWeight="Bold">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                   Margin="0,0,5,0" />
+                        <TextBlock Text="{Binding Timer20.DisplayText}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
 
-        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" FlowDirection="LeftToRight"
-                    Orientation="Horizontal">
-            <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
-                     VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
-                     Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets"
-                     ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
-                     Visibility="{Binding LeftButtonVisibility}">
-            </TextBox>
+            <StackPanel Grid.Row="3" Grid.Column="0" FlowDirection="LeftToRight"
+                        Orientation="Horizontal" Background="Transparent"
+                        MouseEnter="DirectionsArea_MouseEnter" MouseLeave="DirectionsArea_MouseLeave">
+                <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
+                         Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets"
+                         ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
+                         Visibility="{Binding LeftButtonVisibility}"
+                         IsReadOnly="True">
+                </TextBox>
 
-            <controls:OutlinedTextBlock x:Name="labelDirection"
-                                     Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"
-                                     FontFamily="Verdana" FontSize="12pt"
-                                     FontWeight="ExtraBold"
-                                     TextWrapping="Wrap"
-                                     StrokeThickness="1"
-                                     VerticalAlignment="Center"
-                                     HorizontalAlignment="Center"
-                                     TextAlignment="Center"
-                                     Width="225"
-                                     Stroke="{StaticResource TextStroke}"
-                                     Fill="{Binding LabelDirectionFill}" />
-            <TextBox x:Name="rightbutton"
-                     VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
-                     Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets"
-                     ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
-                     Visibility="{Binding RightButtonVisibility}">
-            </TextBox>
-        </StackPanel>
+                <controls:OutlinedTextBlock x:Name="labelDirection"
+                                            Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"
+                                            FontFamily="Verdana" FontSize="12pt"
+                                            FontWeight="ExtraBold"
+                                            TextWrapping="Wrap"
+                                            StrokeThickness="1"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            TextAlignment="Center"
+                                            Width="225"
+                                            Stroke="{StaticResource TextStroke}"
+                                            Fill="{Binding LabelDirectionFill}"
+                                            />
+                <TextBox x:Name="rightbutton"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
+                         Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets"
+                         ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
+                         Visibility="{Binding RightButtonVisibility}"
+                         IsReadOnly="True">
+                </TextBox>
+            </StackPanel>
 
-        <Grid Grid.Row="6" Grid.ColumnSpan="2" Height="120" Background="Transparent">
-            <Grid IsHitTestVisible="False">
-                <!-- Compass Circle -->
-                <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Grid Grid.Row="4" Background="Transparent"
+                  MouseEnter="CompassArea_MouseEnter" MouseLeave="CompassArea_MouseLeave">
+                <Grid IsHitTestVisible="False">
+                    <!-- Compass Circle -->
+                    <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
 
-                <!-- Distance in center -->
-                <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold" 
-                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"/>
-            </Grid>
-
-            <!-- Coffee cup icon -->
-            <Button Command="{Binding BuyMeACoffeeCommand}"
-                    Visibility="{Binding ShowCoffeeIcon}"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Margin="100,100,0,0"
-                    Background="Transparent" BorderThickness="0"
-                    Padding="0" Cursor="Hand"
-                    ToolTip="Buy me a coffee!">
-                <TextBlock Text="&#xE8E1;" FontFamily="Segoe MDL2 Assets" 
-                           FontSize="10pt" Foreground="{Binding CompassBrush}"/>
-            </Button>
-
-            <!-- Indicators -->
-            <Grid Width="120" Height="120" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                <Grid.RenderTransform>
-                    <RotateTransform Angle="{Binding NorthRotation}" CenterX="60" CenterY="60"/>
-                </Grid.RenderTransform>
-
-                <!-- North -->
-                <Line X1="60" Y1="20" X2="60" Y2="30" Stroke="{Binding CompassBrush}" StrokeThickness="3"/>
-                <TextBlock Text="N" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="14pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"/>
-
-                <!-- NorthEast -->
-                <Grid Width="120" Height="120">
-                    <Grid.RenderTransform>
-                        <RotateTransform Angle="45" CenterX="60" CenterY="60"/>
-                    </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="NE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                    <!-- Distance in center -->
+                    <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"
+                               IsHitTestVisible="False" />
                 </Grid>
 
-                <!-- East -->
-                <Grid Width="120" Height="120">
+                <!-- Coffee cup icon -->
+                <!-- <Button Command="{Binding BuyMeACoffeeCommand}" -->
+                <!--         Visibility="{Binding ShowCoffeeIcon}" -->
+                <!--         HorizontalAlignment="Center" VerticalAlignment="Center" -->
+                <!--         Margin="100,100,0,0" -->
+                <!--         BorderThickness="0" -->
+                <!--         Background="Transparent" -->
+                <!--         Padding="0" Cursor="Hand" -->
+                <!--         ToolTip="Buy me a coffee!" -->
+                <!--         > -->
+                <!--     <TextBlock Text="&#xE8E1;" FontFamily="Segoe MDL2 Assets"  -->
+                <!--                FontSize="10pt" Foreground="{Binding CompassBrush}"  IsHitTestVisible="true"/> -->
+                <!-- </Button> -->
+
+                <!-- Indicators -->
+                <Grid Width="120" Height="120" HorizontalAlignment="Center" Background="{x:Null}"
+                      VerticalAlignment="Center" IsHitTestVisible="False">
                     <Grid.RenderTransform>
-                        <RotateTransform Angle="90" CenterX="60" CenterY="60"/>
+                        <RotateTransform Angle="{Binding NorthRotation}" CenterX="60" CenterY="60" />
                     </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="E" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+
+                    <!-- North -->
+                    <Line X1="60" Y1="20" X2="60" Y2="30" Stroke="{Binding CompassBrush}" StrokeThickness="3"
+                          IsHitTestVisible="False" />
+                    <TextBlock Text="N" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="14pt"
+                               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"
+                               IsHitTestVisible="False" />
+
+                    <!-- NorthEast -->
+                    <Grid Width="120" Height="120" IsHitTestVisible="False">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="45" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="NE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
+
+                    <!-- East -->
+                    <Grid Width="120" Height="120">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="90" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="E" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
+
+                    <!-- SouthEast -->
+                    <Grid Width="120" Height="120">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="135" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="SE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
+
+                    <!-- South -->
+                    <Grid Width="120" Height="120">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="180" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="S" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
+
+                    <!-- SouthWest -->
+                    <Grid Width="120" Height="120">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="225" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="SW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
+
+                    <!-- West -->
+                    <Grid Width="120" Height="120">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="270" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="W" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
+
+                    <!-- NorthWest -->
+                    <Grid Width="120" Height="120">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="315" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                        <TextBlock Text="NW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                    </Grid>
                 </Grid>
 
-                <!-- SouthEast -->
-                <Grid Width="120" Height="120">
+                <!-- Destination Dot -->
+                <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      IsHitTestVisible="False"
+                      Visibility="{Binding DestinationVisibility}">
                     <Grid.RenderTransform>
-                        <RotateTransform Angle="135" CenterX="60" CenterY="60"/>
+                        <TransformGroup>
+                            <TranslateTransform Y="{Binding DestinationOffset}" />
+                            <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40" />
+                        </TransformGroup>
                     </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="SE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
+                    <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
                 </Grid>
-
-                <!-- South -->
-                <Grid Width="120" Height="120">
-                    <Grid.RenderTransform>
-                        <RotateTransform Angle="180" CenterX="60" CenterY="60"/>
-                    </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="S" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
-                </Grid>
-
-                <!-- SouthWest -->
-                <Grid Width="120" Height="120">
-                    <Grid.RenderTransform>
-                        <RotateTransform Angle="225" CenterX="60" CenterY="60"/>
-                    </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="SW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
-                </Grid>
-
-                <!-- West -->
-                <Grid Width="120" Height="120">
-                    <Grid.RenderTransform>
-                        <RotateTransform Angle="270" CenterX="60" CenterY="60"/>
-                    </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="W" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
-                </Grid>
-
-                <!-- NorthWest -->
-                <Grid Width="120" Height="120">
-                    <Grid.RenderTransform>
-                        <RotateTransform Angle="315" CenterX="60" CenterY="60"/>
-                    </Grid.RenderTransform>
-                    <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2"/>
-                    <TextBlock Text="NW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
-                </Grid>
-            </Grid>
-
-            <!-- Destination Dot -->
-            <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
-                  Visibility="{Binding DestinationVisibility}">
-                <Grid.RenderTransform>
-                    <TransformGroup>
-                        <TranslateTransform Y="{Binding DestinationOffset}"/>
-                        <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40"/>
-                    </TransformGroup>
-                </Grid.RenderTransform>
-                <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
         </Grid>
-
     </Grid>
 </Window>

@@ -1,9 +1,12 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Microsoft.VisualBasic.CompilerServices;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
@@ -32,6 +35,25 @@ public class MainViewModel : INotifyPropertyChanged {
     public TimerController Timer15 { get; } = new(15);
     public TimerController Timer20 { get; } = new(20);
 
+    private bool _mainContentVisibility = true;
+    
+    public bool MainContentVisibility {
+        get => _mainContentVisibility;
+        set => SetField(ref _mainContentVisibility, value);
+    }
+    
+    private bool _showSettings;
+    public bool ShowSettings {
+        get => _showSettings;
+        set => SetField(ref _showSettings, value);
+    }
+
+    private bool _showTimers;
+    public bool ShowTimers {
+        get => _showTimers;
+        set => SetField(ref _showTimers, value);
+    }
+    
     private LocationItem? _selectedLocation;
     public LocationItem? SelectedLocation {
         get => _selectedLocation;
@@ -193,7 +215,7 @@ public class MainViewModel : INotifyPropertyChanged {
         get => _cY;
         set => SetField(ref _cY, value);
     }
-
+    
     private double _currentHeading;
     public double CurrentHeading {
         get => _currentHeading;

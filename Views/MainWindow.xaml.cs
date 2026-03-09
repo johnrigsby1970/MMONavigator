@@ -1,11 +1,10 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
 using System.Windows.Interop;
-using System.IO;
 using MMONavigator.Models;
-using MMONavigator.Services;
 using MMONavigator.ViewModels;
 
 namespace MMONavigator.Views;
@@ -30,6 +29,41 @@ public partial class MainWindow : Window {
     private const int WM_CLIPBOARDUPDATE = 0x031D;
     private readonly IntPtr _windowHandle;
 
+    // Win32 Constants
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TRANSPARENT = 0x00000020;
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+    private IntPtr _hwnd;
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        // Get this window's handle
+        _hwnd = new WindowInteropHelper(this).Handle;
+
+        // Don't enable click-through by default - let interactive areas work normally
+    }
+    
+    public void SetClickThrough(bool isClickThrough)
+    {
+        int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
+        if (isClickThrough)
+        {
+            // Add the Transparent flag (Click-through ON)
+            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT);
+        }
+        else
+        {
+            // Remove the Transparent flag (Click-through OFF)
+            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
+        }
+    }
+    
     public MainWindow() {
         InitializeComponent();
         _viewModel = new MainViewModel();
@@ -37,15 +71,15 @@ public partial class MainWindow : Window {
 
         Topmost = true;
         Deactivated += (s, e) => KeepOnTop();
-        
+
         Top = 0; //SystemParameters.PrimaryScreenHeight;
         Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
 
         // Initialize state and apply it immediately
-        _showSettings = _viewModel.Settings.ShowSettings; 
+        _viewModel.ShowSettings = _viewModel.Settings.ShowSettings;
         ApplySettingsVisibility();
 
-        _showTimers = _viewModel.Settings.ShowTimers;
+        _viewModel.ShowTimers = _viewModel.Settings.ShowTimers;
         ApplyTimersVisibility();
 
         _windowHandle = new WindowInteropHelper(this).EnsureHandle();
@@ -70,19 +104,7 @@ public partial class MainWindow : Window {
             _viewModel.StartWatcher(_windowHandle);
         }
     }
-
-    private bool _showSettings;
-    public bool ShowSettings {
-        get => _showSettings;
-        set => _showSettings = value;
-    }
-
-    private bool _showTimers;
-    public bool ShowTimers {
-        get => _showTimers;
-        set => _showTimers = value;
-    }
-
+    
     private void Stop() {
         _viewModel.StopWatcher();
     }
@@ -153,40 +175,59 @@ public partial class MainWindow : Window {
     }
 
     private void ToggleSettings() {
-        ShowSettings = !ShowSettings;
-        _viewModel.Settings.ShowSettings = ShowSettings;
+        _viewModel.ShowSettings = !_viewModel.ShowSettings;
+        _viewModel.Settings.ShowSettings = _viewModel.ShowSettings;
         ApplySettingsVisibility();
     }
 
     private void ApplySettingsVisibility() {
-        GridLength height = ShowSettings ? StandardGridRowHeight : HiddenRowHeight;
-        destinationRow.Height = height;
-        targetRow.Height = height;
-        settingsRow.Height = height;
+        // GridLength height = _viewModel.ShowSettings ? StandardGridRowHeight : HiddenRowHeight;
+        // destinationRow.Height = height;
+        // targetRow.Height = height;
+        // settingsRow.Height = height;
     }
 
     private void ToggleTimers() {
-        ShowTimers = !ShowTimers;
-        _viewModel.Settings.ShowTimers = ShowTimers;
+        _viewModel.ShowTimers = !_viewModel.ShowTimers;
+        _viewModel.Settings.ShowTimers = _viewModel.ShowTimers;
         ApplyTimersVisibility();
     }
 
     private void ApplyTimersVisibility() {
-        timerRow.Height = ShowTimers ? StandardGridRowHeight : HiddenRowHeight;
+        //timerRow.Height = _viewModel.ShowTimers ? StandardGridRowHeight : HiddenRowHeight;
     }
 
     private void TitleBar_MouseEnter(object sender, MouseEventArgs e) {
         settingsbutton.Visibility = Visibility.Visible;
         timerbutton.Visibility = Visibility.Visible;
+        togglebutton.Visibility = Visibility.Visible;
         minbutton.Visibility = Visibility.Visible;
         closebutton.Visibility = Visibility.Visible;
+        SetClickThrough(false);
     }
 
     private void TitleBar_MouseLeave(object sender, MouseEventArgs e) {
         settingsbutton.Visibility = Visibility.Collapsed;
         timerbutton.Visibility = Visibility.Collapsed;
+        togglebutton.Visibility = Visibility.Collapsed;
         minbutton.Visibility = Visibility.Collapsed;
         closebutton.Visibility = Visibility.Collapsed;
+    }
+
+    private void DirectionsArea_MouseEnter(object sender, MouseEventArgs e) {
+        SetClickThrough(true);
+    }
+
+    private void DirectionsArea_MouseLeave(object sender, MouseEventArgs e) {
+        SetClickThrough(false);
+    }
+    
+    private void CompassArea_MouseEnter(object sender, MouseEventArgs e) {
+        SetClickThrough(true);
+    }
+
+    private void CompassArea_MouseLeave(object sender, MouseEventArgs e) {
+        SetClickThrough(false);
     }
     
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
@@ -195,6 +236,9 @@ public partial class MainWindow : Window {
         }
     }
     
+    private void ToggleVisibityButton_Click(object sender, RoutedEventArgs e) {
+        _viewModel.MainContentVisibility=!_viewModel.MainContentVisibility;
+    }
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         if (WindowState != WindowState.Normal) {
             WindowState = WindowState.Normal;

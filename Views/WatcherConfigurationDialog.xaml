@@ -16,6 +16,7 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="180"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -26,9 +27,19 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-
-                <TextBlock Text="Game Profile:" Margin="0,0,0,5" FontWeight="Bold"/>
-                <Grid Grid.Row="1" Margin="0,0,0,15">
+                <TextBlock Grid.Row="0"  
+                           TextWrapping="Wrap" 
+                           Margin="0,0,0,5" FontWeight="Bold">
+                    Setup your current game profile or create a new one.
+                    <LineBreak />
+                    <LineBreak />
+                    The program needs to know where your game writes the player location. Some games, like Pantheon Rise of the Fallen, write it to the system clipboard so that a user can copy/paste. While others, like Everquest, log it to a file by program or character. In this case, you may need to turn on logging.
+                    <LineBreak />
+                    <LineBreak />
+                    In both Pantheon and Everquest, the program writes when the user executes /loc command.
+                </TextBlock>
+                <TextBlock Grid.Row="1" Text="Game Profile:" Margin="0,0,0,5" FontWeight="Bold"/>
+                <Grid Grid.Row="2" Margin="0,0,0,15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -44,15 +55,15 @@
                             ToolTip="Remove Profile" Background="OrangeRed" Foreground="White" FontWeight="Bold"/>
                 </Grid>
 
-                <TextBlock Grid.Row="2" Text="Watch Mode:" Margin="0,0,0,5" FontWeight="Bold"/>
-                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,15">
+                <TextBlock Grid.Row="3" Text="Watch Mode:" Margin="0,0,0,5" FontWeight="Bold"/>
+                <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,15">
                     <RadioButton x:Name="ClipboardRadio" Content="System Clipboard" Foreground="White" Margin="0,0,20,0" VerticalAlignment="Center"/>
                     <RadioButton x:Name="FileRadio" Content="Log File" Foreground="White" VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <TextBlock Grid.Row="4" Text="Log File Path:" Margin="0,0,0,5" FontWeight="Bold" 
+                <TextBlock Grid.Row="5" Text="Log File Path:" Margin="0,0,0,5" FontWeight="Bold" 
                            Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <Grid Grid.Row="5" Margin="0,0,0,15" Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Grid.Row="6" Margin="0,0,0,15" Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -61,14 +72,14 @@
                     <Button Grid.Column="1" Content="..." Width="30" Margin="5,0,0,0" Click="BrowseButton_Click" Background="#3E3E42" Foreground="White"/>
                 </Grid>
 
-                <TextBlock Grid.Row="6" Text="Log File Regex:" Margin="0,0,0,5" FontWeight="Bold"
+                <TextBlock Grid.Row="7" Text="Log File Regex:" Margin="0,0,0,5" FontWeight="Bold"
                            Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <TextBox x:Name="RegexTextBox" Grid.Row="7" Margin="0,0,0,15"
+                <TextBox x:Name="RegexTextBox" Grid.Row="8" Margin="0,0,0,15"
                          Background="#3E3E42" Foreground="White" BorderBrush="#555555" Padding="2"
                          AcceptsReturn="True" TextWrapping="Wrap" VerticalAlignment="Top"
                          Visibility="{Binding IsChecked, ElementName=FileRadio, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <StackPanel Grid.Row="8" Orientation="Horizontal" Margin="0,0,0,15">
+                <StackPanel Grid.Row="9" Orientation="Horizontal" Margin="0,0,0,15">
                     <TextBlock Text="System:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
                     <ComboBox x:Name="SystemComboBox" Width="100" Margin="0,0,20,0" VerticalAlignment="Center"
                               Background="#3E3E42" Foreground="Black"/>
