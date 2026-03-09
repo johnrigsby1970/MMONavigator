@@ -73,10 +73,10 @@ repository if you do not want to trust the compiled program. 100% of the code is
 * The game will watch your clipboard for location updates. Type /loc to set the location in this program.
 * Set a desired destination location and the program will update the direction to the destination.
 * The program will update the direction every time the location is changed.
-* Lets say you die, and there isn't a summoner available. Type /loc to get your current location. Then press the target button to the right of the 
-* location to compy the location as your destination. Now revive and type /loc.
+* Let's say you die, and there isn't a summoner available. Type /loc to get your current location. Then press the target button to the right of the 
+  location to copy the location as your destination. Now revive and type /loc.
 * The program will update the directions to guide you to your corpse.
-* Another use case is to guide you to a known location in the world, say a named mob in the middle of a forest.
+* Another use case is to guide you to a known location in the world, say a named mob in the middle of a forest, or you are in the forest and want to run back to a city.
 
 ### Use with Everquest or Project 1999.
 
