@@ -5,6 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MMONavigator.Views"
         xmlns:controls="clr-namespace:MMONavigator.Controls"
+        xmlns:models="clr-namespace:MMONavigator.Models"
+        xmlns:mmoNavigator="clr-namespace:MMONavigator"
         mc:Ignorable="d"
         Title="MainWindow"
         Width="280" Height="Auto" SizeToContent="WidthAndHeight"
@@ -156,17 +158,60 @@
                     Stroke="{StaticResource TextStroke}"
                     Fill="{StaticResource TextFill}" />
 
-                <ComboBox
-                    ItemsSource="{Binding Locations}"
-                    SelectedItem="{Binding SelectedLocation}"
-                    Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    IsEditable="True"
-                    DisplayMemberPath="DisplayName"
-                    Height="22"
-                    FontSize="8pt"
-                    VerticalAlignment="Center" Width="140"
-                    ToolTip="{Binding DestinationTooltip}" />
+                <!-- <ComboBox -->
+                <!--     ItemsSource="{Binding Locations}" -->
+                <!--     SelectedItem="{Binding SelectedLocation}" -->
+                <!--     Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" -->
+                <!--     IsEditable="True" -->
+                <!--     DisplayMemberPath="DisplayName" -->
+                <!--     Height="22" -->
+                <!--     FontSize="8pt" -->
+                <!--     VerticalAlignment="Center" Width="140" -->
+                <!--     ToolTip="{Binding DestinationTooltip}" /> -->
 
+                <TextBox x:Name="TargetCoordinates" 
+                         Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Height="22" 
+                         FontSize="8pt"
+                         VerticalAlignment="Center" 
+                         Width="99"
+                         ToolTip="{Binding DestinationTooltip}"/>
+                <!--https://stackoverflow.com/questions/722700/wpf-treeview-inside-a-combobox-->
+                <Expander Header="TestCS" Width="25" Height="25" >
+                    <Popup 
+                        PlacementTarget="{Binding ElementName=TargetCoordinates}"
+                        IsOpen="{Binding IsExpanded, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Expander}}}"
+                        StaysOpen="False"
+                        Margin="1,1,1,1"
+                        Width="200"
+                        >
+                        <mmoNavigator:ExtendedTreeView 
+                            ItemsSource="{Binding Locations}" 
+                            SelectedItem_="{Binding SelectedLocation, Mode=TwoWay}" 
+                            Margin="1,1,1,1"
+                            Width="200" >
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="{x:Type TreeViewItem}">
+                                    <!-- Bind the IsSelected property of the TreeViewItem to a property on your ViewModel item -->
+                                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                    <!-- You can also bind IsExpanded this way -->
+                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
+                            <TreeView.Resources>
+                                <!-- The DataTemplate for the 'Node' class -->
+                                <HierarchicalDataTemplate DataType="{x:Type models:LocationItem}" ItemsSource="{Binding Items}">
+                                    <TextBlock Text="{Binding DisplayName}" 
+                                               FontSize="8pt"
+                                               Width="150"
+                                               Margin="0,1,0,1"
+                                               ToolTip="{Binding DestinationTooltip}"/>
+                                </HierarchicalDataTemplate>
+                            </TreeView.Resources>
+                        </mmoNavigator:ExtendedTreeView>
+                    </Popup>
+                </Expander>
+                
                 <Button Width="20" Height="20" Margin="3,0,0,0" Content="+"
                         ToolTip="Remember Destination" FontWeight="ExtraBold"
                         Visibility="{Binding IsItemNotInList, Converter={StaticResource BooleanToVisibilityConverter}}"

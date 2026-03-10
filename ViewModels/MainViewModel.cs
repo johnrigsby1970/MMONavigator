@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows.Controls;
 using Microsoft.VisualBasic.CompilerServices;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
@@ -58,8 +59,61 @@ public class MainViewModel : INotifyPropertyChanged {
     public LocationItem? SelectedLocation {
         get => _selectedLocation;
         set {
-            if (SetField(ref _selectedLocation, value)) {
-                SyncLocationAndCoordinates(true);
+            if (value != null) {
+                if (value.Items == null) {
+                    if (SetField(ref _selectedLocation, value)) {
+                        TargetCoordinates = value?.DisplayName;
+                        SyncLocationAndCoordinates(true);
+                    }
+                }
+            }
+        }
+    }
+    
+    // private string? _destinationLocation;
+    // public string? DestinationLocation
+    // {
+    //     get => _destinationLocation;
+    //     set
+    //     {
+    //         //if (SelectedLocation != null && SelectedLocation.DisplayName == value) {
+    //             TargetCoordinates = value;
+    //         //}
+    //         if (_destinationLocation != value)
+    //         {
+    //             _destinationLocation = value;
+    //             OnPropertyChanged(nameof(DestinationLocation));
+    //             // Add logic here to track the single selected item in the main ViewModel
+    //         }
+    //     }
+    // }
+    
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected != value)
+            {
+                _isSelected = value;
+                OnPropertyChanged(nameof(IsSelected));
+                // Add logic here to track the single selected item in the main ViewModel
+            }
+        }
+    }
+    
+    private bool _isExpanded;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded != value)
+            {
+                _isExpanded = value;
+                OnPropertyChanged(nameof(IsExpanded));
+                // Add logic here to track the single selected item in the main ViewModel
             }
         }
     }
@@ -86,9 +140,12 @@ public class MainViewModel : INotifyPropertyChanged {
             string currentInput = _targetCoordinates ?? string.Empty;
             var scrubbed = Scrubber.ScrubEntry(currentInput);
 
-            var matchingItem = Locations.FirstOrDefault(l =>
+            var temp = Locations.Where(l => l.Items == null).ToList();
+            temp.AddRange(Locations.Where(l => l.Items != null).SelectMany(y => y.Items!));
+            // var matchingItem = Locations.FirstOrDefault(l =>
+            //     l.ScrubbedCoordinates == scrubbed || currentInput == l.DisplayName);
+            var matchingItem = temp.FirstOrDefault(l =>
                 l.ScrubbedCoordinates == scrubbed || currentInput == l.DisplayName);
-
             if (_selectedLocation != matchingItem) {
                 _selectedLocation = matchingItem;
                 OnPropertyChanged(nameof(SelectedLocation));
@@ -100,13 +157,22 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void UpdateListStatus() {
-        IsItemInList = SelectedLocation != null || Locations.Any(l => {
-            string scrubbedT;
-            if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
-                scrubbedT = SelectedLocation.ScrubbedCoordinates ?? "";
-            } else {
-                scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
-            }
+        string scrubbedT;
+        if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
+            scrubbedT = SelectedLocation.ScrubbedCoordinates ?? "";
+        } else {
+            scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
+        }
+        
+        IsItemInList = SelectedLocation != null || Locations.Where(x=>x.Items==null).Any(l => {
+            // string scrubbedT;
+            // if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
+            //     scrubbedT = SelectedLocation.ScrubbedCoordinates ?? "";
+            // } else {
+            //     scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
+            // }
+            return !string.IsNullOrEmpty(l.ScrubbedCoordinates) && l.ScrubbedCoordinates == scrubbedT;
+        }) || Locations.Where(x=>x.Items!=null).SelectMany(y=>y.Items!).Any(l => {
             return !string.IsNullOrEmpty(l.ScrubbedCoordinates) && l.ScrubbedCoordinates == scrubbedT;
         });
     }
@@ -366,23 +432,56 @@ public class MainViewModel : INotifyPropertyChanged {
         Locations.Clear();
         foreach (var item in list) {
             item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
-            Locations.Add(item);
+            if (!string.IsNullOrWhiteSpace(item.Header)) {
+                if (Locations.Any(l => l.Header == item.Header)) {
+                    Locations.Single(l => l.Header == item.Header).Items.Add(item);
+                }
+                else {
+                    Locations.Add(new LocationItem{Header = item.Header, Name = item.Header, Items = new List<LocationItem>(){item}});
+                }
+            }
+            else {
+                Locations.Add(item);
+            }
         }
     }
 
     public void SaveLocations() {
-        _settingsService.SaveLocations(Locations);
+        var temp = new List<LocationItem>();
+        foreach (var location in Locations) {
+            if (location.Items == null) {
+                temp.Add(location);
+            }
+            else {
+                foreach (var item in location.Items) {
+                    temp.Add(item);
+                }
+            }
+        }
+        _settingsService.SaveLocations(temp);
     }
 
     private void AddLocation() {
         var scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
         if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
+        // string name = string.Empty;
+        // var dialog = new InputDialog("Enter a name for this location:", "Add Location", "");
+        // dialog.Owner = Application.Current.MainWindow;
+        // if (dialog.ShowDialog() == true) {
+        //     name = dialog.Answer;
+        // } else {
+        //     return;
+        // }
+        
         string name = string.Empty;
-        var dialog = new InputDialog("Enter a name for this location:", "Add Location", "");
+        string group = string.Empty;
+        List<string> groups = Locations.Where(x=>x.Items!=null).Select(l => l.Header).ToList();
+        var dialog = new DestinationDialog("",  "", groups);
         dialog.Owner = Application.Current.MainWindow;
         if (dialog.ShowDialog() == true) {
             name = dialog.Answer;
+            group = dialog.Group;
         } else {
             return;
         }
@@ -390,9 +489,20 @@ public class MainViewModel : INotifyPropertyChanged {
         var item = new LocationItem {
             Name = string.IsNullOrWhiteSpace(name) ? null : name,
             Coordinates = scrubbedTarget,
-            ScrubbedCoordinates = scrubbedTarget
+            ScrubbedCoordinates = scrubbedTarget,
+            Header = string.IsNullOrWhiteSpace(group) ? null : group,
         };
-        Locations.Add(item);
+        if (!string.IsNullOrWhiteSpace(item.Header)) {
+            if (Locations.Any(l => l.Header == item.Header)) {
+                Locations.Single(l => l.Header == item.Header).Items.Add(item);
+            }
+            else {
+                Locations.Add(new LocationItem{Header = item.Header, Name = item.Name, Items = new List<LocationItem>(){item}});
+            }
+        }
+        else {
+            Locations.Add(item);
+        }
         SelectedLocation = item;
         SaveLocations();
     }
@@ -400,20 +510,75 @@ public class MainViewModel : INotifyPropertyChanged {
     
     private void RemoveLocation() {
         var item = SelectedLocation;
+        var scrubbedTarget = string.Empty;
+        
         if (item == null) {
-            var scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
-            item = Locations.FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
+            scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
+        }
+        else {
+            scrubbedTarget = item.ScrubbedCoordinates;
         }
 
         if (item != null) {
-            var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
-            if (result == MessageBoxResult.Yes) {
-                Locations.Remove(item);
-                SelectedLocation = null;
-                OnPropertyChanged(nameof(TargetCoordinates));
-                SaveLocations();
+            item = Locations.Where(x => x.Items == null).FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
+            
+            if (item != null) {
+                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes) {
+                    Locations.Remove(item);
+                    SelectedLocation = null;
+                    TargetCoordinates = "";
+                    OnPropertyChanged(nameof(SelectedLocation));
+                    OnPropertyChanged(nameof(TargetCoordinates));
+                    SaveLocations();
+                    LoadLocations();
+                }
+
+                return;
             }
+            
+            item = Locations.Where(x=>x.Items!=null).SelectMany(y=>y.Items!).FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
+            
+            if (item != null) {
+                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes) {
+                    foreach (var location in Locations.Where(x => x.Items == null)) {
+                        if (location == item) {
+                            Locations.Where(x => x.Items == null).ToList().Remove(location);
+                        }
+                    }
+                    foreach (var group in Locations.Where(x => x.Items != null).ToList()) {
+                        foreach (var location in group.Items!.ToList()) {
+                            if (item == location) {
+                                group.Items!.Remove(location);
+                            }
+                        }
+
+                        if (group.Items!.Count == 0) {
+                            Locations.Where(x => x.Items != null).ToList().Remove(group);
+                        }
+                    }
+
+                    SelectedLocation = null;
+                    TargetCoordinates = "";
+                    OnPropertyChanged(nameof(SelectedLocation));
+                    OnPropertyChanged(nameof(TargetCoordinates));
+                    SaveLocations();
+                    LoadLocations();
+                }
+            }
+            //item = Locations.FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
         }
+        
+        // if (item != null) {
+        //     var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
+        //     if (result == MessageBoxResult.Yes) {
+        //         Locations.Remove(item);
+        //         SelectedLocation = null;
+        //         OnPropertyChanged(nameof(TargetCoordinates));
+        //         SaveLocations();
+        //     }
+        // }
     }
 
     private string? _locationTooltip;
