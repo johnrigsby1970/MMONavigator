@@ -81,7 +81,7 @@ repository if you do not want to trust the compiled program. 100% of the code is
 ### Test it
 
 * Type /loc to put the current location in the destination text box.
-* Press the target button to copy it to your desintation.
+* Press the target button to copy it to your destination.
 * Run straight ahead, do not turn around.
 * Type /loc to capture your current location.
 * You should see the green target dot at the bottom of the compass or in games that do not have facing as part of the coordinates, it will be on the compass in the direction behind your current direction.
@@ -95,7 +95,7 @@ If you can create a macro, make one that repeats /loc at regular intervals as ma
 * Select or create the game profile you want to use.
 * In Everquest the location is written to a log file. It only writes to the log file once you turn logging on in your game.
 * The program will watch the log file for location updates. Type /loc to set the location in this program.
-* Set the coordiante system used by your game. In the case of Everquest, the coordinate system is LeftHanded.
+* Set the coordinate system used by your game. In the case of Everquest, the coordinate system is LeftHanded.
 * Set the format of the coordinates so that the program can parse them. In the case of Everquest this is [Y-Axis], [X-Axis], [Z-Axis]. (Ex. 123.4, -567.8, 17)
 * Enter a destination, or if you have a corpse, copy the location to destination, revive yourself and start pressing /loc as it guides you to your corpse.
 
@@ -143,6 +143,40 @@ Next to the destination text box is a button that lets you name and remember the
 For convenience, you can toggle the entire screen to hide the compass and other controls when not in use. 
 
 The toolbar has a timer icon button that will toggle showing you four timer buttons. You can use these buttons to start timers in 5, 10, 15, and 20-minute intervals.
+
+## Coordinate systems
+
+### LeftHanded
+
+Used by EverQuest and Project 1999.
+
+* North is -Y
+* South is +Y
+* East is -X
+* West is +X
+
+### RightHanded 
+
+Used by Pantheon - Rise of the Fallen.
+
+* North is +Y
+* South is -Y
+* East is +X
+* West is -X
+
+### Coordinate formats
+
+Locations have [Y-Axis], [X-Axis], [Z-Axis] components. 
+
+In the case of Pantheon, they have one more, which is facing. Pantheon has the following order [X-Axis], [Z-Axis], [Y-Axis], [F-Facing]. For direction, you care about X and Y. So in this example, the first and third numbers.
+
+In EverQuest, the coordinates are given as  [Y-Axis], [X-Axis], [Z-Axis]. 
+
+### Facing
+
+In Pantheon, location gives the facing as part of location, it's the fourth number and represents a degree from North.
+
+While Everquest does not give facing, this program will try to derive facing as it compares changes in the locations as you move. If you are moving North, it will assume you are facing North.
 
 ## Authors
 
