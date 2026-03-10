@@ -78,6 +78,17 @@ repository if you do not want to trust the compiled program. 100% of the code is
   location to copy the location as your destination. Now revive and type /loc to capture your current location. Don't do this before you have saved the corpse location as your destination.
 * The program will update the directions to guide you to your destination.
 
+### Test it
+
+* Type /loc to put the current location in the destination text box.
+* Press the target button to copy it to your desintation.
+* Run straight ahead, do not turn around.
+* Type /loc to capture your current location.
+* You should see the green target dot at the bottom of the compass or in games that do not have facing as part of the coordinates, it will be on the compass in the direction behind your current direction.
+* If you are within 100 meters of the destination, the green target dot will be inside the compass circle.
+
+If you can create a macro, make one that repeats /loc at regular intervals as many times as it will allow.
+
 ### Use with Everquest or Project 1999.
 
 * Since the program is defaulted to the Pantheon style coordinate system, you will need to edit the watcher configuration to use the Everquest. Go to the gear icon and click the right most button next to the location text box. This is the watcher configuration dialog.
