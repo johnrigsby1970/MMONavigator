@@ -4,19 +4,20 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using MMONavigator.Models;
+using System.Text.RegularExpressions;
 
 namespace MMONavigator.Services;
 
 public interface ISettingsService {
     AppSettings LoadSettings();
     void SaveSettings(AppSettings settings);
-    List<LocationItem> LoadLocations();
-    void SaveLocations(IEnumerable<LocationItem> locations);
+    List<LocationItem> LoadLocations(string profileName = "Default");
+    void SaveLocations(IEnumerable<LocationItem> locations, string profileName = "Default");
 }
 
 public class SettingsService : ISettingsService {
     private readonly string _settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
-    private readonly string _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+    private string _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
 
     public AppSettings LoadSettings() {
         try {
@@ -34,6 +35,13 @@ public class SettingsService : ISettingsService {
         return newSettings;
     }
 
+    private static string MakeValidFileName(string name)
+    {
+        string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+        string invalidRegStr = string.Format(@"([{0}]* windfall +$)|([{0}]+)", invalidChars);
+        return Regex.Replace(name, invalidRegStr, "_");
+    }
+    
     public void SaveSettings(AppSettings settings) {
         try {
             string json = JsonSerializer.Serialize(settings);
@@ -43,8 +51,14 @@ public class SettingsService : ISettingsService {
         }
     }
 
-    public List<LocationItem> LoadLocations() {
+    public List<LocationItem> LoadLocations(string profileName = "Default") {
         try {
+            if (profileName != "Default") {
+                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MakeValidFileName(profileName)+"_locations.json");
+            }
+            else {
+                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+            }
             if (File.Exists(_locationsPath)) {
                 string json = File.ReadAllText(_locationsPath);
                 return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
@@ -55,8 +69,14 @@ public class SettingsService : ISettingsService {
         return new List<LocationItem>();
     }
 
-    public void SaveLocations(IEnumerable<LocationItem> locations) {
+    public void SaveLocations(IEnumerable<LocationItem> locations, string profileName = "Default") {
         try {
+            if (profileName != "Default") {
+                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MakeValidFileName(profileName)+"_locations.json");
+            }
+            else {
+                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+            }
             string json = JsonSerializer.Serialize(locations.ToList());
             File.WriteAllText(_locationsPath, json);
         } catch (Exception ex) {

@@ -197,8 +197,8 @@ public class LogParserTests
     {
         public AppSettings LoadSettings() => new AppSettings();
         public void SaveSettings(AppSettings settings) { }
-        public List<LocationItem> LoadLocations() => new List<LocationItem>();
-        public void SaveLocations(IEnumerable<LocationItem> locations) { }
+        public List<LocationItem> LoadLocations(string profileName = "Default") => new List<LocationItem>();
+        public void SaveLocations(IEnumerable<LocationItem> locations, string profileName = "Default") { }
     }
 
     private class MoqWatcherService : IWatcherService

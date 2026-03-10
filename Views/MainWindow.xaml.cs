@@ -161,6 +161,9 @@ public partial class MainWindow : Window {
             // that might not have fired PropertyChanged yet (though they should have).
             
             _viewModel.SaveSettings();
+            _viewModel.LoadLocations();
+            _viewModel.UpdateListStatus();
+            
             // Force a refresh of the watcher just in case
             _viewModel.StartWatcher(new WindowInteropHelper(this).Handle);
         }

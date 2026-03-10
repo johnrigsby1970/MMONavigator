@@ -28,7 +28,7 @@ public class MainViewModel : INotifyPropertyChanged {
     private const double HeadingToleranceFair = 6.0;
     private const double MovementThreshold = 1.0;
     private CoordinateData? _lastCoordinateData;
-    
+
     public ObservableCollection<LocationItem> Locations { get; set; } = new();
 
     public TimerController Timer5 { get; } = new(5);
@@ -37,25 +37,28 @@ public class MainViewModel : INotifyPropertyChanged {
     public TimerController Timer20 { get; } = new(20);
 
     private bool _mainContentVisibility = true;
-    
+
     public bool MainContentVisibility {
         get => _mainContentVisibility;
         set => SetField(ref _mainContentVisibility, value);
     }
-    
+
     private bool _showSettings;
+
     public bool ShowSettings {
         get => _showSettings;
         set => SetField(ref _showSettings, value);
     }
 
     private bool _showTimers;
+
     public bool ShowTimers {
         get => _showTimers;
         set => SetField(ref _showTimers, value);
     }
-    
+
     private LocationItem? _selectedLocation;
+
     public LocationItem? SelectedLocation {
         get => _selectedLocation;
         set {
@@ -69,7 +72,7 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
     }
-    
+
     // private string? _destinationLocation;
     // public string? DestinationLocation
     // {
@@ -87,30 +90,26 @@ public class MainViewModel : INotifyPropertyChanged {
     //         }
     //     }
     // }
-    
+
     private bool _isSelected;
-    public bool IsSelected
-    {
+
+    public bool IsSelected {
         get => _isSelected;
-        set
-        {
-            if (_isSelected != value)
-            {
+        set {
+            if (_isSelected != value) {
                 _isSelected = value;
                 OnPropertyChanged(nameof(IsSelected));
                 // Add logic here to track the single selected item in the main ViewModel
             }
         }
     }
-    
+
     private bool _isExpanded;
-    public bool IsExpanded
-    {
+
+    public bool IsExpanded {
         get => _isExpanded;
-        set
-        {
-            if (_isExpanded != value)
-            {
+        set {
+            if (_isExpanded != value) {
                 _isExpanded = value;
                 OnPropertyChanged(nameof(IsExpanded));
                 // Add logic here to track the single selected item in the main ViewModel
@@ -119,6 +118,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private bool _isItemInList;
+
     public bool IsItemInList {
         get => _isItemInList;
         set {
@@ -127,6 +127,7 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
     }
+
     public bool IsItemNotInList => !IsItemInList;
 
     private void SyncLocationAndCoordinates(bool isSelectionSource) {
@@ -136,7 +137,8 @@ public class MainViewModel : INotifyPropertyChanged {
                 _targetCoordinates = _selectedLocation.DisplayName;
                 OnPropertyChanged(nameof(TargetCoordinates));
             }
-        } else {
+        }
+        else {
             string currentInput = _targetCoordinates ?? string.Empty;
             var scrubbed = Scrubber.ScrubEntry(currentInput);
 
@@ -156,15 +158,16 @@ public class MainViewModel : INotifyPropertyChanged {
         UpdateListStatus();
     }
 
-    private void UpdateListStatus() {
+    public void UpdateListStatus() {
         string scrubbedT;
         if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
             scrubbedT = SelectedLocation.ScrubbedCoordinates ?? "";
-        } else {
+        }
+        else {
             scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
         }
-        
-        IsItemInList = SelectedLocation != null || Locations.Where(x=>x.Items==null).Any(l => {
+
+        var found = !string.IsNullOrEmpty(scrubbedT) && (Locations.Where(x => x.Items == null).Any(l => {
             // string scrubbedT;
             // if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
             //     scrubbedT = SelectedLocation.ScrubbedCoordinates ?? "";
@@ -172,12 +175,16 @@ public class MainViewModel : INotifyPropertyChanged {
             //     scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
             // }
             return !string.IsNullOrEmpty(l.ScrubbedCoordinates) && l.ScrubbedCoordinates == scrubbedT;
-        }) || Locations.Where(x=>x.Items!=null).SelectMany(y=>y.Items!).Any(l => {
+        }) || Locations.Where(x => x.Items != null).SelectMany(y => y.Items!).Any(l => {
             return !string.IsNullOrEmpty(l.ScrubbedCoordinates) && l.ScrubbedCoordinates == scrubbedT;
-        });
+        }));
+
+        IsItemInList = found;
+        OnPropertyChanged(nameof(IsItemInList));
     }
 
     private AppSettings _settings = new();
+
     public AppSettings Settings {
         get => _settings;
         set {
@@ -195,6 +202,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 profile.PropertyChanged -= Profile_PropertyChanged;
             }
         }
+
         if (newSettings != null) {
             newSettings.PropertyChanged += Settings_PropertyChanged;
             foreach (var profile in newSettings.Profiles) {
@@ -212,6 +220,7 @@ public class MainViewModel : INotifyPropertyChanged {
                     StartWatcher(_lastWindowHandle);
                 }
             }
+
             SaveSettings();
         }
     }
@@ -223,9 +232,12 @@ public class MainViewModel : INotifyPropertyChanged {
             if (_lastWindowHandle != IntPtr.Zero) {
                 StartWatcher(_lastWindowHandle);
             }
+
             ShowDirection();
             SaveSettings();
-        } else if (e.PropertyName == nameof(AppSettings.ShowSettings) || e.PropertyName == nameof(AppSettings.ShowTimers)) {
+        }
+        else if (e.PropertyName == nameof(AppSettings.ShowSettings) ||
+                 e.PropertyName == nameof(AppSettings.ShowTimers)) {
             SaveSettings();
         }
     }
@@ -233,6 +245,7 @@ public class MainViewModel : INotifyPropertyChanged {
     private IntPtr _lastWindowHandle;
 
     private string? _currentCoordinates = "";
+
     public string? CurrentCoordinates {
         get => _currentCoordinates;
         set {
@@ -243,6 +256,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private string? _targetCoordinates = string.Empty;
+
     public string? TargetCoordinates {
         get => _targetCoordinates;
         set {
@@ -253,108 +267,126 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private string _correctionDirection = "";
+
     public string CorrectionDirection {
         get => _correctionDirection;
         set => SetField(ref _correctionDirection, value);
     }
 
     private string? _tX;
+
     public string? Tx {
         get => _tX;
         set => SetField(ref _tX, value);
     }
 
     private string? _tY;
+
     public string? Ty {
         get => _tY;
         set => SetField(ref _tY, value);
     }
 
     private string? _cX;
+
     public string? Cx {
         get => _cX;
         set => SetField(ref _cX, value);
     }
 
     private string? _cY;
+
     public string? Cy {
         get => _cY;
         set => SetField(ref _cY, value);
     }
-    
+
     private double _currentHeading;
+
     public double CurrentHeading {
         get => _currentHeading;
         set => SetField(ref _currentHeading, value);
     }
 
     private double _targetHeading;
+
     public double TargetHeading {
         get => _targetHeading;
         set => SetField(ref _targetHeading, value);
     }
 
     private string? _goDirection;
+
     public string? GoDirection {
         get => _goDirection;
         set => SetField(ref _goDirection, value);
     }
 
     private int _distanceInt;
+
     public int DistanceInt {
         get => _distanceInt;
         set => SetField(ref _distanceInt, value);
     }
 
     private Brush _compassBrush = Brushes.Gold;
+
     public Brush CompassBrush {
         get => _compassBrush;
         set => SetField(ref _compassBrush, value);
     }
 
     private double _northRotation;
+
     public double NorthRotation {
         get => _northRotation;
         set => SetField(ref _northRotation, value);
     }
 
     private double _destinationRotation;
+
     public double DestinationRotation {
         get => _destinationRotation;
         set => SetField(ref _destinationRotation, value);
     }
 
     private double _destinationOffset = -CircleRadius;
+
     public double DestinationOffset {
         get => _destinationOffset;
         set => SetField(ref _destinationOffset, value);
     }
 
     private Visibility _destinationVisibility = Visibility.Hidden;
+
     public Visibility DestinationVisibility {
         get => _destinationVisibility;
         set => SetField(ref _destinationVisibility, value);
     }
 
     private Visibility _leftButtonVisibility = Visibility.Hidden;
+
     public Visibility LeftButtonVisibility {
         get => _leftButtonVisibility;
         set => SetField(ref _leftButtonVisibility, value);
     }
 
     private Visibility _rightButtonVisibility = Visibility.Hidden;
+
     public Visibility RightButtonVisibility {
         get => _rightButtonVisibility;
         set => SetField(ref _rightButtonVisibility, value);
     }
 
     private Brush _labelDirectionFill = Brushes.White;
+
     public Brush LabelDirectionFill {
         get => _labelDirectionFill;
         set => SetField(ref _labelDirectionFill, value);
     }
 
     private Visibility _showCoffeeIcon = Visibility.Collapsed;
+
     public Visibility ShowCoffeeIcon {
         get => _showCoffeeIcon;
         set => SetField(ref _showCoffeeIcon, value);
@@ -384,7 +416,8 @@ public class MainViewModel : INotifyPropertyChanged {
         LoadLocations();
         UpdateListStatus();
 
-        CopyLocationToDestinationCommand = new RelayCommand(_ => TargetCoordinates = CurrentCoordinates ?? string.Empty);
+        CopyLocationToDestinationCommand =
+            new RelayCommand(_ => TargetCoordinates = CurrentCoordinates ?? string.Empty);
         AddLocationCommand = new RelayCommand(_ => AddLocation());
         RemoveLocationCommand = new RelayCommand(_ => RemoveLocation());
         TimerCommand = new RelayCommand(p => {
@@ -396,7 +429,8 @@ public class MainViewModel : INotifyPropertyChanged {
                     FileName = "https://buymeacoffee.com/johnrigsby",
                     UseShellExecute = true
                 });
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 System.Diagnostics.Debug.WriteLine($"Error opening URL: {ex.Message}");
             }
         });
@@ -428,7 +462,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     public void LoadLocations() {
-        var list = _settingsService.LoadLocations();
+        var list = _settingsService.LoadLocations(Settings.SelectedProfile.Name);
         Locations.Clear();
         foreach (var item in list) {
             item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
@@ -437,13 +471,16 @@ public class MainViewModel : INotifyPropertyChanged {
                     Locations.Single(l => l.Header == item.Header).Items.Add(item);
                 }
                 else {
-                    Locations.Add(new LocationItem{Header = item.Header, Name = item.Header, Items = new List<LocationItem>(){item}});
+                    Locations.Add(new LocationItem
+                        { Header = item.Header, Name = item.Header, Items = new List<LocationItem>() { item } });
                 }
             }
             else {
                 Locations.Add(item);
             }
         }
+
+        OnPropertyChanged(nameof(Locations));
     }
 
     public void SaveLocations() {
@@ -458,7 +495,8 @@ public class MainViewModel : INotifyPropertyChanged {
                 }
             }
         }
-        _settingsService.SaveLocations(temp);
+
+        _settingsService.SaveLocations(temp, Settings.SelectedProfile.Name);
     }
 
     private void AddLocation() {
@@ -473,16 +511,17 @@ public class MainViewModel : INotifyPropertyChanged {
         // } else {
         //     return;
         // }
-        
+
         string name = string.Empty;
         string group = string.Empty;
-        List<string> groups = Locations.Where(x=>x.Items!=null).Select(l => l.Header).ToList();
-        var dialog = new DestinationDialog("",  "", groups);
+        List<string> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
+        var dialog = new DestinationDialog("", "", groups);
         dialog.Owner = Application.Current.MainWindow;
         if (dialog.ShowDialog() == true) {
             name = dialog.Answer;
             group = dialog.Group;
-        } else {
+        }
+        else {
             return;
         }
 
@@ -497,21 +536,23 @@ public class MainViewModel : INotifyPropertyChanged {
                 Locations.Single(l => l.Header == item.Header).Items.Add(item);
             }
             else {
-                Locations.Add(new LocationItem{Header = item.Header, Name = item.Name, Items = new List<LocationItem>(){item}});
+                Locations.Add(new LocationItem
+                    { Header = item.Header, Name = item.Name, Items = new List<LocationItem>() { item } });
             }
         }
         else {
             Locations.Add(item);
         }
+
         SelectedLocation = item;
         SaveLocations();
     }
-    
-    
+
+
     private void RemoveLocation() {
         var item = SelectedLocation;
         var scrubbedTarget = string.Empty;
-        
+
         if (item == null) {
             scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
         }
@@ -521,9 +562,10 @@ public class MainViewModel : INotifyPropertyChanged {
 
         if (item != null) {
             item = Locations.Where(x => x.Items == null).FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
-            
+
             if (item != null) {
-                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
+                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
+                    "Remove Location", MessageBoxButton.YesNo);
                 if (result == MessageBoxResult.Yes) {
                     Locations.Remove(item);
                     SelectedLocation = null;
@@ -532,21 +574,25 @@ public class MainViewModel : INotifyPropertyChanged {
                     OnPropertyChanged(nameof(TargetCoordinates));
                     SaveLocations();
                     LoadLocations();
+                    UpdateListStatus();
                 }
 
                 return;
             }
-            
-            item = Locations.Where(x=>x.Items!=null).SelectMany(y=>y.Items!).FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
-            
+
+            item = Locations.Where(x => x.Items != null).SelectMany(y => y.Items!)
+                .FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
+
             if (item != null) {
-                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
+                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
+                    "Remove Location", MessageBoxButton.YesNo);
                 if (result == MessageBoxResult.Yes) {
                     foreach (var location in Locations.Where(x => x.Items == null)) {
                         if (location == item) {
                             Locations.Where(x => x.Items == null).ToList().Remove(location);
                         }
                     }
+
                     foreach (var group in Locations.Where(x => x.Items != null).ToList()) {
                         foreach (var location in group.Items!.ToList()) {
                             if (item == location) {
@@ -565,11 +611,12 @@ public class MainViewModel : INotifyPropertyChanged {
                     OnPropertyChanged(nameof(TargetCoordinates));
                     SaveLocations();
                     LoadLocations();
+                    UpdateListStatus();
                 }
             }
             //item = Locations.FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
         }
-        
+
         // if (item != null) {
         //     var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
         //     if (result == MessageBoxResult.Yes) {
@@ -582,12 +629,14 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private string? _locationTooltip;
+
     public string? LocationTooltip {
         get => _locationTooltip;
         set => SetField(ref _locationTooltip, value);
     }
 
     private string? _destinationTooltip;
+
     public string? DestinationTooltip {
         get => _destinationTooltip;
         set => SetField(ref _destinationTooltip, value);
@@ -604,11 +653,14 @@ public class MainViewModel : INotifyPropertyChanged {
 
             if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var current)) {
                 LocationTooltip = FormatTooltip(current);
-                
+
                 if (!current.Heading.HasValue && _lastCoordinateData.HasValue) {
-                    double moveDistance = Math.Sqrt(Math.Pow(current.X - _lastCoordinateData.Value.X, 2) + Math.Pow(current.Y - _lastCoordinateData.Value.Y, 2));
+                    double moveDistance = Math.Sqrt(Math.Pow(current.X - _lastCoordinateData.Value.X, 2) +
+                                                    Math.Pow(current.Y - _lastCoordinateData.Value.Y, 2));
                     if (moveDistance >= MovementThreshold) {
-                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X, _lastCoordinateData.Value.Y, current.X, current.Y, Settings.SelectedProfile.CoordinateSystem);
+                        double movementHeading = NavigationCalculator.GetDirection(_lastCoordinateData.Value.X,
+                            _lastCoordinateData.Value.Y, current.X, current.Y,
+                            Settings.SelectedProfile.CoordinateSystem);
                         current = current with { Heading = movementHeading };
                     }
                     else {
@@ -616,8 +668,10 @@ public class MainViewModel : INotifyPropertyChanged {
                         current = current with { Heading = _lastCoordinateData.Value.Heading };
                     }
                 }
+
                 _lastCoordinateData = current;
-            } else {
+            }
+            else {
                 return;
             }
 
@@ -626,10 +680,11 @@ public class MainViewModel : INotifyPropertyChanged {
             if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
                 coordinatesToParse = SelectedLocation.Coordinates;
             }
-            
+
             if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var target)) {
                 DestinationTooltip = FormatTooltip(target);
-            } else {
+            }
+            else {
                 return;
             }
 
@@ -640,12 +695,15 @@ public class MainViewModel : INotifyPropertyChanged {
             Cx = $"x:{current.X}";
             Cy = $"y:{current.Y}";
 
-            var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y, Settings.SelectedProfile.CoordinateSystem);
+            var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y,
+                Settings.SelectedProfile.CoordinateSystem);
             double distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
 
             UpdateDirectionUI(current, target, direction, distance);
-            GoDirection = "Go " + NavigationCalculator.GetCompassDirection(direction) + $" {Convert.ToInt32(distance)}m";
-        } catch (Exception ex) {
+            GoDirection = "Go " + NavigationCalculator.GetCompassDirection(direction) +
+                          $" {Convert.ToInt32(distance)}m";
+        }
+        catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error showing direction: {ex.Message}");
             GoDirection = string.Empty;
         }
@@ -653,7 +711,9 @@ public class MainViewModel : INotifyPropertyChanged {
 
     private string FormatTooltip(CoordinateData data) {
         string zPart = data.Z.HasValue ? $", Z: {data.Z}" : "";
-        string direction = data.Heading.HasValue ? $", Facing: {NavigationCalculator.GetCompassDirection(data.Heading.Value)} ({data.Heading.Value:F1}°)" : "";
+        string direction = data.Heading.HasValue
+            ? $", Facing: {NavigationCalculator.GetCompassDirection(data.Heading.Value)} ({data.Heading.Value:F1}°)"
+            : "";
         return $"X: {data.X}, Y: {data.Y}{zPart}{direction}";
     }
 
@@ -666,9 +726,12 @@ public class MainViewModel : INotifyPropertyChanged {
 
         if (current.Heading.HasValue) {
             double h = current.Heading.Value;
-            if (h >= direction - HeadingTolerancePerfect && h <= direction + HeadingTolerancePerfect) LabelDirectionFill = Brushes.Green;
-            else if (h >= direction - HeadingToleranceGood && h <= direction + HeadingToleranceGood) LabelDirectionFill = Brushes.YellowGreen;
-            else if (h >= direction - HeadingToleranceFair && h <= direction + HeadingToleranceFair) LabelDirectionFill = Brushes.Yellow;
+            if (h >= direction - HeadingTolerancePerfect && h <= direction + HeadingTolerancePerfect)
+                LabelDirectionFill = Brushes.Green;
+            else if (h >= direction - HeadingToleranceGood && h <= direction + HeadingToleranceGood)
+                LabelDirectionFill = Brushes.YellowGreen;
+            else if (h >= direction - HeadingToleranceFair && h <= direction + HeadingToleranceFair)
+                LabelDirectionFill = Brushes.Yellow;
         }
 
         if (distance <= ArrivalDistance) {
@@ -702,9 +765,11 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
     protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;

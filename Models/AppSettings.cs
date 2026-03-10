@@ -12,6 +12,20 @@ public enum WatchMode {
     File
 }
 
+// Used by EverQuest and Project 1999.
+//
+// * North is -Y
+// * South is +Y
+// * East is -X
+// * West is +X
+//     
+//
+// Used by Pantheon - Rise of the Fallen.
+//
+// * North is +Y
+// * South is -Y
+//  * East is +X
+//  * West is -X
 public enum CoordinateSystem {
     RightHanded, // +X = East, +Y = North
     LeftHanded   // +X = West, +Y = North
