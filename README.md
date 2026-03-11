@@ -140,6 +140,8 @@ You can switch between game profiles on the watcher configuration dialog.
 
 Next to the destination text box is a button that lets you name and remember the location. The destination text box is also a drop-down list that shows you previously saved locations. You can select from this list or forget previously saved locations. Think waypoints. Load one, go to it, load the next, go to it.
 
+You can edit the name or group of a saved destination. You can also delete a saved destination. And finally, you can change or load the file associated with saved destinations. So you can collect locations and pass them around.
+
 You can group saved destinations by entering a group name or selecting from a list of previously saved groups.
 
 For convenience, you can toggle the entire screen to hide the compass and other controls when not in use. 
