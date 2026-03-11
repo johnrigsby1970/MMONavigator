@@ -117,6 +117,10 @@ public class MainViewModel : INotifyPropertyChanged {
         }
     }
 
+    private bool _isItemInListAndHasValue;
+
+    public bool IsItemInListAndHasValue => IsItemNotInList && !string.IsNullOrWhiteSpace(TargetCoordinates);
+    
     private bool _isItemInList;
 
     public bool IsItemInList {
@@ -124,6 +128,7 @@ public class MainViewModel : INotifyPropertyChanged {
         set {
             if (SetField(ref _isItemInList, value)) {
                 OnPropertyChanged(nameof(IsItemNotInList));
+                OnPropertyChanged(nameof(IsItemInListAndHasValue));
             }
         }
     }
@@ -167,6 +172,11 @@ public class MainViewModel : INotifyPropertyChanged {
             scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
         }
 
+        if (string.IsNullOrEmpty(TargetCoordinates)) {
+            IsItemInList = false;
+            OnPropertyChanged(nameof(IsItemInList));
+            return;
+        }
         var found = !string.IsNullOrEmpty(scrubbedT) && (Locations.Where(x => x.Items == null).Any(l => {
             // string scrubbedT;
             // if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
@@ -261,6 +271,7 @@ public class MainViewModel : INotifyPropertyChanged {
         get => _targetCoordinates;
         set {
             if (SetField(ref _targetCoordinates, value ?? string.Empty)) {
+                OnPropertyChanged(nameof(IsItemInListAndHasValue));
                 SyncLocationAndCoordinates(false);
             }
         }
@@ -514,8 +525,8 @@ public class MainViewModel : INotifyPropertyChanged {
         //     return;
         // }
 
-        string name = string.Empty;
-        string group = string.Empty;
+        string? name = string.Empty;
+        string? group = string.Empty;
         List<string> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
         var dialog = new DestinationDialog("", "", groups);
         dialog.Owner = Application.Current.MainWindow;
@@ -535,11 +546,14 @@ public class MainViewModel : INotifyPropertyChanged {
         };
         if (!string.IsNullOrWhiteSpace(item.Header)) {
             if (Locations.Any(l => l.Header == item.Header)) {
-                Locations.Single(l => l.Header == item.Header).Items.Add(item);
+                if (Locations.Single(l => l.Header == item.Header).Items == null) {
+                    Locations.Single(l => l.Header == item.Header).Items = [];
+                }
+                Locations.Single(l => l.Header == item.Header).Items!.Add(item);
             }
             else {
                 Locations.Add(new LocationItem
-                    { Header = item.Header, Name = item.Name, Items = new List<LocationItem>() { item } });
+                    { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
             }
         }
         else {
@@ -568,9 +582,6 @@ public class MainViewModel : INotifyPropertyChanged {
             SaveLocations();
             LoadLocations();
             UpdateListStatus();
-        }
-        else {
-            return;
         }
     }
 
@@ -725,6 +736,10 @@ public class MainViewModel : INotifyPropertyChanged {
             double distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
 
             UpdateDirectionUI(current, target, direction, distance);
+            if (distance == 0) {
+                GoDirection = "You have arrived";
+                return;
+            }
             GoDirection = "Go " + NavigationCalculator.GetCompassDirection(direction) +
                           $" {Convert.ToInt32(distance)}m";
         }

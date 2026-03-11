@@ -173,6 +173,7 @@
                          Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          Height="22" 
                          FontSize="8pt"
+                         Margin="0,0,0,0"
                          VerticalAlignment="Center" 
                          Width="99"
                          ToolTip="{Binding DestinationTooltip}"/>
@@ -212,9 +213,11 @@
                     </Popup>
                 </Expander>
                 
-                <Button Width="20" Height="20" Margin="3,0,0,0" Content="+"
+                <Button x:Name="addlocation" Width="20" Height="20" Margin="3,0,0,0" 
+                        Content="&#xE710;" 
+                        FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Remember Destination" FontWeight="ExtraBold"
-                        Visibility="{Binding IsItemNotInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                        Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Command="{Binding AddLocationCommand}" Foreground="White" Background="CornflowerBlue">
                 </Button>
                 
@@ -247,14 +250,14 @@
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center"
                     TextAlignment="Left"
-                    Width="103"
+                    Width="100"
                     Margin="5,1,0,0"
                     Stroke="{StaticResource TextStroke}"
                     Fill="{StaticResource TextFill}" />
 
                 <TextBox
                     Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                    Height="20" Margin="1,1,0,0"
+                    Height="20" Margin="0,1,4,0"
                     FontSize="8pt"
                     VerticalAlignment="Center" Width="120"
                     ToolTip="{Binding LocationTooltip}" />
@@ -279,7 +282,7 @@
             <StackPanel Grid.Row="2" Grid.Column="0" FlowDirection="LeftToRight"
                         Orientation="Horizontal" HorizontalAlignment="Center"
                         Visibility="{Binding ShowTimers, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Button Width="60" Height="24"  Margin="23,3,3,3"
+                <Button Width="60" Height="24"  Margin="13,3,3,3"
                         Background="{Binding Timer5.Background}"
                         Foreground="{Binding Timer5.Foreground}"
                         Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
@@ -341,7 +344,7 @@
                                             VerticalAlignment="Center"
                                             HorizontalAlignment="Center"
                                             TextAlignment="Center"
-                                            Width="225"
+                                            Width="245"
                                             Stroke="{StaticResource TextStroke}"
                                             Fill="{Binding LabelDirectionFill}"
                                             />
