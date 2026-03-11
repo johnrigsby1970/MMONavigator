@@ -50,6 +50,17 @@ public class GameProfile : INotifyPropertyChanged {
         }
     }
 
+    private string _lastLocationsFile = "";
+    public string LastLocationsFile {
+        get => _lastLocationsFile;
+        set {
+            if (_lastLocationsFile != value) {
+                _lastLocationsFile = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+    
     private string _logFileRegex = Constants.EQLocationRegex;
     public string LogFileRegex {
         get => _logFileRegex;

@@ -236,6 +236,13 @@
                         Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Command="{Binding RemoveLocationCommand}" Foreground="White" Background="OrangeRed">
                 </Button>
+                
+                <Button Width="20" Height="20" Margin="3,0,0,0"
+                        Content="&#xE8E5;"
+                        FontFamily="Segoe MDL2 Assets" 
+                        ToolTip="Select Locations File" FontWeight="ExtraBold"
+                        Command="{Binding SelectLocationFileCommand}" Foreground="White" Background="CornflowerBlue">
+                </Button>
             </StackPanel>
 
             <StackPanel Grid.Row="1" Grid.Column="0" FlowDirection="LeftToRight"

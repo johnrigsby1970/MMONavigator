@@ -11,8 +11,8 @@ namespace MMONavigator.Services;
 public interface ISettingsService {
     AppSettings LoadSettings();
     void SaveSettings(AppSettings settings);
-    List<LocationItem> LoadLocations(string profileName = "Default");
-    void SaveLocations(IEnumerable<LocationItem> locations, string profileName = "Default");
+    List<LocationItem> LoadLocations(GameProfile profile);
+    void SaveLocations(IEnumerable<LocationItem> locations, GameProfile profile);
 }
 
 public class SettingsService : ISettingsService {
@@ -51,14 +51,21 @@ public class SettingsService : ISettingsService {
         }
     }
 
-    public List<LocationItem> LoadLocations(string profileName = "Default") {
+    public List<LocationItem> LoadLocations(GameProfile profile) {
         try {
-            if (profileName != "Default") {
-                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MakeValidFileName(profileName)+"_locations.json");
+            if (string.IsNullOrEmpty(profile.LastLocationsFile)) {
+                if (profile.Name != "Default") {
+                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                        MakeValidFileName(profile.Name) + "_locations.json");
+                }
+                else {
+                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                }
             }
             else {
-                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                _locationsPath = profile.LastLocationsFile;
             }
+
             if (File.Exists(_locationsPath)) {
                 string json = File.ReadAllText(_locationsPath);
                 return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
@@ -69,14 +76,23 @@ public class SettingsService : ISettingsService {
         return new List<LocationItem>();
     }
 
-    public void SaveLocations(IEnumerable<LocationItem> locations, string profileName = "Default") {
+    public void SaveLocations(IEnumerable<LocationItem> locations, GameProfile profile) {
         try {
-            if (profileName != "Default") {
-                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, MakeValidFileName(profileName)+"_locations.json");
+            if (string.IsNullOrEmpty(profile.LastLocationsFile)) {
+                if (profile.Name != "Default") {
+                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                        MakeValidFileName(profile.Name) + "_locations.json");
+                }
+                else {
+                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                }
+
+                profile.LastLocationsFile = _locationsPath;
             }
             else {
-                _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                _locationsPath = profile.LastLocationsFile;
             }
+
             string json = JsonSerializer.Serialize(locations.ToList());
             File.WriteAllText(_locationsPath, json);
         } catch (Exception ex) {

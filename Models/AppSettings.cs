@@ -51,7 +51,7 @@ public class AppSettings : INotifyPropertyChanged {
             }
         }
     }
-
+    
     [JsonIgnore]
     public GameProfile SelectedProfile {
         get {

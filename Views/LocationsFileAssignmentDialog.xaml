@@ -1,0 +1,94 @@
+﻿<Window x:Class="MMONavigator.Views.LocationsFileAssignmentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mmoNavigator="clr-namespace:MMONavigator"
+        xmlns:models="clr-namespace:MMONavigator.Models"
+        xmlns:local="clr-namespace:MMONavigator.Views"
+        mc:Ignorable="d"
+        Title="Location File Loader" Width="300" Height="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#2D2D30" Foreground="White">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="30" />
+            <RowDefinition Height="140" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <TextBlock  Grid.Row="0" 
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,5" FontWeight="Bold">
+            Select a file to assign to game profile to load and save destinations. Changes made going forward will impact this file. 
+            <LineBreak />
+            <LineBreak />
+            Reset to default to use the file associated with the game profile name.
+            <LineBreak />
+            <LineBreak />
+            You may also download the current selected file to save to another location. 
+            This does not assign that new file location to this game profile.
+        </TextBlock>
+        
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left">
+            <TextBox x:Name="locationspath"
+                     Text="{Binding LocationsPath ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Height="22"
+                     FontSize="8pt"
+                     Margin="3,0,0,0"
+                     VerticalAlignment="Center"
+                     Width="227" />
+            <Button x:Name="browsefilebutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue"
+                    Click="OpenFileButton_Click" ToolTip="Open Locations File"
+                    Content="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="12pt"
+                    Foreground="White" FontWeight="ExtraBold">
+            </Button>
+
+        </StackPanel>
+        <mmoNavigator:ExtendedTreeView Grid.Row="2"
+                                       ItemsSource="{Binding Locations}"
+                                       Margin="1,1,1,1"
+                                       Height="Auto"
+                                       Width="275">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="{x:Type TreeViewItem}">
+                    <!-- Bind the IsSelected property of the TreeViewItem to a property on your ViewModel item -->
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                    <!-- You can also bind IsExpanded this way -->
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                </Style>
+            </TreeView.ItemContainerStyle>
+            <TreeView.Resources>
+                <!-- The DataTemplate for the 'Node' class -->
+                <HierarchicalDataTemplate DataType="{x:Type models:LocationItem}" ItemsSource="{Binding Items}">
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontSize="8pt"
+                               Width="150"
+                               Margin="0,1,0,1" />
+                </HierarchicalDataTemplate>
+            </TreeView.Resources>
+        </mmoNavigator:ExtendedTreeView>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button
+                Content="&#xE896;"
+                FontFamily="Segoe MDL2 Assets"
+                Width="25" Margin="0,0,10,0" Click="SaveAsButton_Click" IsDefault="True"
+                ToolTip="Download File"
+                Background="#3E3E42" Foreground="White" />
+            <Button x:Name="setdefaultbutton" Width="80" Margin="0,0,0,0" Background="Red"
+                    Click="SetDefaultButton_Click" ToolTip="Use Default for Game Profile"
+                    Foreground="White" FontWeight="ExtraBold">
+                Use Default
+            </Button>
+
+        </StackPanel>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Assign" Width="75" Margin="0,0,10,0" Click="OkButton_Click" IsDefault="True"
+                    Background="#3E3E42" Foreground="White" />
+            <Button Content="Cancel" Width="75" Click="CancelButton_Click" IsCancel="True"
+                    Background="#3E3E42" Foreground="White" />
+        </StackPanel>
+    </Grid>
+</Window>

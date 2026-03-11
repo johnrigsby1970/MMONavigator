@@ -407,6 +407,7 @@ public class MainViewModel : INotifyPropertyChanged {
     public ICommand AddLocationCommand { get; }
     public ICommand EditLocationCommand { get; }
     public ICommand RemoveLocationCommand { get; }
+    public ICommand SelectLocationFileCommand { get; }
     public ICommand TimerCommand { get; }
     public ICommand BuyMeACoffeeCommand { get; }
 
@@ -432,6 +433,7 @@ public class MainViewModel : INotifyPropertyChanged {
             new RelayCommand(_ => TargetCoordinates = CurrentCoordinates ?? string.Empty);
         AddLocationCommand = new RelayCommand(_ => AddLocation());
         EditLocationCommand = new RelayCommand(_ => EditLocation());
+        SelectLocationFileCommand = new RelayCommand(_ => SelectLocationFile());
         RemoveLocationCommand = new RelayCommand(_ => RemoveLocation());
         TimerCommand = new RelayCommand(p => {
             if (p is TimerController timer) timer.Toggle();
@@ -475,7 +477,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     public void LoadLocations() {
-        var list = _settingsService.LoadLocations(Settings.SelectedProfile.Name);
+        var list = _settingsService.LoadLocations(Settings.SelectedProfile);
         Locations.Clear();
         foreach (var item in list) {
             item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
@@ -509,7 +511,7 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
 
-        _settingsService.SaveLocations(temp, Settings.SelectedProfile.Name);
+        _settingsService.SaveLocations(temp, Settings.SelectedProfile);
     }
 
     private void AddLocation() {
@@ -584,6 +586,23 @@ public class MainViewModel : INotifyPropertyChanged {
             UpdateListStatus();
         }
     }
+    
+    private void SelectLocationFile() {
+        var dialog = new LocationsFileAssignmentDialog(_settings.SelectedProfile) {
+            Owner = Application.Current.MainWindow
+        };
+        if (dialog.ShowDialog() == true) {
+            _settings.SelectedProfile.LastLocationsFile = dialog.LocationsPath??"";
+            OnPropertyChanged(nameof(SelectedLocation));
+            OnPropertyChanged(nameof(Locations));
+            OnPropertyChanged(nameof(TargetCoordinates));
+            SaveSettings();
+            LoadLocations();
+            UpdateListStatus();
+        }
+    }
+    
+    
 
     private void RemoveLocation() {
         var item = SelectedLocation;
