@@ -494,7 +494,11 @@ public class MainViewModel : INotifyPropertyChanged {
                 Locations.Add(item);
             }
         }
-
+        var sorted = Locations.OrderBy(l => l.Name).ToList();
+        foreach (var group in sorted.Where(x => x.Items != null).ToList()) {
+            group.Items = group.Items!.OrderBy(l => l.Name).ToList();
+        }
+        Locations = new ObservableCollection<LocationItem>(sorted);
         OnPropertyChanged(nameof(Locations));
     }
 
