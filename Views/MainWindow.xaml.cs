@@ -204,7 +204,7 @@ public partial class MainWindow : Window {
         settingsbutton.Visibility = Visibility.Visible;
         timerbutton.Visibility = Visibility.Visible;
         togglebutton.Visibility = Visibility.Visible;
-        minbutton.Visibility = Visibility.Visible;
+        //minbutton.Visibility = Visibility.Visible;
         closebutton.Visibility = Visibility.Visible;
         SetClickThrough(false);
     }
@@ -213,7 +213,7 @@ public partial class MainWindow : Window {
         settingsbutton.Visibility = Visibility.Collapsed;
         timerbutton.Visibility = Visibility.Collapsed;
         togglebutton.Visibility = Visibility.Collapsed;
-        minbutton.Visibility = Visibility.Collapsed;
+        //minbutton.Visibility = Visibility.Collapsed;
         closebutton.Visibility = Visibility.Collapsed;
     }
 
@@ -241,6 +241,7 @@ public partial class MainWindow : Window {
     
     private void ToggleVisibityButton_Click(object sender, RoutedEventArgs e) {
         _viewModel.MainContentVisibility=!_viewModel.MainContentVisibility;
+        togglebutton.ToolTip = _viewModel.MainContentVisibility ? "Hide Directions" : "Show Directions";
     }
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         if (WindowState != WindowState.Normal) {

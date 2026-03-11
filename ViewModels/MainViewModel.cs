@@ -394,6 +394,7 @@ public class MainViewModel : INotifyPropertyChanged {
 
     public ICommand CopyLocationToDestinationCommand { get; }
     public ICommand AddLocationCommand { get; }
+    public ICommand EditLocationCommand { get; }
     public ICommand RemoveLocationCommand { get; }
     public ICommand TimerCommand { get; }
     public ICommand BuyMeACoffeeCommand { get; }
@@ -419,6 +420,7 @@ public class MainViewModel : INotifyPropertyChanged {
         CopyLocationToDestinationCommand =
             new RelayCommand(_ => TargetCoordinates = CurrentCoordinates ?? string.Empty);
         AddLocationCommand = new RelayCommand(_ => AddLocation());
+        EditLocationCommand = new RelayCommand(_ => EditLocation());
         RemoveLocationCommand = new RelayCommand(_ => RemoveLocation());
         TimerCommand = new RelayCommand(p => {
             if (p is TimerController timer) timer.Toggle();
@@ -548,6 +550,29 @@ public class MainViewModel : INotifyPropertyChanged {
         SaveLocations();
     }
 
+    private void EditLocation() {
+        if (SelectedLocation == null) return;
+
+        string? name = SelectedLocation.Name;
+        string? group = SelectedLocation.Header;
+        List<string?> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
+        var dialog = new DestinationDialog(name, group, groups) {
+            Owner = Application.Current.MainWindow
+        };
+        if (dialog.ShowDialog() == true) {
+            SelectedLocation.Name = dialog.Answer;
+            SelectedLocation.Header = dialog.Group;
+            OnPropertyChanged(nameof(SelectedLocation));
+            OnPropertyChanged(nameof(Locations));
+            OnPropertyChanged(nameof(TargetCoordinates));
+            SaveLocations();
+            LoadLocations();
+            UpdateListStatus();
+        }
+        else {
+            return;
+        }
+    }
 
     private void RemoveLocation() {
         var item = SelectedLocation;

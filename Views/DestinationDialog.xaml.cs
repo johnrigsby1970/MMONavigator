@@ -6,33 +6,35 @@ using System.Windows.Input;
 
 namespace MMONavigator.Views;
 
-public partial class DestinationDialog : Window, INotifyPropertyChanged {
+public sealed partial class DestinationDialog : Window, INotifyPropertyChanged {
     public string Answer => InputTextBox.Text;
     public string Group => GroupTextBox.Text;
 
-    public DestinationDialog(string defaultAnswer = "", string defaultGroup = "", List<string>? groups = null) {
+    public DestinationDialog(string? defaultAnswer = "", string? defaultGroup = "", List<string>? groups = null) {
         InitializeComponent();
         DataContext = this;
-        InputTextBox.Text = defaultAnswer;
+        InputTextBox.Text = defaultAnswer??"";
         GroupTextBox.Text = defaultGroup;
 
         Groups = new ObservableCollection<string>();
-        foreach (var group in groups) {
-            Groups.Add(group);
+        if (groups != null) {
+            foreach (var group in groups) {
+                Groups.Add(group);
+            }
         }
-
+        
         InputTextBox.Focus();
         InputTextBox.SelectAll();
     }
 
-    private ObservableCollection<string> _groups = new();
+    private ObservableCollection<string> _groups;
     public ObservableCollection<string> Groups {
         get => _groups;
         set => SetField(ref _groups, value);
     }
     
-    private bool _selectedGroup;
-    public bool SelectedGroup {
+    private string _selectedGroup;
+    public string SelectedGroup {
         get => _selectedGroup;
         set => SetField(ref _selectedGroup, value);
     }
@@ -46,10 +48,12 @@ public partial class DestinationDialog : Window, INotifyPropertyChanged {
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
+
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;
         OnPropertyChanged(propertyName);
