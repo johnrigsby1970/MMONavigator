@@ -5,6 +5,8 @@ current position to your destination, as defined by the coordinates
 you provide.  It will update that direction based on triggers 
 initiated by you (ex: typing /loc to get your current position or using a macro to do the same, repeatedly).
 
+Watch a demonstration video here https://youtu.be/F6D_CjmfEns
+
 ## Dependencies
 
 * This program is coded to run on Windows 10 and above using Microsoft .Net 8 runtime. 
