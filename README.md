@@ -196,9 +196,7 @@ John Rigsby
 
 ## License
 
-Copyright (c) 2026 John Rigsby
-
-This project is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/ - see the LICENSE.md file for details
+MMONavigator © 2026 by John Rigsby is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/
 
 ## Acknowledgments
 
@@ -207,3 +205,4 @@ Inspiration, code snippets, etc.
 * https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
 * https://corey255a1.wixsite.com/wundervision/single-post/simple-wpf-compass-control
 * https://stackoverflow.com/questions/93650/apply-stroke-to-a-textblock-in-wpf
+* https://creativecommons.org/chooser/
