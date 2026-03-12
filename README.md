@@ -198,7 +198,7 @@ John Rigsby
 
 Copyright (c) 2026 John Rigsby
 
-This project is licensed under CC BY-NC-ND 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/4.0/ - see the LICENSE.md file for details
+This project is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/ - see the LICENSE.md file for details
 
 ## Acknowledgments
 
@@ -207,5 +207,3 @@ Inspiration, code snippets, etc.
 * https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
 * https://corey255a1.wixsite.com/wundervision/single-post/simple-wpf-compass-control
 * https://stackoverflow.com/questions/93650/apply-stroke-to-a-textblock-in-wpf
-* https://learn.microsoft.com/en-us/windows/apps/develop/platform/xaml/xaml-resource-dictionary
-* https://gist.github.com/DomPizzie/7a5ff55ffa9081f2de27c315f5018afc#file-readme-template-md
