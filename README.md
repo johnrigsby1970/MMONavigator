@@ -187,7 +187,6 @@ While Everquest does not give facing, this program will try to derive facing as 
 ## Authors
 
 John Rigsby
-(https://www.observantmonkey.com)
 
 ## Version History
 
