@@ -196,7 +196,9 @@ John Rigsby
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE.md file for details
+Copyright (c) 2026 John Rigsby
+
+This project is licensed under CC BY-NC-ND 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/4.0/ - see the LICENSE.md file for details
 
 ## Acknowledgments
 
