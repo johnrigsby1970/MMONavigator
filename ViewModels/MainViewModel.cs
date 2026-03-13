@@ -568,6 +568,8 @@ public class MainViewModel : INotifyPropertyChanged {
 
         SelectedLocation = item;
         SaveLocations();
+        LoadLocations();
+        UpdateListStatus();
     }
 
     private void EditLocation() {
