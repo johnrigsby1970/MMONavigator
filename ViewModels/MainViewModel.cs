@@ -575,20 +575,24 @@ public class MainViewModel : INotifyPropertyChanged {
     private void EditLocation() {
         if (SelectedLocation == null) return;
 
-        string? name = SelectedLocation.Name;
-        string? group = SelectedLocation.Header;
-        List<string?> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
+        var name = SelectedLocation.Name;
+        var group = SelectedLocation.Header;
+        var groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
         var dialog = new DestinationDialog(name, group, groups) {
             Owner = Application.Current.MainWindow
         };
         if (dialog.ShowDialog() == true) {
             SelectedLocation.Name = dialog.Answer;
             SelectedLocation.Header = dialog.Group;
+
             OnPropertyChanged(nameof(SelectedLocation));
             OnPropertyChanged(nameof(Locations));
-            OnPropertyChanged(nameof(TargetCoordinates));
             SaveLocations();
             LoadLocations();
+            
+            TargetCoordinates = SelectedLocation.DisplayName;
+            OnPropertyChanged(nameof(TargetCoordinates));
+            
             UpdateListStatus();
         }
     }
