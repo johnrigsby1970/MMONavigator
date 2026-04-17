@@ -46,7 +46,7 @@
         <!-- Map Area -->
         <ScrollViewer x:Name="MapScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel">
             <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}" 
-                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" MouseMove="MapCanvas_MouseMove" Background="Black">
+                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp" MouseMove="MapCanvas_MouseMove" Background="Black">
                 <Canvas.LayoutTransform>
                     <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}" ScaleY="{Binding Settings.ZoomLevel}" />
                 </Canvas.LayoutTransform>

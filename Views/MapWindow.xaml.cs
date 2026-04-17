@@ -13,6 +13,8 @@ namespace MMONavigator.Views;
 public partial class MapWindow : Window {
     private bool _isCalibrating = false;
     private int _calibrationStep = 0;
+    private bool _isDragging = false;
+    private Point _lastMousePosition;
 
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
@@ -144,7 +146,13 @@ public partial class MapWindow : Window {
     }
 
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        if (!_isCalibrating) return;
+        if (!_isCalibrating) {
+            _isDragging = true;
+            _lastMousePosition = e.GetPosition(MapScrollViewer);
+            MapCanvas.CaptureMouse();
+            MapCanvas.Cursor = Cursors.Hand;
+            return;
+        }
 
         var vm = (MapViewModel)DataContext;
         Point clickPoint = e.GetPosition(MapCanvas);
@@ -196,8 +204,27 @@ public partial class MapWindow : Window {
 
     private void MapCanvas_MouseMove(object sender, MouseEventArgs e) {
         var vm = (MapViewModel)DataContext;
-        Point clickPoint = e.GetPosition(MapCanvas);
-        vm.UpdateHoverCoordinates(clickPoint.X, clickPoint.Y);
+        Point currentPoint = e.GetPosition(MapCanvas);
+        vm.UpdateHoverCoordinates(currentPoint.X, currentPoint.Y);
+
+        if (_isDragging) {
+            Point currentScrollPoint = e.GetPosition(MapScrollViewer);
+            double deltaX = currentScrollPoint.X - _lastMousePosition.X;
+            double deltaY = currentScrollPoint.Y - _lastMousePosition.Y;
+
+            MapScrollViewer.ScrollToHorizontalOffset(MapScrollViewer.HorizontalOffset - deltaX);
+            MapScrollViewer.ScrollToVerticalOffset(MapScrollViewer.VerticalOffset - deltaY);
+
+            _lastMousePosition = currentScrollPoint;
+        }
+    }
+
+    private void MapCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
+        if (_isDragging) {
+            _isDragging = false;
+            MapCanvas.ReleaseMouseCapture();
+            MapCanvas.Cursor = Cursors.Arrow;
+        }
     }
 
     private void MapScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
