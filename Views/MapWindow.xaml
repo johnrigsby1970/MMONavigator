@@ -1,0 +1,79 @@
+﻿<Window x:Class="MMONavigator.Views.MapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MMONavigator.Views"
+        mc:Ignorable="d"
+        Title="Map" Height="600" Width="800"
+        Background="#2D2D2D"
+        WindowStyle="None"
+        AllowsTransparency="True">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <Rectangle Grid.Row="0" Fill="#3E3E42" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"/>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0">
+            <TextBlock Text="Map Overlay" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
+        </StackPanel>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="0" FontFamily="Marlett" Width="30" Click="MinimizeButton_Click" Background="Transparent" Foreground="White" BorderThickness="0"/>
+            <Button Content="r" FontFamily="Marlett" Width="30" Click="CloseButton_Click" Background="Transparent" Foreground="White" BorderThickness="0"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Background="#333333">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
+                <Button Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2"/>
+                <Button Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2"/>
+                <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Text="Status: Ready"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
+                <TextBlock Text="{Binding HoverCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11" Margin="0,0,15,0"/>
+                <TextBlock Text="{Binding CurrentCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Map Area -->
+        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel">
+            <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}" 
+                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" MouseMove="MapCanvas_MouseMove" Background="Black">
+                <Canvas.LayoutTransform>
+                    <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}" ScaleY="{Binding Settings.ZoomLevel}" />
+                </Canvas.LayoutTransform>
+                <Image Source="{Binding MapImage}" Stretch="None"/>
+                
+                <!-- Position Marker -->
+                <Ellipse x:Name="PositionMarker" Width="10" Height="10" Fill="Red" Stroke="White" StrokeThickness="1"
+                         Visibility="{Binding MarkerVisibility}"
+                         Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
+                         Margin="-5,-5">
+                    <Ellipse.RenderTransform>
+                         <TranslateTransform X="0" Y="0"/>
+                    </Ellipse.RenderTransform>
+                </Ellipse>
+
+                <!-- Destination Marker -->
+                <Ellipse x:Name="DestinationMarker" Width="10" Height="10" Fill="Yellow" Stroke="Black" StrokeThickness="1"
+                         Visibility="{Binding TargetMarkerVisibility}"
+                         Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
+                         Margin="-5,-5">
+                    <Ellipse.RenderTransform>
+                         <TranslateTransform X="0" Y="0"/>
+                    </Ellipse.RenderTransform>
+                </Ellipse>
+
+                <!-- Calibration Markers -->
+                <Ellipse x:Name="CalibMarker1" Width="8" Height="8" Fill="Blue" Stroke="White" StrokeThickness="1" Visibility="Collapsed" Margin="-4,-4"/>
+                <Ellipse x:Name="CalibMarker2" Width="8" Height="8" Fill="Green" Stroke="White" StrokeThickness="1" Visibility="Collapsed" Margin="-4,-4"/>
+            </Canvas>
+        </ScrollViewer>
+    </Grid>
+</Window>
