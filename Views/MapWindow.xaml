@@ -33,6 +33,8 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
                 <Button Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2"/>
                 <Button Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2"/>
+                <Button Content="Save Map" Click="SaveMap_Click" Margin="0,2,5,2" Padding="5,2"/>
+                <Button Content="Load Map" Click="LoadMap_Click" Margin="0,2,5,2" Padding="5,2"/>
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Text="Status: Ready"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
