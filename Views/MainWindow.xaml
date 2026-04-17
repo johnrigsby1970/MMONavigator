@@ -50,6 +50,13 @@
                         Content="&#xF271;" FontFamily="Segoe MDL2 Assets" FontSize="12pt"
                         Foreground="White" FontWeight="ExtraBold">
                 </Button>
+                <Button x:Name="mapbutton" Width="24" Height="24" Margin="3" Content="&#xE707;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="12pt"
+                        ToolTip="Open Map" FontWeight="ExtraBold"
+                        Command="{Binding OpenMapCommand}"
+                        Foreground="White" Background="CornflowerBlue">
+                </Button>
                 <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="12pt"

@@ -83,6 +83,17 @@ public class GameProfile : INotifyPropertyChanged {
         }
     }
 
+    private MapSettings _mapSettings = new();
+    public MapSettings MapSettings {
+        get => _mapSettings;
+        set {
+            if (_mapSettings != value) {
+                _mapSettings = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
@@ -96,7 +107,13 @@ public class GameProfile : INotifyPropertyChanged {
             CoordinateSystem = this.CoordinateSystem,
             LogFilePath = this.LogFilePath,
             LogFileRegex = this.LogFileRegex,
-            CoordinateOrder = this.CoordinateOrder
+            CoordinateOrder = this.CoordinateOrder,
+            MapSettings = new MapSettings {
+                ImagePath = this.MapSettings.ImagePath,
+                Point1 = new MapPoint { X = this.MapSettings.Point1.X, Y = this.MapSettings.Point1.Y, PixelX = this.MapSettings.Point1.PixelX, PixelY = this.MapSettings.Point1.PixelY },
+                Point2 = new MapPoint { X = this.MapSettings.Point2.X, Y = this.MapSettings.Point2.Y, PixelX = this.MapSettings.Point2.PixelX, PixelY = this.MapSettings.Point2.PixelY },
+                IsCalibrated = this.MapSettings.IsCalibrated
+            }
         };
     }
 }

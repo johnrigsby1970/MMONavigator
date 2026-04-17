@@ -225,6 +225,16 @@ public class MainViewModel : INotifyPropertyChanged {
     private void Profile_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (sender is GameProfile profile && profile.Name == Settings.LastSelectedProfileName) {
             ShowDirection();
+            if (e.PropertyName == nameof(GameProfile.MapSettings)) {
+                if (_mapViewModel != null) {
+                    _mapViewModel.Settings = profile.MapSettings;
+                }
+            }
+            if (e.PropertyName == nameof(GameProfile.CoordinateSystem)) {
+                if (_mapViewModel != null) {
+                    _mapViewModel.CoordinateSystem = profile.CoordinateSystem;
+                }
+            }
             if (e.PropertyName == nameof(GameProfile.WatchMode) || e.PropertyName == nameof(GameProfile.LogFilePath)) {
                 if (_lastWindowHandle != IntPtr.Zero) {
                     StartWatcher(_lastWindowHandle);
@@ -261,6 +271,12 @@ public class MainViewModel : INotifyPropertyChanged {
         set {
             if (SetField(ref _currentCoordinates, value)) {
                 ShowDirection();
+                if (_mapViewModel != null) {
+                    _mapViewModel.CurrentCoordinatesLabel = value;
+                    if (Scrubber.TryParse(_currentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var current)) {
+                        _mapViewModel.CurrentPosition = current;
+                    }
+                }
             }
         }
     }
@@ -273,6 +289,9 @@ public class MainViewModel : INotifyPropertyChanged {
             if (SetField(ref _targetCoordinates, value ?? string.Empty)) {
                 OnPropertyChanged(nameof(IsItemInListAndHasValue));
                 SyncLocationAndCoordinates(false);
+                if (_mapViewModel != null && Scrubber.TryParse(_targetCoordinates, Settings.SelectedProfile.CoordinateOrder, out var target)) {
+                    _mapViewModel.TargetPosition = target;
+                }
             }
         }
     }
@@ -408,6 +427,7 @@ public class MainViewModel : INotifyPropertyChanged {
     public ICommand EditLocationCommand { get; }
     public ICommand RemoveLocationCommand { get; }
     public ICommand SelectLocationFileCommand { get; }
+    public ICommand OpenMapCommand { get; }
     public ICommand TimerCommand { get; }
     public ICommand BuyMeACoffeeCommand { get; }
 
@@ -434,6 +454,7 @@ public class MainViewModel : INotifyPropertyChanged {
         AddLocationCommand = new RelayCommand(_ => AddLocation());
         EditLocationCommand = new RelayCommand(_ => EditLocation());
         SelectLocationFileCommand = new RelayCommand(_ => SelectLocationFile());
+        OpenMapCommand = new RelayCommand(_ => OpenMap());
         RemoveLocationCommand = new RelayCommand(_ => RemoveLocation());
         TimerCommand = new RelayCommand(p => {
             if (p is TimerController timer) timer.Toggle();
@@ -765,6 +786,10 @@ public class MainViewModel : INotifyPropertyChanged {
             double distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
 
             UpdateDirectionUI(current, target, direction, distance);
+            if (_mapViewModel != null) {
+                _mapViewModel.CurrentPosition = current;
+                _mapViewModel.TargetPosition = target;
+            }
             if (distance == 0) {
                 GoDirection = "You have arrived";
                 return;
@@ -834,6 +859,36 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    private MapWindow? _mapWindow;
+    private MapViewModel? _mapViewModel;
+
+    private void OpenMap() {
+        if (_mapWindow == null || !Application.Current.Windows.OfType<MapWindow>().Any()) {
+            _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings);
+            _mapViewModel.CoordinateSystem = Settings.SelectedProfile.CoordinateSystem;
+            _mapViewModel.CurrentCoordinatesLabel = CurrentCoordinates;
+            if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var currentPos)) {
+                _mapViewModel.CurrentPosition = currentPos;
+            }
+            if (Scrubber.TryParse(TargetCoordinates, Settings.SelectedProfile.CoordinateOrder, out var targetPos)) {
+                _mapViewModel.TargetPosition = targetPos;
+            }
+            _mapWindow = new MapWindow(_mapViewModel);
+            _mapWindow.Owner = Application.Current.MainWindow;
+            _mapWindow.Closed += (s, e) => {
+                _mapWindow = null;
+                _mapViewModel = null;
+            };
+            _mapWindow.Show();
+        } else {
+            if (_mapWindow.WindowState == WindowState.Minimized) {
+                _mapWindow.WindowState = WindowState.Normal;
+            }
+            _mapWindow.Activate();
+            _mapWindow.Show();
+        }
+    }
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
