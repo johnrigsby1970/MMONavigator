@@ -54,6 +54,45 @@
                 <Image Source="{Binding MapImage}" Stretch="None"/>
                 
                 <!-- Position Marker -->
+                <Ellipse x:Name="PulseCircle" Width="10" Height="10" Stroke="Yellow" StrokeThickness="2"
+                         Visibility="{Binding MarkerVisibility}"
+                         Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
+                         Margin="-5,-5" RenderTransformOrigin="0.5,0.5">
+                    <Ellipse.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Ellipse.RenderTransform>
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Style.Triggers>
+                                <Trigger Property="Visibility" Value="Visible">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard Name="PulseStoryboard">
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1.0" To="0.2" Duration="0:0:1.5" AutoReverse="True" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="PulseStoryboard" />
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
                 <Ellipse x:Name="PositionMarker" Width="10" Height="10" Fill="Red" Stroke="White" StrokeThickness="1"
                          Visibility="{Binding MarkerVisibility}"
                          Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
@@ -64,6 +103,45 @@
                 </Ellipse>
 
                 <!-- Destination Marker -->
+                <Ellipse x:Name="DestinationPulseCircle" Width="10" Height="10" Stroke="Purple" StrokeThickness="2"
+                         Visibility="{Binding TargetMarkerVisibility}"
+                         Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
+                         Margin="-5,-5" RenderTransformOrigin="0.5,0.5">
+                    <Ellipse.RenderTransform>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                    </Ellipse.RenderTransform>
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Style.Triggers>
+                                <Trigger Property="Visibility" Value="Visible">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard Name="DestinationPulseStoryboard">
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <QuadraticEase EasingMode="EaseInOut" />
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1.0" To="0.2" Duration="0:0:1.5" AutoReverse="True" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <StopStoryboard BeginStoryboardName="DestinationPulseStoryboard" />
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
                 <Ellipse x:Name="DestinationMarker" Width="10" Height="10" Fill="Yellow" Stroke="Black" StrokeThickness="1"
                          Visibility="{Binding TargetMarkerVisibility}"
                          Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
