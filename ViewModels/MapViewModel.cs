@@ -23,6 +23,8 @@ public class MapViewModel : INotifyPropertyChanged {
     private double _markerX;
     private double _markerY;
     private Visibility _markerVisibility = Visibility.Collapsed;
+    private double _markerHeading;
+    private Visibility _headingVisibility = Visibility.Collapsed;
     private double _targetMarkerX;
     private double _targetMarkerY;
     private Visibility _targetMarkerVisibility = Visibility.Collapsed;
@@ -191,6 +193,21 @@ public class MapViewModel : INotifyPropertyChanged {
         private set { _markerVisibility = value; OnPropertyChanged(); }
     }
 
+    public double MarkerHeading {
+        get => _markerHeading;
+        private set {
+            if (Math.Abs(_markerHeading - value) > 0.0001) {
+                _markerHeading = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public Visibility HeadingVisibility {
+        get => _headingVisibility;
+        private set { _headingVisibility = value; OnPropertyChanged(); }
+    }
+
     public double TargetMarkerX {
         get => _targetMarkerX;
         private set {
@@ -250,8 +267,15 @@ public class MapViewModel : INotifyPropertyChanged {
 
         if (CurrentPosition.HasValue) {
             (MarkerX, MarkerY, MarkerVisibility) = CalculatePixelPosition(CurrentPosition.Value);
+            if (CurrentPosition.Value.Heading.HasValue) {
+                MarkerHeading = CalculatePixelHeading(CurrentPosition.Value.Heading.Value);
+                HeadingVisibility = MarkerVisibility;
+            } else {
+                HeadingVisibility = Visibility.Collapsed;
+            }
         } else {
             MarkerVisibility = Visibility.Collapsed;
+            HeadingVisibility = Visibility.Collapsed;
         }
 
         if (TargetPosition.HasValue) {
@@ -330,6 +354,60 @@ public class MapViewModel : INotifyPropertyChanged {
         } catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error updating marker position: {ex.Message}");
             return (0, 0, Visibility.Collapsed);
+        }
+    }
+
+    private double CalculatePixelHeading(double gameHeading) {
+        try {
+            double x1 = _settings.Point1.X;
+            double y1 = _settings.Point1.Y;
+            double px1 = _settings.Point1.PixelX;
+            double py1 = _settings.Point1.PixelY;
+
+            double x2 = _settings.Point2.X;
+            double y2 = _settings.Point2.Y;
+            double px2 = _settings.Point2.PixelX;
+            double py2 = _settings.Point2.PixelY;
+
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            double dpx = px2 - px1;
+            double dpy = py1 - py2;
+
+            if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) return 0;
+
+            double angleReal = Math.Atan2(dy, dx);
+            double anglePixel = Math.Atan2(dpy, dpx);
+            double rotation = anglePixel - angleReal;
+
+            // gameHeading: 0 is North (+Y), 90 is East (+X)
+            // We want angle in radians where 0 is +X, PI/2 is +Y (standard Cartesian)
+            // gameHeading 0 -> angle PI/2
+            // gameHeading 90 -> angle 0
+            // angle = PI/2 - gameHeadingRad
+            double gameHeadingRad = gameHeading * (Math.PI / 180.0);
+            double cartesianAngle = (Math.PI / 2.0) - gameHeadingRad;
+
+            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+                // In left-handed, +X is West. gameHeading 90 is still East (+X in game)
+                // but our dx was negated in GetDirection? No, NavigationCalculator says:
+                // if (coordinateSystem == CoordinateSystem.LeftHanded) dx = -dx;
+                // This means "game +X" is actually "-X in Cartesian".
+                // So if facing East (90), in Cartesian it's facing West (PI).
+                cartesianAngle = Math.PI - cartesianAngle;
+            }
+
+            double rotatedAngle = cartesianAngle + rotation;
+
+            // Now convert back to degrees for RotateTransform
+            // WPF RotateTransform: 0 is Up (+Y in Cartesian? No, 0 is Up in WPF too but clockwise)
+            // In WPF, 0 degrees is (0, -1). 90 degrees is (1, 0).
+            // Cartesian: 0 is (1, 0), PI/2 is (0, 1).
+            // WPF Angle = 90 - CartesianAngleDeg
+            double rotatedAngleDeg = rotatedAngle * (180.0 / Math.PI);
+            return 90 - rotatedAngleDeg;
+        } catch {
+            return 0;
         }
     }
 

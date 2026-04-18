@@ -108,6 +108,15 @@
                          <TranslateTransform X="0" Y="0"/>
                     </Ellipse.RenderTransform>
                 </Ellipse>
+                
+                <!-- Heading Arrow -->
+                <Path Data="M 0,-8 L 4,2 L 0,0 L -4,2 Z" Fill="Red" Stroke="White" StrokeThickness="1"
+                      Visibility="{Binding HeadingVisibility}"
+                      Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}">
+                    <Path.RenderTransform>
+                        <RotateTransform Angle="{Binding MarkerHeading}" />
+                    </Path.RenderTransform>
+                </Path>
 
                 <!-- Destination Marker -->
                 <Ellipse x:Name="DestinationPulseCircle" Width="10" Height="10" Stroke="Purple" StrokeThickness="2"
