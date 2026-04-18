@@ -29,7 +29,11 @@ public class MainViewModel : INotifyPropertyChanged {
     private const double MovementThreshold = 1.0;
     private CoordinateData? _lastCoordinateData;
 
-    public ObservableCollection<LocationItem> Locations { get; set; } = new();
+    private ObservableCollection<LocationItem> _locations = new();
+    public ObservableCollection<LocationItem> Locations {
+        get => _locations;
+        set => SetField(ref _locations, value);
+    }
 
     public TimerController Timer5 { get; } = new(5);
     public TimerController Timer10 { get; } = new(10);
@@ -210,6 +214,9 @@ public class MainViewModel : INotifyPropertyChanged {
             oldSettings.PropertyChanged -= Settings_PropertyChanged;
             foreach (var profile in oldSettings.Profiles) {
                 profile.PropertyChanged -= Profile_PropertyChanged;
+                profile.MapSettings.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.Point1.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.Point2.PropertyChanged -= MapSettings_PropertyChanged;
             }
         }
 
@@ -218,8 +225,19 @@ public class MainViewModel : INotifyPropertyChanged {
             foreach (var profile in newSettings.Profiles) {
                 profile.PropertyChanged -= Profile_PropertyChanged; // Prevent double subscription
                 profile.PropertyChanged += Profile_PropertyChanged;
+                
+                profile.MapSettings.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.PropertyChanged += MapSettings_PropertyChanged;
+                profile.MapSettings.Point1.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.Point1.PropertyChanged += MapSettings_PropertyChanged;
+                profile.MapSettings.Point2.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.Point2.PropertyChanged += MapSettings_PropertyChanged;
             }
         }
+    }
+
+    private void MapSettings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        SaveSettings();
     }
 
     private void Profile_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
@@ -229,6 +247,12 @@ public class MainViewModel : INotifyPropertyChanged {
                 if (_mapViewModel != null) {
                     _mapViewModel.Settings = profile.MapSettings;
                 }
+                profile.MapSettings.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.PropertyChanged += MapSettings_PropertyChanged;
+                profile.MapSettings.Point1.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.Point1.PropertyChanged += MapSettings_PropertyChanged;
+                profile.MapSettings.Point2.PropertyChanged -= MapSettings_PropertyChanged;
+                profile.MapSettings.Point2.PropertyChanged += MapSettings_PropertyChanged;
             }
             if (e.PropertyName == nameof(GameProfile.CoordinateSystem)) {
                 if (_mapViewModel != null) {
@@ -289,9 +313,6 @@ public class MainViewModel : INotifyPropertyChanged {
             if (SetField(ref _targetCoordinates, value ?? string.Empty)) {
                 OnPropertyChanged(nameof(IsItemInListAndHasValue));
                 SyncLocationAndCoordinates(false);
-                if (_mapViewModel != null && Scrubber.TryParse(_targetCoordinates, Settings.SelectedProfile.CoordinateOrder, out var target)) {
-                    _mapViewModel.TargetPosition = target;
-                }
             }
         }
     }
@@ -520,7 +541,7 @@ public class MainViewModel : INotifyPropertyChanged {
             group.Items = group.Items!.OrderBy(l => l.Name).ToList();
         }
         Locations = new ObservableCollection<LocationItem>(sorted);
-        OnPropertyChanged(nameof(Locations));
+        UpdateMapLocations();
     }
 
     public void SaveLocations() {
@@ -540,17 +561,29 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void AddLocation() {
-        var scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
-        if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
+        AddLocation(null);
+    }
 
-        // string name = string.Empty;
-        // var dialog = new InputDialog("Enter a name for this location:", "Add Location", "");
-        // dialog.Owner = Application.Current.MainWindow;
-        // if (dialog.ShowDialog() == true) {
-        //     name = dialog.Answer;
-        // } else {
-        //     return;
-        // }
+    private void AddLocation(CoordinateData? customCoords) {
+        string scrubbedTarget;
+        if (customCoords.HasValue) {
+            var coords = customCoords.Value;
+            if (Settings.SelectedProfile.CoordinateOrder == "y x") {
+                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
+            } else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
+                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
+            } else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
+                scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
+            } else {
+                // Default x z y d
+                scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
+            }
+        }
+        else {
+            scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
+        }
+        
+        if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
         string? name = string.Empty;
         string? group = string.Empty;
@@ -769,12 +802,15 @@ public class MainViewModel : INotifyPropertyChanged {
 
             if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var target)) {
                 DestinationTooltip = FormatTooltip(target);
+                DestinationVisibility = Visibility.Visible;
             }
             else {
+                DestinationVisibility = Visibility.Hidden;
+                if (_mapViewModel != null) {
+                    _mapViewModel.TargetPosition = null;
+                }
                 return;
             }
-
-            DestinationVisibility = Visibility.Visible;
 
             Tx = $"x:{target.X}";
             Ty = $"y:{target.Y}";
@@ -863,6 +899,32 @@ public class MainViewModel : INotifyPropertyChanged {
     private MapWindow? _mapWindow;
     private MapViewModel? _mapViewModel;
 
+    private void UpdateMapLocations() {
+        if (_mapViewModel == null) return;
+
+        var flattened = new List<MapLocation>();
+        foreach (var loc in Locations) {
+            AddLocationToMap(loc, flattened);
+        }
+        _mapViewModel.Locations = new ObservableCollection<MapLocation>(flattened);
+        _mapViewModel.UpdateMarkers();
+    }
+
+    private void AddLocationToMap(LocationItem item, List<MapLocation> flattened) {
+        if (item.Items != null) {
+            foreach (var subItem in item.Items) {
+                AddLocationToMap(subItem, flattened);
+            }
+        }
+        else {
+            flattened.Add(new MapLocation {
+                DisplayName = item.Name ?? string.Empty,
+                Tooltip = item.DisplayName, // Contains Name and Coordinates
+                Coordinates = item.ScrubbedCoordinates ?? string.Empty
+            });
+        }
+    }
+
     private void OpenMap() {
         if (_mapWindow == null || !Application.Current.Windows.OfType<MapWindow>().Any()) {
             _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings);
@@ -870,10 +932,23 @@ public class MainViewModel : INotifyPropertyChanged {
             _mapViewModel.CurrentCoordinatesLabel = CurrentCoordinates;
             if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var currentPos)) {
                 _mapViewModel.CurrentPosition = currentPos;
+            } else {
+                _mapViewModel.CurrentPosition = null;
             }
-            if (Scrubber.TryParse(TargetCoordinates, Settings.SelectedProfile.CoordinateOrder, out var targetPos)) {
+
+            string targetInput = TargetCoordinates ?? string.Empty;
+            string? coordinatesToParse = targetInput;
+            if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
+                coordinatesToParse = SelectedLocation.Coordinates;
+            }
+
+            if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var targetPos)) {
                 _mapViewModel.TargetPosition = targetPos;
             }
+            else {
+                _mapViewModel.TargetPosition = null;
+            }
+            UpdateMapLocations();
             _mapWindow = new MapWindow(_mapViewModel);
             _mapViewModel.DestinationSelected += coords => {
                 string formatted;
@@ -887,8 +962,15 @@ public class MainViewModel : INotifyPropertyChanged {
                     // Default x z y d
                     formatted = $"{coords.X:F1}, {coords.Z ?? 0:F1}, {coords.Y:F1}";
                 }
+                SelectedLocation = null;
                 TargetCoordinates = formatted;
                 ShowDirection();
+            };
+            _mapViewModel.PinRequested += coords => {
+                Application.Current.Dispatcher.Invoke(() => {
+                    AddLocation(coords);
+                    UpdateMapLocations();
+                });
             };
             _mapWindow.Owner = Application.Current.MainWindow;
             _mapWindow.Closed += (s, e) => {

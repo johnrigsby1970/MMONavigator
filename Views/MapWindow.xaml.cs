@@ -13,6 +13,7 @@ namespace MMONavigator.Views;
 public partial class MapWindow : Window {
     private bool _isCalibrating = false;
     private bool _isSettingDestination = false;
+    private bool _isAddingPin = false;
     private int _calibrationStep = 0;
     private bool _isDragging = false;
     private Point _lastMousePosition;
@@ -122,6 +123,7 @@ public partial class MapWindow : Window {
                         vm.Settings.Point2.PixelY = savedSettings.Point2.PixelY;
                         vm.Settings.IsCalibrated = savedSettings.IsCalibrated;
                         vm.Settings.ZoomLevel = savedSettings.ZoomLevel;
+                        vm.Settings.ShowLocations = savedSettings.ShowLocations;
                         StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} with config.";
                     }
                 } catch (Exception ex) {
@@ -141,7 +143,9 @@ public partial class MapWindow : Window {
     private void Calibrate_Click(object sender, RoutedEventArgs e) {
         _isCalibrating = true;
         _isSettingDestination = false;
-        SetDestinationButton.IsChecked = false;
+        SetDestinationMenuItem.IsChecked = false;
+        _isAddingPin = false;
+        AddPinMenuItem.IsChecked = false;
         _calibrationStep = 1;
         StatusTextBlock.Text = "Status: Click Point 1 on map";
         CalibMarker1.Visibility = Visibility.Collapsed;
@@ -149,17 +153,31 @@ public partial class MapWindow : Window {
     }
 
     private void SetDestination_Click(object sender, RoutedEventArgs e) {
-        _isSettingDestination = SetDestinationButton.IsChecked == true;
+        _isSettingDestination = SetDestinationMenuItem.IsChecked == true;
         if (_isSettingDestination) {
             _isCalibrating = false;
+            _isAddingPin = false;
+            AddPinMenuItem.IsChecked = false;
             StatusTextBlock.Text = "Status: Click on map to set destination";
         } else {
             StatusTextBlock.Text = "Status: Ready";
         }
     }
 
+    private void AddPin_Click(object sender, RoutedEventArgs e) {
+        _isAddingPin = AddPinMenuItem.IsChecked == true;
+        if (_isAddingPin) {
+            _isCalibrating = false;
+            _isSettingDestination = false;
+            SetDestinationMenuItem.IsChecked = false;
+            StatusTextBlock.Text = "Status: Click on map to add pin";
+        } else {
+            StatusTextBlock.Text = "Status: Ready";
+        }
+    }
+
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        if (!_isCalibrating && !_isSettingDestination) {
+        if (!_isCalibrating && !_isSettingDestination && !_isAddingPin) {
             _isDragging = true;
             _lastMousePosition = e.GetPosition(MapScrollViewer);
             MapCanvas.CaptureMouse();
@@ -175,14 +193,28 @@ public partial class MapWindow : Window {
             if (coords.HasValue) {
                 vm.SelectDestination(coords.Value);
                 _isSettingDestination = false;
-                SetDestinationButton.IsChecked = false;
+                SetDestinationMenuItem.IsChecked = false;
                 StatusTextBlock.Text = "Status: Destination set";
             }
             return;
         }
 
+        if (_isAddingPin) {
+            var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
+            if (coords.HasValue) {
+                vm.RequestPin(coords.Value);
+                _isAddingPin = false;
+                AddPinMenuItem.IsChecked = false;
+                StatusTextBlock.Text = "Status: Pin requested";
+            }
+            return;
+        }
+
         if (_calibrationStep == 1) {
-            var inputDialog = new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", $"{vm.CurrentPosition.X}, {vm.CurrentPosition.Y}") { Owner = this };
+            string suggestedCoords = vm.CurrentPosition.HasValue 
+                ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}" 
+                : "0, 0";
+            var inputDialog = new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords) { Owner = this };
             if (inputDialog.ShowDialog() == true) {
                 if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
                     vm.Settings.Point1.X = coords.X;
@@ -201,7 +233,10 @@ public partial class MapWindow : Window {
                 }
             }
         } else if (_calibrationStep == 2) {
-            var inputDialog = new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", $"{vm.CurrentPosition.X}, {vm.CurrentPosition.Y}") { Owner = this };
+            string suggestedCoords = vm.CurrentPosition.HasValue 
+                ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}" 
+                : "0, 0";
+            var inputDialog = new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", suggestedCoords) { Owner = this };
             if (inputDialog.ShowDialog() == true) {
                 if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
                     vm.Settings.Point2.X = coords.X;

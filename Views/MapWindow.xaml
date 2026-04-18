@@ -33,9 +33,8 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
                 <Button Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2"/>
                 <Button Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2"/>
-                <Button Content="Save Map" Click="SaveMap_Click" Margin="0,2,5,2" Padding="5,2"/>
+                <Button Content="Save Map" Click="SaveMap_Click" Margin="0,2,5,2" Padding="5,2" IsEnabled="{Binding Settings.IsCalibrated}"/>
                 <Button Content="Load Map" Click="LoadMap_Click" Margin="0,2,5,2" Padding="5,2"/>
-                <ToggleButton x:Name="SetDestinationButton" Content="Set Destination" Click="SetDestination_Click" Margin="0,2,5,2" Padding="5,2"/>
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Text="Status: Ready"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0">
@@ -48,6 +47,14 @@
         <ScrollViewer x:Name="MapScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel">
             <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}" 
                     MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp" MouseMove="MapCanvas_MouseMove" Background="Black">
+                <Canvas.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True" Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}" />
+                        <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click" IsEnabled="{Binding Settings.IsCalibrated}" />
+                        <Separator />
+                        <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}" IsEnabled="{Binding Settings.IsCalibrated}" />
+                    </ContextMenu>
+                </Canvas.ContextMenu>
                 <Canvas.LayoutTransform>
                     <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}" ScaleY="{Binding Settings.ZoomLevel}" />
                 </Canvas.LayoutTransform>
@@ -154,6 +161,30 @@
                 <!-- Calibration Markers -->
                 <Ellipse x:Name="CalibMarker1" Width="8" Height="8" Fill="Blue" Stroke="White" StrokeThickness="1" Visibility="Collapsed" Margin="-4,-4"/>
                 <Ellipse x:Name="CalibMarker2" Width="8" Height="8" Fill="Green" Stroke="White" StrokeThickness="1" Visibility="Collapsed" Margin="-4,-4"/>
+
+                <!-- Location Indicators -->
+                <ItemsControl ItemsSource="{Binding Locations}" Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                            <Setter Property="Canvas.Top" Value="{Binding PixelY}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Ellipse Width="8" Height="8" Fill="DeepSkyBlue" Stroke="White" StrokeThickness="1" Margin="-4,-4" Visibility="{Binding Visibility}">
+                                <Ellipse.ToolTip>
+                                    <ToolTip Content="{Binding Tooltip}" />
+                                </Ellipse.ToolTip>
+                            </Ellipse>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Canvas>
         </ScrollViewer>
     </Grid>

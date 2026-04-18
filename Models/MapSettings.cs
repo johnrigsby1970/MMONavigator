@@ -65,6 +65,12 @@ public class MapSettings : INotifyPropertyChanged {
         set { _zoomLevel = value; OnPropertyChanged(); }
     }
 
+    private bool _showLocations;
+    public bool ShowLocations {
+        get => _showLocations;
+        set { _showLocations = value; OnPropertyChanged(); }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

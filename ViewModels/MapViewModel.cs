@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
@@ -12,8 +15,8 @@ namespace MMONavigator.ViewModels;
 public class MapViewModel : INotifyPropertyChanged {
     private MapSettings _settings;
     private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
-    private CoordinateData _currentPosition;
-    private CoordinateData _targetPosition;
+    private CoordinateData? _currentPosition;
+    private CoordinateData? _targetPosition;
     private string? _currentCoordinatesLabel;
     private string? _hoverCoordinatesLabel;
     private BitmapImage? _mapImage;
@@ -23,12 +26,39 @@ public class MapViewModel : INotifyPropertyChanged {
     private double _targetMarkerX;
     private double _targetMarkerY;
     private Visibility _targetMarkerVisibility = Visibility.Collapsed;
+    private ObservableCollection<MapLocation> _locations = new();
+
+    public ObservableCollection<MapLocation> Locations {
+        get => _locations;
+        set {
+            _locations = value;
+            OnPropertyChanged();
+            UpdateMarkers();
+        }
+    }
+
+    public bool ShowLocations {
+        get => _settings.IsCalibrated && _settings.ShowLocations;
+        set {
+            if (_settings.ShowLocations != value) {
+                _settings.ShowLocations = value;
+                OnPropertyChanged();
+            }
+        }
+    }
 
     public event Action<CoordinateData>? DestinationSelected;
+    public event Action<CoordinateData>? PinRequested;
+
+    public void RequestPin(CoordinateData coords) {
+        PinRequested?.Invoke(coords);
+    }
 
     public MapViewModel(MapSettings settings) {
         _settings = settings;
         _settings.PropertyChanged += Settings_PropertyChanged;
+        _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
+        _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
         LoadImage();
     }
 
@@ -37,13 +67,24 @@ public class MapViewModel : INotifyPropertyChanged {
             LoadImage();
         }
         else if (e.PropertyName == nameof(MapSettings.IsCalibrated)) {
+            OnPropertyChanged(nameof(ShowLocations));
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.Point1) || e.PropertyName == nameof(MapSettings.Point2)) {
+            if (e.PropertyName == nameof(MapSettings.Point1)) {
+                _settings.Point1.PropertyChanged -= MapPoint_PropertyChanged;
+                _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
+            } else {
+                _settings.Point2.PropertyChanged -= MapPoint_PropertyChanged;
+                _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
+            }
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.ZoomLevel)) {
             UpdateMarkers();
+        }
+        else if (e.PropertyName == nameof(MapSettings.ShowLocations)) {
+            OnPropertyChanged(nameof(ShowLocations));
         }
     }
 
@@ -52,14 +93,27 @@ public class MapViewModel : INotifyPropertyChanged {
         set {
             if (_settings != null) {
                 _settings.PropertyChanged -= Settings_PropertyChanged;
+                _settings.Point1.PropertyChanged -= MapPoint_PropertyChanged;
+                _settings.Point2.PropertyChanged -= MapPoint_PropertyChanged;
             }
             _settings = value;
             if (_settings != null) {
                 _settings.PropertyChanged += Settings_PropertyChanged;
+                _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
+                _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
             }
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowLocations));
+            UpdateMarkers();
             LoadImage();
         }
+    }
+
+    private void MapPoint_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        // Trigger notification on the Settings property itself so that MainViewModel.Profile_PropertyChanged
+        // picks up the change and calls SaveSettings().
+        OnPropertyChanged(nameof(Settings)); 
+        UpdateMarkers();
     }
 
     public CoordinateSystem CoordinateSystem {
@@ -73,7 +127,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
-    public CoordinateData CurrentPosition {
+    public CoordinateData? CurrentPosition {
         get => _currentPosition;
         set {
             _currentPosition = value;
@@ -82,7 +136,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
-    public CoordinateData TargetPosition {
+    public CoordinateData? TargetPosition {
         get => _targetPosition;
         set {
             _targetPosition = value;
@@ -188,11 +242,35 @@ public class MapViewModel : INotifyPropertyChanged {
         if (!_settings.IsCalibrated || MapImage == null) {
             MarkerVisibility = Visibility.Collapsed;
             TargetMarkerVisibility = Visibility.Collapsed;
+            foreach (var loc in Locations) {
+                loc.Visibility = Visibility.Collapsed;
+            }
             return;
         }
 
-        (MarkerX, MarkerY, MarkerVisibility) = CalculatePixelPosition(CurrentPosition);
-        (TargetMarkerX, TargetMarkerY, TargetMarkerVisibility) = CalculatePixelPosition(TargetPosition);
+        if (CurrentPosition.HasValue) {
+            (MarkerX, MarkerY, MarkerVisibility) = CalculatePixelPosition(CurrentPosition.Value);
+        } else {
+            MarkerVisibility = Visibility.Collapsed;
+        }
+
+        if (TargetPosition.HasValue) {
+            (TargetMarkerX, TargetMarkerY, TargetMarkerVisibility) = CalculatePixelPosition(TargetPosition.Value);
+        } else {
+            TargetMarkerVisibility = Visibility.Collapsed;
+        }
+
+        foreach (var loc in Locations) {
+            // We use the default "x z y d" because ScrubbedCoordinates are always flattened to numbers
+            if (Scrubber.TryParse(loc.Coordinates, "x z y d", out var coords)) {
+                var (x, y, vis) = CalculatePixelPosition(coords);
+                loc.PixelX = x;
+                loc.PixelY = y;
+                loc.Visibility = vis;
+            } else {
+                loc.Visibility = Visibility.Collapsed;
+            }
+        }
     }
 
     private (double x, double y, Visibility vis) CalculatePixelPosition(CoordinateData pos) {
@@ -247,7 +325,7 @@ public class MapViewModel : INotifyPropertyChanged {
             if (px >= -10 && px <= MapImage.PixelWidth + 10 && py >= -10 && py <= MapImage.PixelHeight + 10) {
                 return (px, py, Visibility.Visible);
             } else {
-                return (px, py, Visibility.Collapsed);
+                return (0, 0, Visibility.Collapsed);
             }
         } catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error updating marker position: {ex.Message}");
@@ -379,6 +457,8 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public void SelectDestination(CoordinateData coords) {
+        TargetPosition = coords;
+        UpdateMarkers();
         DestinationSelected?.Invoke(coords);
     }
 
