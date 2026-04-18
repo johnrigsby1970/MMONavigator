@@ -71,6 +71,12 @@ public class MapSettings : INotifyPropertyChanged {
         set { _showLocations = value; OnPropertyChanged(); }
     }
 
+    private double _opacity = 1.0;
+    public double Opacity {
+        get => _opacity;
+        set { _opacity = value; OnPropertyChanged(); }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

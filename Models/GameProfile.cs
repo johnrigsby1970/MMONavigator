@@ -112,7 +112,8 @@ public class GameProfile : INotifyPropertyChanged {
                 ImagePath = this.MapSettings.ImagePath,
                 Point1 = new MapPoint { X = this.MapSettings.Point1.X, Y = this.MapSettings.Point1.Y, PixelX = this.MapSettings.Point1.PixelX, PixelY = this.MapSettings.Point1.PixelY },
                 Point2 = new MapPoint { X = this.MapSettings.Point2.X, Y = this.MapSettings.Point2.Y, PixelX = this.MapSettings.Point2.PixelX, PixelY = this.MapSettings.Point2.PixelY },
-                IsCalibrated = this.MapSettings.IsCalibrated
+                IsCalibrated = this.MapSettings.IsCalibrated,
+                Opacity = this.MapSettings.Opacity
             }
         };
     }

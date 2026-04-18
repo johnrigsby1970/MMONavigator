@@ -23,6 +23,18 @@ public partial class MapWindow : Window {
         DataContext = viewModel;
     }
 
+    private void Window_MouseEnter(object sender, MouseEventArgs e) {
+        if (DataContext is MapViewModel vm) {
+            vm.IsHovered = true;
+        }
+    }
+
+    private void Window_MouseLeave(object sender, MouseEventArgs e) {
+        if (DataContext is MapViewModel vm) {
+            vm.IsHovered = false;
+        }
+    }
+
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         DragMove();
     }

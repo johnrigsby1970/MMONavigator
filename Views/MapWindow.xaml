@@ -6,9 +6,12 @@
         xmlns:local="clr-namespace:MMONavigator.Views"
         mc:Ignorable="d"
         Title="Map" Height="600" Width="800"
-        Background="#2D2D2D"
+        Background="Transparent"
         WindowStyle="None"
-        AllowsTransparency="True">
+        AllowsTransparency="True"
+        Opacity="{Binding EffectiveOpacity}"
+        MouseEnter="Window_MouseEnter"
+        MouseLeave="Window_MouseLeave">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Window.Resources>
@@ -17,19 +20,20 @@
             <RowDefinition Height="30"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Title Bar -->
-        <Rectangle Grid.Row="0" Fill="#3E3E42" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"/>
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0">
+        <Rectangle Grid.Row="0" Fill="#3E3E42" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" Visibility="{Binding UIVisibility}"/>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0" Visibility="{Binding UIVisibility}">
             <TextBlock Text="Map Overlay" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"/>
         </StackPanel>
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding UIVisibility}">
             <Button Content="0" FontFamily="Marlett" Width="30" Click="MinimizeButton_Click" Background="Transparent" Foreground="White" BorderThickness="0"/>
             <Button Content="r" FontFamily="Marlett" Width="30" Click="CloseButton_Click" Background="Transparent" Foreground="White" BorderThickness="0"/>
         </StackPanel>
 
-        <Grid Grid.Row="1" Background="#333333">
+        <Grid Grid.Row="1" Background="#333333" Visibility="{Binding UIVisibility}">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" >
                 <Button Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2"/>
                 <Button Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2"/>
@@ -44,7 +48,7 @@
         </Grid>
 
         <!-- Map Area -->
-        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel">
+        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="-1" Background="#2D2D2D" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel">
             <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}" 
                     MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp" MouseMove="MapCanvas_MouseMove" Background="Black">
                 <Canvas.ContextMenu>
@@ -196,5 +200,14 @@
                 </ItemsControl>
             </Canvas>
         </ScrollViewer>
+
+        <!-- Opacity Slider -->
+        <Border Grid.Row="3" Background="#333333" Padding="10,5,10,5" Visibility="{Binding UIVisibility}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Opacity" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"/>
+                <Slider Width="100" Minimum="0.1" Maximum="1.0" Value="{Binding Opacity}" VerticalAlignment="Center" 
+                        TickFrequency="0.05" IsSnapToTickEnabled="True"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

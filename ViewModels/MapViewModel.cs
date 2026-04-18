@@ -49,6 +49,35 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
+    private bool _isHovered;
+    public bool IsHovered {
+        get => _isHovered;
+        set {
+            if (_isHovered != value) {
+                _isHovered = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EffectiveOpacity));
+                OnPropertyChanged(nameof(UIVisibility));
+            }
+        }
+    }
+
+    public double EffectiveOpacity => IsHovered ? 1.0 : Opacity;
+
+    public Visibility UIVisibility => (IsHovered || Opacity >= 1.0) ? Visibility.Visible : Visibility.Collapsed;
+
+    public double Opacity {
+        get => _settings.Opacity;
+        set {
+            if (_settings.Opacity != value) {
+                _settings.Opacity = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(EffectiveOpacity));
+                OnPropertyChanged(nameof(UIVisibility));
+            }
+        }
+    }
+
     public event Action<CoordinateData>? DestinationSelected;
     public event Action<CoordinateData>? PinRequested;
 
@@ -87,6 +116,11 @@ public class MapViewModel : INotifyPropertyChanged {
         }
         else if (e.PropertyName == nameof(MapSettings.ShowLocations)) {
             OnPropertyChanged(nameof(ShowLocations));
+        }
+        else if (e.PropertyName == nameof(MapSettings.Opacity)) {
+            OnPropertyChanged(nameof(Opacity));
+            OnPropertyChanged(nameof(EffectiveOpacity));
+            OnPropertyChanged(nameof(UIVisibility));
         }
     }
 
