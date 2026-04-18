@@ -49,6 +49,16 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
+    public bool ShowCalibrationMarkers {
+        get => _settings.IsCalibrated && _settings.ShowCalibrationMarkers;
+        set {
+            if (_settings.ShowCalibrationMarkers != value) {
+                _settings.ShowCalibrationMarkers = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
     private bool _isHovered;
     public bool IsHovered {
         get => _isHovered;
@@ -117,6 +127,9 @@ public class MapViewModel : INotifyPropertyChanged {
         else if (e.PropertyName == nameof(MapSettings.ShowLocations)) {
             OnPropertyChanged(nameof(ShowLocations));
         }
+        else if (e.PropertyName == nameof(MapSettings.ShowCalibrationMarkers)) {
+            OnPropertyChanged(nameof(ShowCalibrationMarkers));
+        }
         else if (e.PropertyName == nameof(MapSettings.Opacity)) {
             OnPropertyChanged(nameof(Opacity));
             OnPropertyChanged(nameof(EffectiveOpacity));
@@ -140,6 +153,7 @@ public class MapViewModel : INotifyPropertyChanged {
             }
             OnPropertyChanged();
             OnPropertyChanged(nameof(ShowLocations));
+            OnPropertyChanged(nameof(ShowCalibrationMarkers));
             UpdateMarkers();
             LoadImage();
         }

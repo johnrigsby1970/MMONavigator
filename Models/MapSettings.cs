@@ -71,6 +71,12 @@ public class MapSettings : INotifyPropertyChanged {
         set { _showLocations = value; OnPropertyChanged(); }
     }
 
+    private bool _showCalibrationMarkers = true;
+    public bool ShowCalibrationMarkers {
+        get => _showCalibrationMarkers;
+        set { _showCalibrationMarkers = value; OnPropertyChanged(); }
+    }
+
     private double _opacity = 1.0;
     public double Opacity {
         get => _opacity;

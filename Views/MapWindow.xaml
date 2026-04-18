@@ -57,6 +57,7 @@
                         <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click" IsEnabled="{Binding Settings.IsCalibrated}" />
                         <Separator />
                         <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}" IsEnabled="{Binding Settings.IsCalibrated}" />
+                        <MenuItem Header="Show Calibration Markers" IsCheckable="True" IsChecked="{Binding ShowCalibrationMarkers}" IsEnabled="{Binding Settings.IsCalibrated}" />
                     </ContextMenu>
                 </Canvas.ContextMenu>
                 <Canvas.LayoutTransform>
@@ -172,8 +173,68 @@
                 </Ellipse>
 
                 <!-- Calibration Markers -->
-                <Ellipse x:Name="CalibMarker1" Width="8" Height="8" Fill="Blue" Stroke="White" StrokeThickness="1" Visibility="Collapsed" Margin="-4,-4"/>
-                <Ellipse x:Name="CalibMarker2" Width="8" Height="8" Fill="Green" Stroke="White" StrokeThickness="1" Visibility="Collapsed" Margin="-4,-4"/>
+                <Grid x:Name="CalibMarker1" Width="8" Height="8" Margin="-4,-4">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                        <Condition Binding="{Binding Settings.ShowCalibrationMarkers}" Value="True" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Ellipse Fill="Blue" Stroke="White" StrokeThickness="1" />
+                    <Ellipse Fill="White" Width="2" Height="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Grid.ToolTip>
+                        <ToolTip>
+                            <StackPanel>
+                                <TextBlock FontWeight="Bold" Text="Calibration Point 1"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="X: "/>
+                                    <TextBlock Text="{Binding Settings.Point1.X, StringFormat=F1}"/>
+                                    <TextBlock Text=", Y: " Margin="5,0,0,0"/>
+                                    <TextBlock Text="{Binding Settings.Point1.Y, StringFormat=F1}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ToolTip>
+                    </Grid.ToolTip>
+                </Grid>
+                <Grid x:Name="CalibMarker2" Width="8" Height="8" Margin="-4,-4">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                        <Condition Binding="{Binding Settings.ShowCalibrationMarkers}" Value="True" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Ellipse Fill="Green" Stroke="White" StrokeThickness="1" />
+                    <Ellipse Fill="White" Width="2" Height="2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Grid.ToolTip>
+                        <ToolTip>
+                            <StackPanel>
+                                <TextBlock FontWeight="Bold" Text="Calibration Point 2"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="X: "/>
+                                    <TextBlock Text="{Binding Settings.Point2.X, StringFormat=F1}"/>
+                                    <TextBlock Text=", Y: " Margin="5,0,0,0"/>
+                                    <TextBlock Text="{Binding Settings.Point2.Y, StringFormat=F1}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </ToolTip>
+                    </Grid.ToolTip>
+                </Grid>
 
                 <!-- Location Indicators -->
                 <ItemsControl ItemsSource="{Binding Locations}" Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}">

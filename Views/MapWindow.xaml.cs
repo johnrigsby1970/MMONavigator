@@ -21,6 +21,16 @@ public partial class MapWindow : Window {
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
+        Loaded += MapWindow_Loaded;
+    }
+
+    private void MapWindow_Loaded(object sender, RoutedEventArgs e) {
+        if (DataContext is MapViewModel vm) {
+            Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
+            Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
+            Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
+            Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
+        }
     }
 
     private void Window_MouseEnter(object sender, MouseEventArgs e) {
@@ -53,9 +63,21 @@ public partial class MapWindow : Window {
         if (openFileDialog.ShowDialog() == true) {
             var vm = (MapViewModel)DataContext;
             vm.Settings.ImagePath = openFileDialog.FileName;
-            vm.Settings.IsCalibrated = false;
+            ClearCalibration(vm.Settings);
             StatusTextBlock.Text = "Status: Image loaded. Please calibrate.";
         }
+    }
+
+    private void ClearCalibration(MapSettings settings) {
+        settings.IsCalibrated = false;
+        settings.Point1.X = 0;
+        settings.Point1.Y = 0;
+        settings.Point1.PixelX = 0;
+        settings.Point1.PixelY = 0;
+        settings.Point2.X = 0;
+        settings.Point2.Y = 0;
+        settings.Point2.PixelX = 0;
+        settings.Point2.PixelY = 0;
     }
 
     private void SaveMap_Click(object sender, RoutedEventArgs e) {
@@ -136,17 +158,26 @@ public partial class MapWindow : Window {
                         vm.Settings.IsCalibrated = savedSettings.IsCalibrated;
                         vm.Settings.ZoomLevel = savedSettings.ZoomLevel;
                         vm.Settings.ShowLocations = savedSettings.ShowLocations;
+                        vm.Settings.ShowCalibrationMarkers = savedSettings.ShowCalibrationMarkers;
+                        
+                        Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
+                        Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
+
+                        Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
+                        Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
+
+                        vm.UpdateMarkers();
                         StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} with config.";
                     }
                 } catch (Exception ex) {
                     MessageBox.Show($"Error loading config: {ex.Message}. Loading image only.");
                     vm.Settings.ImagePath = imagePath;
-                    vm.Settings.IsCalibrated = false;
+                    ClearCalibration(vm.Settings);
                     StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} (config error).";
                 }
             } else {
                 vm.Settings.ImagePath = imagePath;
-                vm.Settings.IsCalibrated = false;
+                ClearCalibration(vm.Settings);
                 StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} (no config).";
             }
         }
@@ -160,8 +191,6 @@ public partial class MapWindow : Window {
         AddPinMenuItem.IsChecked = false;
         _calibrationStep = 1;
         StatusTextBlock.Text = "Status: Click Point 1 on map";
-        CalibMarker1.Visibility = Visibility.Collapsed;
-        CalibMarker2.Visibility = Visibility.Collapsed;
     }
 
     private void SetDestination_Click(object sender, RoutedEventArgs e) {
@@ -236,7 +265,6 @@ public partial class MapWindow : Window {
 
                     Canvas.SetLeft(CalibMarker1, clickPoint.X);
                     Canvas.SetTop(CalibMarker1, clickPoint.Y);
-                    CalibMarker1.Visibility = Visibility.Visible;
 
                     _calibrationStep = 2;
                     StatusTextBlock.Text = "Status: Click Point 2 on map";
@@ -258,7 +286,6 @@ public partial class MapWindow : Window {
 
                     Canvas.SetLeft(CalibMarker2, clickPoint.X);
                     Canvas.SetTop(CalibMarker2, clickPoint.Y);
-                    CalibMarker2.Visibility = Visibility.Visible;
 
                     vm.Settings.IsCalibrated = true;
                     vm.UpdateMarkers();
