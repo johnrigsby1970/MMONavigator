@@ -875,6 +875,21 @@ public class MainViewModel : INotifyPropertyChanged {
                 _mapViewModel.TargetPosition = targetPos;
             }
             _mapWindow = new MapWindow(_mapViewModel);
+            _mapViewModel.DestinationSelected += coords => {
+                string formatted;
+                if (Settings.SelectedProfile.CoordinateOrder == "y x") {
+                    formatted = $"{coords.Y:F1}, {coords.X:F1}";
+                } else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
+                    formatted = $"{coords.Y:F1}, {coords.X:F1}, {coords.Z ?? 0:F1}";
+                } else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
+                    formatted = $"{coords.X:F1}, {coords.Y:F1}";
+                } else {
+                    // Default x z y d
+                    formatted = $"{coords.X:F1}, {coords.Z ?? 0:F1}, {coords.Y:F1}";
+                }
+                TargetCoordinates = formatted;
+                ShowDirection();
+            };
             _mapWindow.Owner = Application.Current.MainWindow;
             _mapWindow.Closed += (s, e) => {
                 _mapWindow = null;

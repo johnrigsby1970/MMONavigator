@@ -24,6 +24,8 @@ public class MapViewModel : INotifyPropertyChanged {
     private double _targetMarkerY;
     private Visibility _targetMarkerVisibility = Visibility.Collapsed;
 
+    public event Action<CoordinateData>? DestinationSelected;
+
     public MapViewModel(MapSettings settings) {
         _settings = settings;
         _settings.PropertyChanged += Settings_PropertyChanged;
@@ -314,6 +316,70 @@ public class MapViewModel : INotifyPropertyChanged {
             System.Diagnostics.Debug.WriteLine($"Error calculating hover coordinates: {ex.Message}");
             HoverCoordinatesLabel = string.Empty;
         }
+    }
+
+    public CoordinateData? GetCoordinatesFromPixels(double px, double py) {
+        if (!_settings.IsCalibrated || MapImage == null) {
+            return null;
+        }
+
+        try {
+            double x1 = _settings.Point1.X;
+            double y1 = _settings.Point1.Y;
+            double px1 = _settings.Point1.PixelX;
+            double py1 = _settings.Point1.PixelY;
+
+            double x2 = _settings.Point2.X;
+            double y2 = _settings.Point2.Y;
+            double px2 = _settings.Point2.PixelX;
+            double py2 = _settings.Point2.PixelY;
+
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            double dpx = px2 - px1;
+            double dpy = py1 - py2;
+
+            if (Math.Abs(dpx) < 0.0001 && Math.Abs(dpy) < 0.0001) {
+                return null;
+            }
+
+            double dReal = Math.Sqrt(dx * dx + dy * dy);
+            double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
+
+            if (dPixel < 0.0001) {
+                return null;
+            }
+
+            double scale = dReal / dPixel;
+            double angleReal = Math.Atan2(dy, dx);
+            double anglePixel = Math.Atan2(dpy, dpx);
+            double rotation = angleReal - anglePixel;
+
+            double curDpx = px - px1;
+            double curDpy = py1 - py;
+
+            double cosR = Math.Cos(rotation);
+            double sinR = Math.Sin(rotation);
+
+            double rotX = curDpx * cosR - curDpy * sinR;
+            double rotY = curDpx * sinR + curDpy * cosR;
+
+            double x = x1 + rotX * scale;
+            double y = y1 + rotY * scale;
+
+            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+                x = x1 - rotX * scale;
+            }
+
+            return new CoordinateData(x, y, null, null);
+        } catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine($"Error calculating coordinates from pixels: {ex.Message}");
+            return null;
+        }
+    }
+
+    public void SelectDestination(CoordinateData coords) {
+        DestinationSelected?.Invoke(coords);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

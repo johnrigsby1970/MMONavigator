@@ -12,6 +12,7 @@ namespace MMONavigator.Views;
 
 public partial class MapWindow : Window {
     private bool _isCalibrating = false;
+    private bool _isSettingDestination = false;
     private int _calibrationStep = 0;
     private bool _isDragging = false;
     private Point _lastMousePosition;
@@ -139,14 +140,26 @@ public partial class MapWindow : Window {
 
     private void Calibrate_Click(object sender, RoutedEventArgs e) {
         _isCalibrating = true;
+        _isSettingDestination = false;
+        SetDestinationButton.IsChecked = false;
         _calibrationStep = 1;
         StatusTextBlock.Text = "Status: Click Point 1 on map";
         CalibMarker1.Visibility = Visibility.Collapsed;
         CalibMarker2.Visibility = Visibility.Collapsed;
     }
 
+    private void SetDestination_Click(object sender, RoutedEventArgs e) {
+        _isSettingDestination = SetDestinationButton.IsChecked == true;
+        if (_isSettingDestination) {
+            _isCalibrating = false;
+            StatusTextBlock.Text = "Status: Click on map to set destination";
+        } else {
+            StatusTextBlock.Text = "Status: Ready";
+        }
+    }
+
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        if (!_isCalibrating) {
+        if (!_isCalibrating && !_isSettingDestination) {
             _isDragging = true;
             _lastMousePosition = e.GetPosition(MapScrollViewer);
             MapCanvas.CaptureMouse();
@@ -156,6 +169,17 @@ public partial class MapWindow : Window {
 
         var vm = (MapViewModel)DataContext;
         Point clickPoint = e.GetPosition(MapCanvas);
+
+        if (_isSettingDestination) {
+            var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
+            if (coords.HasValue) {
+                vm.SelectDestination(coords.Value);
+                _isSettingDestination = false;
+                SetDestinationButton.IsChecked = false;
+                StatusTextBlock.Text = "Status: Destination set";
+            }
+            return;
+        }
 
         if (_calibrationStep == 1) {
             var inputDialog = new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", $"{vm.CurrentPosition.X}, {vm.CurrentPosition.Y}") { Owner = this };
