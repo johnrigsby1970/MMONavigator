@@ -11,7 +11,7 @@ public class WatcherService : IWatcherService {
     public event EventHandler<string>? LocationUpdated;
 
     private FileSystemWatcher? _fileWatcher;
-    private long _lastFilePosition = 0;
+    private long _lastFilePosition;
     private readonly object _fileLock = new object();
     private IntPtr _windowHandle;
     private AppSettings? _settings;

@@ -15,7 +15,7 @@ namespace MMONavigator.Views;
 public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged {
     private readonly AppSettings _settings;
     private GameProfile? _currentProfile;
-    private bool _isUpdatingUI = false;
+    private bool _isUpdatingUI;
 
     public WatchMode WatchMode => ClipboardRadio.IsChecked == true ? WatchMode.Clipboard : WatchMode.File;
     public string LogFilePath => FilePathTextBox.Text;
@@ -134,6 +134,7 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
         RegexTextBox.Text = profile.LogFileRegex;
         SystemComboBox.SelectedItem = profile.CoordinateSystem;
         OrderComboBox.SelectedItem = profile.CoordinateOrder;
+        KeyboardClickThroughCheckBox.IsChecked = _settings.KeyboardClickThrough;
         _isUpdatingUI = false;
     }
 
@@ -153,6 +154,7 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
         _currentProfile.LogFileRegex = LogFileRegex;
         _currentProfile.CoordinateSystem = CoordinateSystem;
         _currentProfile.CoordinateOrder = CoordinateOrder;
+        _settings.KeyboardClickThrough = KeyboardClickThroughCheckBox.IsChecked == true;
     }
 
     private void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {

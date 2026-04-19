@@ -27,11 +27,15 @@ public partial class MainWindow : Window {
     private static readonly GridLength HiddenRowHeight = new GridLength(CollapsedRowHeight);
     
     private const int WM_CLIPBOARDUPDATE = 0x031D;
+    private const int WM_MOUSEACTIVATE = 0x0021;
+    private const int MA_NOACTIVATE = 3;
+    private const int MA_ACTIVATE = 1;
     private readonly IntPtr _windowHandle;
 
     // Win32 Constants
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_TRANSPARENT = 0x00000020;
+    private const int WS_EX_NOACTIVATE = 0x08000000;
 
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -47,6 +51,7 @@ public partial class MainWindow : Window {
         _hwnd = new WindowInteropHelper(this).Handle;
 
         // Don't enable click-through by default - let interactive areas work normally
+        UpdateKeyboardClickThrough();
     }
     
     public void SetClickThrough(bool isClickThrough)
@@ -61,6 +66,19 @@ public partial class MainWindow : Window {
         {
             // Remove the Transparent flag (Click-through OFF)
             SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
+        }
+    }
+
+    private void UpdateKeyboardClickThrough()
+    {
+        int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
+        if (_viewModel.Settings.KeyboardClickThrough)
+        {
+            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
+        }
+        else
+        {
+            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
         }
     }
     
@@ -103,10 +121,72 @@ public partial class MainWindow : Window {
         if (e.PropertyName == nameof(AppSettings.LastSelectedProfileName)) {
             _viewModel.StartWatcher(_windowHandle);
         }
+        if (e.PropertyName == nameof(AppSettings.KeyboardClickThrough)) {
+            UpdateKeyboardClickThrough();
+        }
     }
     
     private void Stop() {
         _viewModel.StopWatcher();
+    }
+
+    private void TextBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Settings.KeyboardClickThrough)
+        {
+            // Allow this window to be activated when a TextBox is focused
+            int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
+            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
+            
+            // Force focus to the control and ensure the window is activated
+            if (sender is UIElement element)
+            {
+                this.Activate();
+                element.Focus();
+            }
+        }
+    }
+
+    private void TextBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Settings.KeyboardClickThrough)
+        {
+            UpdateKeyboardClickThrough();
+        }
+    }
+
+    private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
+        if (msg == WM_CLIPBOARDUPDATE) {
+            KeepOnTop();
+            _viewModel.HandleClipboardUpdate();
+        }
+
+        if (msg == WM_MOUSEACTIVATE && _viewModel.Settings.KeyboardClickThrough)
+        {
+            // If the user is clicking on a TextBox, we allow activation.
+            // Otherwise, we return MA_NOACTIVATE to prevent stealing focus.
+            if (_isClickingTextBox)
+            {
+                _isClickingTextBox = false; // Reset for next time
+                
+                // When we return MA_ACTIVATE, Windows will activate the window.
+                // However, we also need to ensure the WS_EX_NOACTIVATE style is removed
+                // so the window actually gets focus and can receive keyboard input.
+                int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
+                SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
+
+                handled = false; // Let Windows handle the activation
+                return (IntPtr)MA_ACTIVATE;
+            }
+            
+            // Setting handled = true and returning MA_NOACTIVATE should prevent activation.
+            // But we must ensure WPF doesn't try to activate it anyway.
+            handled = true;
+            return (IntPtr)MA_NOACTIVATE;
+        }
+
+        handled = false;
+        return IntPtr.Zero;
     }
 
     private void KeepOnTop() {
@@ -116,14 +196,13 @@ public partial class MainWindow : Window {
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
 
-    private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
-        if (msg == WM_CLIPBOARDUPDATE) {
-            KeepOnTop();
-            _viewModel.HandleClipboardUpdate();
+    private bool _isClickingTextBox;
+    private void TextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_viewModel.Settings.KeyboardClickThrough)
+        {
+            _isClickingTextBox = true;
         }
-
-        handled = false;
-        return IntPtr.Zero;
     }
 
 
@@ -260,8 +339,25 @@ public partial class MainWindow : Window {
         Close();
     }
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private void Rectangle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+        IntPtr foregroundWindow = IntPtr.Zero;
+        bool isClickThrough = false;
+        if (_viewModel.Settings.KeyboardClickThrough) {
+            isClickThrough = true;
+            foregroundWindow = GetForegroundWindow();
+        }
+
         this.DragMove();
+
+        if (isClickThrough && foregroundWindow != IntPtr.Zero && foregroundWindow != _hwnd) {
+            SetForegroundWindow(foregroundWindow);
+        }
     }
 
     #endregion

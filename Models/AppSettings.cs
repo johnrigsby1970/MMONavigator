@@ -114,12 +114,23 @@ public class AppSettings : INotifyPropertyChanged {
         }
     }
 
-    private bool _showTimers = false;
+    private bool _showTimers;
     public bool ShowTimers {
         get => _showTimers;
         set {
             if (_showTimers != value) {
                 _showTimers = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private bool _keyboardClickThrough = true;
+    public bool KeyboardClickThrough {
+        get => _keyboardClickThrough;
+        set {
+            if (_keyboardClickThrough != value) {
+                _keyboardClickThrough = value;
                 OnPropertyChanged();
             }
         }

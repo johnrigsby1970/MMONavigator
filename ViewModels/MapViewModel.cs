@@ -95,8 +95,18 @@ public class MapViewModel : INotifyPropertyChanged {
         PinRequested?.Invoke(coords);
     }
 
-    public MapViewModel(MapSettings settings) {
+    private AppSettings _appSettings;
+    public AppSettings AppSettings {
+        get => _appSettings;
+        set {
+            _appSettings = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public MapViewModel(MapSettings settings, AppSettings appSettings) {
         _settings = settings;
+        _appSettings = appSettings;
         _settings.PropertyChanged += Settings_PropertyChanged;
         _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
         _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;

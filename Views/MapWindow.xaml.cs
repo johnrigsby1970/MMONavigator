@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Runtime.InteropServices;
+using System.Windows.Interop;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
@@ -11,20 +13,142 @@ using MMONavigator.ViewModels;
 namespace MMONavigator.Views;
 
 public partial class MapWindow : Window {
-    private bool _isCalibrating = false;
-    private bool _isSettingDestination = false;
-    private bool _isAddingPin = false;
-    private int _calibrationStep = 0;
-    private bool _isDragging = false;
+    private bool _isCalibrating;
+    private bool _isSettingDestination;
+    private bool _isAddingPin;
+    private int _calibrationStep;
+    private bool _isDragging;
     private Point _lastMousePosition;
+    private IntPtr _preDragForegroundWindow;
 
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
         Loaded += MapWindow_Loaded;
+        SourceInitialized += MapWindow_SourceInitialized;
+    }
+
+    private IntPtr _hwnd;
+    private void MapWindow_SourceInitialized(object? sender, EventArgs e) {
+        _hwnd = new WindowInteropHelper(this).Handle;
+        var source = HwndSource.FromHwnd(_hwnd);
+        source?.AddHook(HwndHandler);
+        
+        // Initial application of the style
+        UpdateKeyboardClickThrough();
+
+        if (DataContext is MapViewModel vm) {
+            vm.Settings.PropertyChanged += (s, ev) => {
+                if (ev.PropertyName == nameof(MapSettings.Opacity)) {
+                    // Update opacity if needed (already bound in XAML)
+                }
+            };
+
+            // We need to listen to the global KeyboardClickThrough setting
+            vm.AppSettings.PropertyChanged += (s, ev) => {
+                if (ev.PropertyName == nameof(AppSettings.KeyboardClickThrough)) {
+                    UpdateKeyboardClickThrough();
+                }
+            };
+        }
+    }
+
+    private void UpdateKeyboardClickThrough() {
+        if (_hwnd == IntPtr.Zero) return;
+        
+        int extendedStyle = NativeMethods.GetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE);
+        if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
+            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle | NativeMethods.WS_EX_NOACTIVATE);
+            KeepOnTop();
+        } else {
+            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
+        }
+    }
+
+    private void KeepOnTop() {
+        if (_hwnd == IntPtr.Zero) return;
+        NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+    }
+
+    private const int WM_MOUSEACTIVATE = 0x0021;
+    private const int MA_NOACTIVATE = 3;
+    private const int WM_ACTIVATE = 0x0006;
+    private const int WA_INACTIVE = 0;
+
+    private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
+        if (msg == WM_MOUSEACTIVATE) {
+            if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
+                // Return MA_NOACTIVATE and set handled = true to prevent stealing focus.
+                handled = true;
+                return (IntPtr)MA_NOACTIVATE;
+            }
+        }
+        
+        if (msg == WM_ACTIVATE) {
+            if ((int)wparam != WA_INACTIVE) {
+                if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
+                    System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] MapWindow activated. wparam: {wparam}");
+                    // If we are being activated and click-through is on, push focus back to previous window.
+                    
+                    // We try to restore to the window that WAS foreground BEFORE this activation happened.
+                    // If we don't have one, we try the window that is currently foreground (if it's not us).
+                    IntPtr foregroundWindow = GetForegroundWindow();
+                    
+                    IntPtr targetWnd = IntPtr.Zero;
+                    if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+                        targetWnd = _preDragForegroundWindow;
+                    } else if (foregroundWindow != _hwnd && foregroundWindow != IntPtr.Zero) {
+                        targetWnd = foregroundWindow;
+                    } else {
+                        // Fallback: Try to find the next window in the Z-order to give focus to.
+                        targetWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
+                    }
+
+                    if (targetWnd != IntPtr.Zero && targetWnd != _hwnd) {
+                        SetForegroundWindow(targetWnd);
+                    }
+                    
+                    handled = true;
+                }
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+
+    private static class NativeMethods {
+        public const int GWL_EXSTYLE = -20;
+        public const int WS_EX_NOACTIVATE = 0x08000000;
+        public const int WS_EX_TOPMOST = 0x00000008;
+        public const int GW_HWNDNEXT = 2;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        public const uint SWP_NOSIZE = 0x0001;
+        public const uint SWP_NOMOVE = 0x0002;
+        public const uint SWP_NOACTIVATE = 0x0010;
     }
 
     private void MapWindow_Loaded(object sender, RoutedEventArgs e) {
+        Deactivated += (s, ev) => {
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
+                KeepOnTop();
+            }
+        };
+
         if (DataContext is MapViewModel vm) {
             Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
             Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
@@ -45,8 +169,41 @@ public partial class MapWindow : Window {
         }
     }
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        DragMove();
+        IntPtr foregroundWindow = IntPtr.Zero;
+        bool isClickThrough = false;
+        if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
+            isClickThrough = true;
+            foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == _hwnd) foregroundWindow = IntPtr.Zero; // Don't restore to self
+            _preDragForegroundWindow = foregroundWindow;
+        }
+        
+        try {
+            DragMove();
+        } catch (InvalidOperationException) {
+            // DragMove can fail if mouse button was released too quickly
+        }
+
+        if (isClickThrough) {
+            IntPtr currentForeground = GetForegroundWindow();
+            if (currentForeground == _hwnd) {
+                if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+                    SetForegroundWindow(_preDragForegroundWindow);
+                } else {
+                    IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
+                    if (nextWnd != IntPtr.Zero) SetForegroundWindow(nextWnd);
+                }
+            }
+            _preDragForegroundWindow = IntPtr.Zero;
+        }
+        e.Handled = true;
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
@@ -218,11 +375,18 @@ public partial class MapWindow : Window {
     }
 
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+        if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
+            _preDragForegroundWindow = GetForegroundWindow();
+            if (_preDragForegroundWindow == _hwnd) _preDragForegroundWindow = IntPtr.Zero;
+        }
+
         if (!_isCalibrating && !_isSettingDestination && !_isAddingPin) {
             _isDragging = true;
             _lastMousePosition = e.GetPosition(MapScrollViewer);
             MapCanvas.CaptureMouse();
             MapCanvas.Cursor = Cursors.Hand;
+            
+            e.Handled = true;
             return;
         }
 
@@ -314,6 +478,7 @@ public partial class MapWindow : Window {
             MapScrollViewer.ScrollToVerticalOffset(MapScrollViewer.VerticalOffset - deltaY);
 
             _lastMousePosition = currentScrollPoint;
+            e.Handled = true; // Added this
         }
     }
 
@@ -322,6 +487,20 @@ public partial class MapWindow : Window {
             _isDragging = false;
             MapCanvas.ReleaseMouseCapture();
             MapCanvas.Cursor = Cursors.Arrow;
+
+            if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
+                IntPtr currentForeground = GetForegroundWindow();
+                if (currentForeground == _hwnd) {
+                    if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+                        SetForegroundWindow(_preDragForegroundWindow);
+                    } else {
+                        IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
+                        if (nextWnd != IntPtr.Zero) SetForegroundWindow(nextWnd);
+                    }
+                }
+                _preDragForegroundWindow = IntPtr.Zero;
+            }
+            e.Handled = true;
         }
     }
 

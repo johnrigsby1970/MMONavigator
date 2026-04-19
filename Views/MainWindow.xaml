@@ -27,7 +27,7 @@
         <x:Static Member="local:MainWindow.StandardRowHeight" x:Key="StandardRowHeight" />
         <x:Static Member="local:MainWindow.StandardGridRowHeight" x:Key="StandardGridRowHeight" />
     </Window.Resources>
-    <Grid Name="myGrid">
+        <Grid Name="myGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="115" />
             <ColumnDefinition Width="185" />
@@ -183,7 +183,10 @@
                          Margin="0,0,0,0"
                          VerticalAlignment="Center" 
                          Width="99"
-                         ToolTip="{Binding DestinationTooltip}"/>
+                         ToolTip="{Binding DestinationTooltip}"
+                         GotFocus="TextBox_GotFocus"
+                         LostFocus="TextBox_LostFocus"
+                         PreviewMouseDown="TextBox_PreviewMouseDown"/>
                 <!--https://stackoverflow.com/questions/722700/wpf-treeview-inside-a-combobox-->
                 <Expander Header="TestCS" Width="25" Height="25" >
                     <Popup 
@@ -274,7 +277,10 @@
                     Height="20" Margin="0,1,4,0"
                     FontSize="8pt"
                     VerticalAlignment="Center" Width="120"
-                    ToolTip="{Binding LocationTooltip}" />
+                    ToolTip="{Binding LocationTooltip}"
+                    GotFocus="TextBox_GotFocus"
+                    LostFocus="TextBox_LostFocus"
+                    PreviewMouseDown="TextBox_PreviewMouseDown" />
 
                 <Button Width="20" Height="20" Margin="3" 
                         Content="&#xF272;"

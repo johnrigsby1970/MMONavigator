@@ -948,7 +948,7 @@ public class MainViewModel : INotifyPropertyChanged {
 
     private void OpenMap() {
         if (_mapWindow == null || !Application.Current.Windows.OfType<MapWindow>().Any()) {
-            _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings);
+            _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings);
             _mapViewModel.CoordinateSystem = Settings.SelectedProfile.CoordinateSystem;
             _mapViewModel.CurrentCoordinatesLabel = CurrentCoordinates;
             if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var currentPos)) {
@@ -993,7 +993,7 @@ public class MainViewModel : INotifyPropertyChanged {
                     UpdateMapLocations();
                 });
             };
-            _mapWindow.Owner = Application.Current.MainWindow;
+            // _mapWindow.Owner = Application.Current.MainWindow;
             _mapWindow.Closed += (s, e) => {
                 _mapWindow = null;
                 _mapViewModel = null;
@@ -1003,7 +1003,9 @@ public class MainViewModel : INotifyPropertyChanged {
             if (_mapWindow.WindowState == WindowState.Minimized) {
                 _mapWindow.WindowState = WindowState.Normal;
             }
-            _mapWindow.Activate();
+            if (!Settings.KeyboardClickThrough) {
+                _mapWindow.Activate();
+            }
             _mapWindow.Show();
         }
     }

@@ -28,6 +28,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,5">
                     <TextBlock
@@ -146,6 +147,12 @@
                     <ComboBox x:Name="OrderComboBox" Width="100" VerticalAlignment="Center"
                               Background="#3E3E42" Foreground="Black" />
                 </StackPanel>
+
+                <CheckBox x:Name="KeyboardClickThroughCheckBox" Grid.Row="10" 
+                          Visibility="Hidden"
+                          Content="Keyboard Click-Through (Pass keys to game)" 
+                          Foreground="White" Margin="0,0,0,15" VerticalAlignment="Center"
+                          ToolTip="When enabled, the program will not consume keystrokes unless an input field is focused." />
             </Grid>
         </ScrollViewer>
 
