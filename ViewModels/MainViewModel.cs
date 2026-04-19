@@ -29,6 +29,17 @@ public class MainViewModel : INotifyPropertyChanged {
     private const double MovementThreshold = 1.0;
     private CoordinateData? _lastCoordinateData;
 
+    private bool _hasLocations;
+
+    public bool HasLocations {
+        get => _hasLocations;
+        set => SetField(ref _hasLocations, value);
+    }
+
+    public void UpdateHasLocations() {
+        HasLocations = Locations.Any();
+    }
+
     private ObservableCollection<LocationItem> _locations = new();
     public ObservableCollection<LocationItem> Locations {
         get => _locations;
@@ -541,6 +552,7 @@ public class MainViewModel : INotifyPropertyChanged {
             group.Items = group.Items!.OrderBy(l => l.Name).ToList();
         }
         Locations = new ObservableCollection<LocationItem>(sorted);
+        UpdateHasLocations();
         UpdateMapLocations();
     }
 
@@ -623,6 +635,7 @@ public class MainViewModel : INotifyPropertyChanged {
         SelectedLocation = item;
         SaveLocations();
         LoadLocations();
+        UpdateHasLocations();
         UpdateListStatus();
     }
 
@@ -662,6 +675,7 @@ public class MainViewModel : INotifyPropertyChanged {
             OnPropertyChanged(nameof(TargetCoordinates));
             SaveSettings();
             LoadLocations();
+            UpdateHasLocations();
             UpdateListStatus();
         }
     }
@@ -693,6 +707,7 @@ public class MainViewModel : INotifyPropertyChanged {
                     OnPropertyChanged(nameof(TargetCoordinates));
                     SaveLocations();
                     LoadLocations();
+                    UpdateHasLocations();
                     UpdateListStatus();
                 }
 
@@ -730,6 +745,7 @@ public class MainViewModel : INotifyPropertyChanged {
                     OnPropertyChanged(nameof(TargetCoordinates));
                     SaveLocations();
                     LoadLocations();
+                    UpdateHasLocations();
                     UpdateListStatus();
                 }
             }

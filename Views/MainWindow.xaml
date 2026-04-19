@@ -188,7 +188,8 @@
                          LostFocus="TextBox_LostFocus"
                          PreviewMouseDown="TextBox_PreviewMouseDown"/>
                 <!--https://stackoverflow.com/questions/722700/wpf-treeview-inside-a-combobox-->
-                <Expander Header="TestCS" Width="25" Height="25" >
+                <Expander Header="TestCS" Width="25" Height="25"
+                          Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <Popup 
                         PlacementTarget="{Binding ElementName=TargetCoordinates}"
                         IsOpen="{Binding IsExpanded, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Expander}}}"
