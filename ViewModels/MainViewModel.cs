@@ -276,6 +276,10 @@ public class MainViewModel : INotifyPropertyChanged {
                 }
             }
 
+            if (e.PropertyName == nameof(GameProfile.LastLocationsFile)) {
+                LoadLocations();
+            }
+
             SaveSettings();
         }
     }
@@ -288,6 +292,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 StartWatcher(_lastWindowHandle);
             }
 
+            LoadLocations();
             ShowDirection();
             SaveSettings();
         }
