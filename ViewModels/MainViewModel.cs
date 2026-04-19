@@ -902,11 +902,32 @@ public class MainViewModel : INotifyPropertyChanged {
     private void UpdateMapLocations() {
         if (_mapViewModel == null) return;
 
-        var flattened = new List<MapLocation>();
+        var existingLocations = _mapViewModel.Locations.ToList();
+        var newFlattened = new List<MapLocation>();
         foreach (var loc in Locations) {
-            AddLocationToMap(loc, flattened);
+            AddLocationToMap(loc, newFlattened);
         }
-        _mapViewModel.Locations = new ObservableCollection<MapLocation>(flattened);
+
+        // If the count is different, it's easier to just reset (this happens when adding/loading)
+        if (existingLocations.Count != newFlattened.Count) {
+            _mapViewModel.Locations = new ObservableCollection<MapLocation>(newFlattened);
+        }
+        else {
+            // Try to update in place to preserve UI elements and ToolTips
+            bool changed = false;
+            for (int i = 0; i < newFlattened.Count; i++) {
+                if (existingLocations[i].Coordinates != newFlattened[i].Coordinates ||
+                    existingLocations[i].DisplayName != newFlattened[i].DisplayName) {
+                    changed = true;
+                    break;
+                }
+            }
+
+            if (changed) {
+                _mapViewModel.Locations = new ObservableCollection<MapLocation>(newFlattened);
+            }
+        }
+        
         _mapViewModel.UpdateMarkers();
     }
 

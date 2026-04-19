@@ -336,11 +336,11 @@ public class MapViewModel : INotifyPropertyChanged {
             // We use the default "x z y d" because ScrubbedCoordinates are always flattened to numbers
             if (Scrubber.TryParse(loc.Coordinates, "x z y d", out var coords)) {
                 var (x, y, vis) = CalculatePixelPosition(coords);
-                loc.PixelX = x;
-                loc.PixelY = y;
-                loc.Visibility = vis;
+                if (Math.Abs(loc.PixelX - x) > 0.1) loc.PixelX = x;
+                if (Math.Abs(loc.PixelY - y) > 0.1) loc.PixelY = y;
+                if (loc.Visibility != vis) loc.Visibility = vis;
             } else {
-                loc.Visibility = Visibility.Collapsed;
+                if (loc.Visibility != Visibility.Collapsed) loc.Visibility = Visibility.Collapsed;
             }
         }
     }
