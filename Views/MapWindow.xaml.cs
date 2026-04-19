@@ -211,7 +211,7 @@ public partial class MapWindow : Window {
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
-        Hide();
+        Close();
     }
 
     private void PickImage_Click(object sender, RoutedEventArgs e) {
