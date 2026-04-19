@@ -11,6 +11,9 @@
         <Copyright>© 2025 John Rigsby</Copyright>
         <Company>John Rigsby</Company>
         <AssemblyVersion>0.1</AssemblyVersion>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     </PropertyGroup>
 
     <ItemGroup>
