@@ -5,16 +5,19 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Interop;
+using MMONavigator.Controls;
 using MMONavigator.Models;
 using MMONavigator.Services;
+using MessageBox = System.Windows.MessageBox;
 
 namespace MMONavigator.Views;
 
-public partial class LocationsFileAssignmentDialog : Window, INotifyPropertyChanged {
+public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropertyChanged {
     public LocationsFileAssignmentDialog(GameProfile profile) {
         InitializeComponent();
         DataContext = this;
-        
+
         Profile = profile;
         LocationsPath = profile.LastLocationsFile;
         LoadLocations(profile.LastLocationsFile);
@@ -67,80 +70,114 @@ public partial class LocationsFileAssignmentDialog : Window, INotifyPropertyChan
             }
         }
     }
-    
+
     private void OpenFileButton_Click(object sender, RoutedEventArgs e) {
-        // Configure open file dialog box
-        var dialog = new Microsoft.Win32.OpenFileDialog {
-            //dialog.FileName = "locations.json"; // Default file name
-            DefaultDirectory = AppDomain.CurrentDomain.BaseDirectory,
-            DefaultExt = ".json", // Default file extension
-            Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
-        };
+        IsDialogActive = true;
+        Window helperWindow = null;
 
-        // Show the open file dialog box
-        bool? result = dialog.ShowDialog();
+        try {
+            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
 
-        // Process open file dialog box results
-        if (result == true) {
-            // Open document - get the name of the selected file
-            string filename = dialog.FileName;
+            // Configure open file dialog box
+            var dialog = new Microsoft.Win32.OpenFileDialog {
+                //dialog.FileName = "locations.json"; // Default file name
+                DefaultDirectory = Helpers.NativeMethods.AppFolder(),
+                DefaultExt = ".json", // Default file extension
+                Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
+            };
+            
+            // Use the native interop handle to ensure the dialog 
+            // feels 'attached' to the helper
+            var helper = new WindowInteropHelper(helperWindow);
 
-            if (File.Exists(filename)) {
-                LocationsPath = filename;
-            }
-            else {
-                if (string.IsNullOrEmpty(Profile.LastLocationsFile)) {
-                    if (Profile.Name != "Default") {
-                        LocationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                            MakeValidFileName(Profile.Name) + "_locations.json");
-                    }
-                    else {
-                        LocationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
-                    }
+            // Show the open file dialog box
+            bool? result = dialog.ShowDialog();
+
+            // Process open file dialog box results
+            if (result == true) {
+                // Open document - get the name of the selected file
+                string filename = dialog.FileName;
+
+                if (File.Exists(filename)) {
+                    LocationsPath = filename;
                 }
                 else {
-                    LocationsPath = Profile.LastLocationsFile;
+                    if (string.IsNullOrEmpty(Profile.LastLocationsFile)) {
+                        if (Profile.Name != "Default") {
+                            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
+                                MakeValidFileName(Profile.Name) + "_locations.json");
+                        }
+                        else {
+                            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
+                        }
+                    }
+                    else {
+                        LocationsPath = Profile.LastLocationsFile;
+                    }
                 }
-            }
 
-            LoadLocations(LocationsPath);
-            // You can use the filename to read the file or display it in a TextBox
-            // e.g., FileNameTextBox.Text = filename;
+                LoadLocations(LocationsPath);
+                // You can use the filename to read the file or display it in a TextBox
+                // e.g., FileNameTextBox.Text = filename;
+            }
+        }
+        finally {
+            // ALWAYS close the helper to prevent memory leaks
+            helperWindow?.Close();
+            IsDialogActive = false;
+
         }
     }
 
     private void SaveAsButton_Click(object sender, RoutedEventArgs e) {
-        if(string.IsNullOrWhiteSpace(LocationsPath)) return;
-        // Configure open file dialog box
-        var dialog = new Microsoft.Win32.SaveFileDialog {
-            Title = "Download Selected File",
-            FileName = Path.GetFileName(LocationsPath),// Default file name
-            DefaultDirectory = AppDomain.CurrentDomain.BaseDirectory,
-            DefaultExt = ".json", // Default file extension
-            Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
-        };
+        if (string.IsNullOrWhiteSpace(LocationsPath)) return;
 
-        // Show the open file dialog box
-        bool? result = dialog.ShowDialog();
+        IsDialogActive = true;
+        Window helperWindow = null;
+        
+        try {
+            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
+            
+            // Configure open file dialog box
+            var dialog = new Microsoft.Win32.SaveFileDialog {
+                Title = "Download Selected File",
+                FileName = Path.GetFileName(LocationsPath), // Default file name
+                DefaultDirectory = AppDomain.CurrentDomain.BaseDirectory,
+                DefaultExt = ".json", // Default file extension
+                Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
+            };
 
-        // Process open file dialog box results
-        if (result == true) {
-            // Open document - get the name of the selected file
-            string filename = dialog.FileName;
+            // Use the native interop handle to ensure the dialog 
+            // feels 'attached' to the helper
+            var helper = new WindowInteropHelper(helperWindow);
+            
+            // Show the open file dialog box
+            bool? result = dialog.ShowDialog();
 
-            if (File.Exists(LocationsPath)) {
-                File.Copy(LocationsPath, filename, true);
+            // Process open file dialog box results
+            if (result == true) {
+                // Open document - get the name of the selected file
+                string filename = dialog.FileName;
+
+                if (File.Exists(LocationsPath)) {
+                    File.Copy(LocationsPath, filename, true);
+                }
             }
         }
+        finally {
+            // ALWAYS close the helper to prevent memory leaks
+            helperWindow?.Close();
+            IsDialogActive = false;
+        }
     }
-    
+
     private void SetDefaultButton_Click(object sender, RoutedEventArgs e) {
         if (Profile.Name != "Default") {
-            LocationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
                 MakeValidFileName(Profile.Name) + "_locations.json");
         }
         else {
-            LocationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
         }
 
         LoadLocations(LocationsPath);
@@ -153,20 +190,21 @@ public partial class LocationsFileAssignmentDialog : Window, INotifyPropertyChan
     }
 
     public void LoadLocations(string path) {
+        //MessageBox.Show("Loading locations from " + path);
         if (string.IsNullOrEmpty(path)) {
             if (Profile.Name != "Default") {
-                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                path = Path.Combine(Helpers.NativeMethods.AppFolder(),
                     MakeValidFileName(Profile.Name) + "_locations.json");
             }
             else {
-                path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                path = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
             }
         }
 
         LocationsPath = path;
-        
+
         if (!File.Exists(path)) return;
-        
+        //MessageBox.Show("Loading locations from " + path);
         string json = File.ReadAllText(path);
         var list = JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
 
@@ -190,16 +228,72 @@ public partial class LocationsFileAssignmentDialog : Window, INotifyPropertyChan
                 Locations.Add(item);
             }
         }
+
         OnPropertyChanged(nameof(LocationsPath));
         OnPropertyChanged(nameof(Locations));
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) {
-        DialogResult = true;
+        // // Instead of: DialogResult = true;
+        //
+        // // Dispatch to the UI thread's next available tick
+        // Dispatcher.BeginInvoke(new Action(() => {
+        //     this.DialogResult = true;
+        // }), System.Windows.Threading.DispatcherPriority.Background);
+        // Clear the owner before closing. 
+        // This stops WPF's internal focus-tracking from trying to "return" focus 
+        // to the owner, which is what triggers the crash.
+        //this.Owner = null; 
+
+        this.IsConfirmed = true;
+        this.ManualDialogResult = true;
+// 3. Instead of this.Close(), hide the window first to remove it from 
+        // the UI thread's "modal" tracking before the hard-close occurs.
+        this.Hide(); 
+    
+        // 4. Close the window after a tiny delay so the UI loop finishes 
+        // processing the 'Hide' message before the OS-level 'Close' message.
+        Dispatcher.BeginInvoke(new Action(() => {
+            this.Close();
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
+    public bool IsConfirmed { get; private set; }
+
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
-        DialogResult = false;
+        // //Due to code we are using to handle focus management, WPF can lose track of things. 
+        // //The Fix: "Safe Closing"
+        // //Instead of setting DialogResult = false directly (which triggers the internal DoDialogHide immediately),
+        // //you should dispatch the close operation to the end of the message queue.
+        // //This lets the current mouse/keyboard event finish processing before the window starts its teardown.
+        //
+        // // Instead of: DialogResult = false;
+        //
+        // // Dispatch to the UI thread's next available tick
+        // Dispatcher.BeginInvoke(new Action(() => {
+        //     this.DialogResult = false;
+        // }), System.Windows.Threading.DispatcherPriority.Background);
+
+        //The stack trace shows the crash happens inside Window.OnDialogCancelCommand().
+        //You should not use the default Cancel button command if you are using custom window styles.
+        //Instead, manually handle the click and close the window yourself,
+        //bypassing the internal WPF command logic entirely.
+        // Clear the owner before closing. 
+        // This stops WPF's internal focus-tracking from trying to "return" focus 
+        // to the owner, which is what triggers the crash.
+        //this.Owner = null; 
+
+        this.IsConfirmed = false;
+        this.ManualDialogResult = false;
+// 3. Instead of this.Close(), hide the window first to remove it from 
+        // the UI thread's "modal" tracking before the hard-close occurs.
+        this.Hide(); 
+    
+        // 4. Close the window after a tiny delay so the UI loop finishes 
+        // processing the 'Hide' message before the OS-level 'Close' message.
+        Dispatcher.BeginInvoke(new Action(() => {
+            this.Close();
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

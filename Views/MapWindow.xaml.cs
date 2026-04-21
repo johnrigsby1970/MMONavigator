@@ -1,25 +1,27 @@
-﻿using System.Runtime.InteropServices;
-using System.Windows.Interop;
+﻿using System.Windows.Interop;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
 using System.Text.Json;
-using Microsoft.Win32;
+using MMONavigator.Controls;
+using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.Services;
 using MMONavigator.ViewModels;
 
 namespace MMONavigator.Views;
 
-public partial class MapWindow : Window {
+public partial class MapWindow : ChildWindow {
     private bool _isCalibrating;
     private bool _isSettingDestination;
     private bool _isAddingPin;
     private int _calibrationStep;
     private bool _isDragging;
-    private Point _lastMousePosition;
+    private System.Windows.Point _lastMousePosition;
     private IntPtr _preDragForegroundWindow;
+    private System.Drawing.Point _lastMousePos;
+    private System.Windows.Threading.DispatcherTimer? _dragTimer;
 
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
@@ -29,11 +31,12 @@ public partial class MapWindow : Window {
     }
 
     private IntPtr _hwnd;
+
     private void MapWindow_SourceInitialized(object? sender, EventArgs e) {
         _hwnd = new WindowInteropHelper(this).Handle;
         var source = HwndSource.FromHwnd(_hwnd);
         source?.AddHook(HwndHandler);
-        
+
         // Initial application of the style
         UpdateKeyboardClickThrough();
 
@@ -55,19 +58,22 @@ public partial class MapWindow : Window {
 
     private void UpdateKeyboardClickThrough() {
         if (_hwnd == IntPtr.Zero) return;
-        
+
         int extendedStyle = NativeMethods.GetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE);
         if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
-            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle | NativeMethods.WS_EX_NOACTIVATE);
+            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE,
+                extendedStyle | NativeMethods.WS_EX_NOACTIVATE);
             KeepOnTop();
-        } else {
-            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
+        }
+        else {
+            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE,
+                extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
         }
     }
 
     private void KeepOnTop() {
         if (_hwnd == IntPtr.Zero) return;
-        NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
+        NativeMethods.SetWindowPos(_hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
 
@@ -84,31 +90,33 @@ public partial class MapWindow : Window {
                 return (IntPtr)MA_NOACTIVATE;
             }
         }
-        
+
         if (msg == WM_ACTIVATE) {
             if ((int)wparam != WA_INACTIVE) {
                 if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
                     System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] MapWindow activated. wparam: {wparam}");
                     // If we are being activated and click-through is on, push focus back to previous window.
-                    
+
                     // We try to restore to the window that WAS foreground BEFORE this activation happened.
                     // If we don't have one, we try the window that is currently foreground (if it's not us).
-                    IntPtr foregroundWindow = GetForegroundWindow();
-                    
+                    IntPtr foregroundWindow = Helpers.NativeMethods.GetForegroundWindow();
+
                     IntPtr targetWnd = IntPtr.Zero;
                     if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
                         targetWnd = _preDragForegroundWindow;
-                    } else if (foregroundWindow != _hwnd && foregroundWindow != IntPtr.Zero) {
+                    }
+                    else if (foregroundWindow != _hwnd && foregroundWindow != IntPtr.Zero) {
                         targetWnd = foregroundWindow;
-                    } else {
+                    }
+                    else {
                         // Fallback: Try to find the next window in the Z-order to give focus to.
                         targetWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
                     }
 
                     if (targetWnd != IntPtr.Zero && targetWnd != _hwnd) {
-                        SetForegroundWindow(targetWnd);
+                        Helpers.NativeMethods.SetForegroundWindow(targetWnd);
                     }
-                    
+
                     handled = true;
                 }
             }
@@ -117,34 +125,10 @@ public partial class MapWindow : Window {
         return IntPtr.Zero;
     }
 
-    private static class NativeMethods {
-        public const int GWL_EXSTYLE = -20;
-        public const int WS_EX_NOACTIVATE = 0x08000000;
-        public const int WS_EX_TOPMOST = 0x00000008;
-        public const int GW_HWNDNEXT = 2;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
-
-        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        public const uint SWP_NOSIZE = 0x0001;
-        public const uint SWP_NOMOVE = 0x0002;
-        public const uint SWP_NOACTIVATE = 0x0010;
-    }
-
     private void MapWindow_Loaded(object sender, RoutedEventArgs e) {
         Deactivated += (s, ev) => {
-            if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
+            if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+                mainVm.Settings.KeyboardClickThrough) {
                 KeepOnTop();
             }
         };
@@ -157,54 +141,102 @@ public partial class MapWindow : Window {
         }
     }
 
-    private void Window_MouseEnter(object sender, MouseEventArgs e) {
+    private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
         if (DataContext is MapViewModel vm) {
             vm.IsHovered = true;
         }
     }
 
-    private void Window_MouseLeave(object sender, MouseEventArgs e) {
+    private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
         if (DataContext is MapViewModel vm) {
             vm.IsHovered = false;
         }
     }
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        IntPtr foregroundWindow = IntPtr.Zero;
-        bool isClickThrough = false;
-        if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
-            isClickThrough = true;
-            foregroundWindow = GetForegroundWindow();
-            if (foregroundWindow == _hwnd) foregroundWindow = IntPtr.Zero; // Don't restore to self
-            _preDragForegroundWindow = foregroundWindow;
-        }
-        
-        try {
-            DragMove();
-        } catch (InvalidOperationException) {
-            // DragMove can fail if mouse button was released too quickly
-        }
-
-        if (isClickThrough) {
-            IntPtr currentForeground = GetForegroundWindow();
-            if (currentForeground == _hwnd) {
-                if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
-                    SetForegroundWindow(_preDragForegroundWindow);
-                } else {
-                    IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
-                    if (nextWnd != IntPtr.Zero) SetForegroundWindow(nextWnd);
-                }
-            }
-            _preDragForegroundWindow = IntPtr.Zero;
-        }
+        // Start the timer-based drag instead of DragMove()
+        StartManualDrag();
         e.Handled = true;
     }
+
+    private void StartManualDrag() {
+        // Capture the window we want to return focus to
+        if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+            mainVm.Settings.KeyboardClickThrough) {
+            _preDragForegroundWindow = Helpers.NativeMethods.GetForegroundWindow();
+        }
+
+        _lastMousePos = System.Windows.Forms.Cursor.Position;
+
+        _dragTimer = new System.Windows.Threading.DispatcherTimer();
+        _dragTimer.Interval = TimeSpan.FromMilliseconds(1);
+        _dragTimer.Tick += DragTimer_Tick;
+        _dragTimer.Start();
+    }
+
+    private void DragTimer_Tick(object? sender, EventArgs e) {
+        // If user releases mouse, stop dragging
+        if (System.Windows.Forms.Control.MouseButtons != System.Windows.Forms.MouseButtons.Left) {
+            _dragTimer?.Stop();
+
+            // Return focus to the background app
+            if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+                Helpers.NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
+            }
+
+            return;
+        }
+
+        // Move logic
+        System.Drawing.Point currentMousePos = System.Windows.Forms.Cursor.Position;
+
+        var source = System.Windows.PresentationSource.FromVisual(this);
+        if (source == null) return;
+
+        double dpiX = source.CompositionTarget.TransformToDevice.M11;
+        double dpiY = source.CompositionTarget.TransformToDevice.M22;
+
+        this.Left += (currentMousePos.X - _lastMousePos.X) / dpiX;
+        this.Top += (currentMousePos.Y - _lastMousePos.Y) / dpiY;
+
+        _lastMousePos = currentMousePos;
+    }
+
+    // private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+    //     IntPtr foregroundWindow = IntPtr.Zero;
+    //     bool isClickThrough = false;
+    //     if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+    //         mainVm.Settings.KeyboardClickThrough) {
+    //         isClickThrough = true;
+    //         foregroundWindow = Helpers.NativeMethods.GetForegroundWindow();
+    //         if (foregroundWindow == _hwnd) foregroundWindow = IntPtr.Zero; // Don't restore to self
+    //         _preDragForegroundWindow = foregroundWindow;
+    //     }
+    //
+    //     try {
+    //         DragMove();
+    //     }
+    //     catch (InvalidOperationException) {
+    //         // DragMove can fail if mouse button was released too quickly
+    //     }
+    //
+    //     if (isClickThrough) {
+    //         IntPtr currentForeground = Helpers.NativeMethods.GetForegroundWindow();
+    //         if (currentForeground == _hwnd) {
+    //             if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+    //                 Helpers.NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
+    //             }
+    //             else {
+    //                 IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
+    //                 if (nextWnd != IntPtr.Zero) Helpers.NativeMethods.SetForegroundWindow(nextWnd);
+    //             }
+    //         }
+    //
+    //         _preDragForegroundWindow = IntPtr.Zero;
+    //     }
+    //
+    //     e.Handled = true;
+    // }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Minimized;
@@ -215,13 +247,31 @@ public partial class MapWindow : Window {
     }
 
     private void PickImage_Click(object sender, RoutedEventArgs e) {
-        var openFileDialog = new OpenFileDialog();
-        openFileDialog.Filter = "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp|All files (*.*)|*.*";
-        if (openFileDialog.ShowDialog() == true) {
-            var vm = (MapViewModel)DataContext;
-            vm.Settings.ImagePath = openFileDialog.FileName;
-            ClearCalibration(vm.Settings);
-            StatusTextBlock.Text = "Status: Image loaded. Please calibrate.";
+        IsDialogActive = true;
+        Window helperWindow = null;
+
+        try {
+            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
+
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            openFileDialog.Filter =
+                "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp|All files (*.*)|*.*";
+
+            // Use the native interop handle to ensure the dialog 
+            // feels 'attached' to the helper
+            var helper = new WindowInteropHelper(helperWindow);
+
+            if (openFileDialog.ShowDialog() == true) {
+                var vm = (MapViewModel)DataContext;
+                vm.Settings.ImagePath = openFileDialog.FileName;
+                ClearCalibration(vm.Settings);
+                StatusTextBlock.Text = "Status: Image loaded. Please calibrate.";
+            }
+        }
+        finally {
+            // ALWAYS close the helper to prevent memory leaks
+            helperWindow?.Close();
+            IsDialogActive = false;
         }
     }
 
@@ -240,19 +290,25 @@ public partial class MapWindow : Window {
     private void SaveMap_Click(object sender, RoutedEventArgs e) {
         var vm = (MapViewModel)DataContext;
         if (string.IsNullOrEmpty(vm.Settings.ImagePath) || !File.Exists(vm.Settings.ImagePath)) {
-            MessageBox.Show("No image loaded to save.");
+            System.Windows.MessageBox.Show("No image loaded to save.");
             return;
         }
 
         var currentFileName = Path.GetFileNameWithoutExtension(vm.Settings.ImagePath);
         var inputDialog = new InputDialog("Enter a name for this map:", "Save Map", currentFileName) { Owner = this };
-        if (inputDialog.ShowDialog() != true) {
+        // Set the owner to the MainWindow BEFORE calling ShowDialog()
+        // You can access the MainWindow via Application.Current.MainWindow
+        inputDialog.Owner = System.Windows.Application.Current.MainWindow;
+        inputDialog.ShowDialog();
+
+        // Check your manual property instead of the built-in DialogResult
+        if (inputDialog.ManualDialogResult != true) {
             return;
         }
 
         var newName = inputDialog.Answer.Trim();
         if (string.IsNullOrEmpty(newName)) {
-            MessageBox.Show("Map name cannot be empty.");
+            System.Windows.MessageBox.Show("Map name cannot be empty.");
             return;
         }
 
@@ -262,7 +318,7 @@ public partial class MapWindow : Window {
         }
 
         var extension = Path.GetExtension(vm.Settings.ImagePath);
-        var mapsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "maps");
+        var mapsDir = Path.Combine(Helpers.NativeMethods.AppFolder(), "maps");
         if (!Directory.Exists(mapsDir)) {
             Directory.CreateDirectory(mapsDir);
         }
@@ -272,71 +328,92 @@ public partial class MapWindow : Window {
             if (vm.Settings.ImagePath != destImagePath) {
                 File.Copy(vm.Settings.ImagePath, destImagePath, true);
             }
-            
+
             var configPath = Path.Combine(mapsDir, newName + ".json");
             var json = JsonSerializer.Serialize(vm.Settings);
             File.WriteAllText(configPath, json);
-            
+
             vm.Settings.ImagePath = destImagePath;
             StatusTextBlock.Text = $"Status: Map saved as {newName}";
-        } catch (Exception ex) {
-            MessageBox.Show($"Error saving map: {ex.Message}");
+        }
+        catch (Exception ex) {
+            System.Windows.MessageBox.Show($"Error saving map: {ex.Message}");
         }
     }
 
     private void LoadMap_Click(object sender, RoutedEventArgs e) {
-        var mapsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "maps");
+        var mapsDir = Path.Combine(Helpers.NativeMethods.AppFolder(), "maps");
         if (!Directory.Exists(mapsDir)) {
             Directory.CreateDirectory(mapsDir);
         }
 
-        var openFileDialog = new OpenFileDialog();
-        openFileDialog.InitialDirectory = mapsDir;
-        openFileDialog.Filter = "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp|All files (*.*)|*.*";
-        if (openFileDialog.ShowDialog() == true) {
-            var vm = (MapViewModel)DataContext;
-            var imagePath = openFileDialog.FileName;
-            var configPath = Path.ChangeExtension(imagePath, ".json");
+        IsDialogActive = true;
+        Window helperWindow = null;
 
-            if (File.Exists(configPath)) {
-                try {
-                    var json = File.ReadAllText(configPath);
-                    var savedSettings = JsonSerializer.Deserialize<MapSettings>(json);
-                    if (savedSettings != null) {
-                        vm.Settings.ImagePath = imagePath;
-                        vm.Settings.Point1.X = savedSettings.Point1.X;
-                        vm.Settings.Point1.Y = savedSettings.Point1.Y;
-                        vm.Settings.Point1.PixelX = savedSettings.Point1.PixelX;
-                        vm.Settings.Point1.PixelY = savedSettings.Point1.PixelY;
-                        vm.Settings.Point2.X = savedSettings.Point2.X;
-                        vm.Settings.Point2.Y = savedSettings.Point2.Y;
-                        vm.Settings.Point2.PixelX = savedSettings.Point2.PixelX;
-                        vm.Settings.Point2.PixelY = savedSettings.Point2.PixelY;
-                        vm.Settings.IsCalibrated = savedSettings.IsCalibrated;
-                        vm.Settings.ZoomLevel = savedSettings.ZoomLevel;
-                        vm.Settings.ShowLocations = savedSettings.ShowLocations;
-                        vm.Settings.ShowCalibrationMarkers = savedSettings.ShowCalibrationMarkers;
-                        
-                        Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
-                        Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
+        try {
+            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
 
-                        Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
-                        Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            openFileDialog.InitialDirectory = mapsDir;
+            openFileDialog.Filter =
+                "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp|All files (*.*)|*.*";
 
-                        vm.UpdateMarkers();
-                        StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} with config.";
+            // Use the native interop handle to ensure the dialog 
+            // feels 'attached' to the helper
+            var helper = new WindowInteropHelper(helperWindow);
+
+            if (openFileDialog.ShowDialog() == true) {
+                var vm = (MapViewModel)DataContext;
+                var imagePath = openFileDialog.FileName;
+                var configPath = Path.ChangeExtension(imagePath, ".json");
+
+                if (File.Exists(configPath)) {
+                    try {
+                        var json = File.ReadAllText(configPath);
+                        var savedSettings = JsonSerializer.Deserialize<MapSettings>(json);
+                        if (savedSettings != null) {
+                            vm.Settings.ImagePath = imagePath;
+                            vm.Settings.Point1.X = savedSettings.Point1.X;
+                            vm.Settings.Point1.Y = savedSettings.Point1.Y;
+                            vm.Settings.Point1.PixelX = savedSettings.Point1.PixelX;
+                            vm.Settings.Point1.PixelY = savedSettings.Point1.PixelY;
+                            vm.Settings.Point2.X = savedSettings.Point2.X;
+                            vm.Settings.Point2.Y = savedSettings.Point2.Y;
+                            vm.Settings.Point2.PixelX = savedSettings.Point2.PixelX;
+                            vm.Settings.Point2.PixelY = savedSettings.Point2.PixelY;
+                            vm.Settings.IsCalibrated = savedSettings.IsCalibrated;
+                            vm.Settings.ZoomLevel = savedSettings.ZoomLevel;
+                            vm.Settings.ShowLocations = savedSettings.ShowLocations;
+                            vm.Settings.ShowCalibrationMarkers = savedSettings.ShowCalibrationMarkers;
+
+                            Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
+                            Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
+
+                            Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
+                            Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
+
+                            vm.UpdateMarkers();
+                            StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} with config.";
+                        }
                     }
-                } catch (Exception ex) {
-                    MessageBox.Show($"Error loading config: {ex.Message}. Loading image only.");
+                    catch (Exception ex) {
+                        System.Windows.MessageBox.Show($"Error loading config: {ex.Message}. Loading image only.");
+                        vm.Settings.ImagePath = imagePath;
+                        ClearCalibration(vm.Settings);
+                        StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} (config error).";
+                    }
+                }
+                else {
                     vm.Settings.ImagePath = imagePath;
                     ClearCalibration(vm.Settings);
-                    StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} (config error).";
+                    StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} (no config).";
                 }
-            } else {
-                vm.Settings.ImagePath = imagePath;
-                ClearCalibration(vm.Settings);
-                StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} (no config).";
             }
+        }
+        finally {
+            // ALWAYS close the helper to prevent memory leaks
+            helperWindow?.Close();
+            IsDialogActive = false;
         }
     }
 
@@ -357,7 +434,8 @@ public partial class MapWindow : Window {
             _isAddingPin = false;
             AddPinMenuItem.IsChecked = false;
             StatusTextBlock.Text = "Status: Click on map to set destination";
-        } else {
+        }
+        else {
             StatusTextBlock.Text = "Status: Ready";
         }
     }
@@ -369,14 +447,16 @@ public partial class MapWindow : Window {
             _isSettingDestination = false;
             SetDestinationMenuItem.IsChecked = false;
             StatusTextBlock.Text = "Status: Click on map to add pin";
-        } else {
+        }
+        else {
             StatusTextBlock.Text = "Status: Ready";
         }
     }
 
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
-            _preDragForegroundWindow = GetForegroundWindow();
+        if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+            mainVm.Settings.KeyboardClickThrough) {
+            _preDragForegroundWindow = Helpers.NativeMethods.GetForegroundWindow();
             if (_preDragForegroundWindow == _hwnd) _preDragForegroundWindow = IntPtr.Zero;
         }
 
@@ -384,14 +464,14 @@ public partial class MapWindow : Window {
             _isDragging = true;
             _lastMousePosition = e.GetPosition(MapScrollViewer);
             MapCanvas.CaptureMouse();
-            MapCanvas.Cursor = Cursors.Hand;
-            
+            MapCanvas.Cursor = System.Windows.Input.Cursors.Hand;
+
             e.Handled = true;
             return;
         }
 
         var vm = (MapViewModel)DataContext;
-        Point clickPoint = e.GetPosition(MapCanvas);
+        System.Windows.Point clickPoint = e.GetPosition(MapCanvas);
 
         if (_isSettingDestination) {
             var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
@@ -401,6 +481,7 @@ public partial class MapWindow : Window {
                 SetDestinationMenuItem.IsChecked = false;
                 StatusTextBlock.Text = "Status: Destination set";
             }
+
             return;
         }
 
@@ -412,15 +493,24 @@ public partial class MapWindow : Window {
                 AddPinMenuItem.IsChecked = false;
                 StatusTextBlock.Text = "Status: Pin requested";
             }
+
             return;
         }
 
         if (_calibrationStep == 1) {
-            string suggestedCoords = vm.CurrentPosition.HasValue 
-                ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}" 
+            string suggestedCoords = vm.CurrentPosition.HasValue
+                ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                 : "0, 0";
-            var inputDialog = new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords) { Owner = this };
-            if (inputDialog.ShowDialog() == true) {
+            var inputDialog =
+                new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords)
+                    { Owner = this };
+            // Set the owner to the MainWindow BEFORE calling ShowDialog()
+            // You can access the MainWindow via Application.Current.MainWindow
+            inputDialog.Owner = System.Windows.Application.Current.MainWindow;
+            inputDialog.ShowDialog();
+
+            // Check your manual property instead of the built-in DialogResult
+            if (inputDialog.ManualDialogResult == true) {
                 if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
                     vm.Settings.Point1.X = coords.X;
                     vm.Settings.Point1.Y = coords.Y;
@@ -432,16 +522,26 @@ public partial class MapWindow : Window {
 
                     _calibrationStep = 2;
                     StatusTextBlock.Text = "Status: Click Point 2 on map";
-                } else {
-                    MessageBox.Show("Invalid coordinates format.");
+                }
+                else {
+                    System.Windows.MessageBox.Show("Invalid coordinates format.");
                 }
             }
-        } else if (_calibrationStep == 2) {
-            string suggestedCoords = vm.CurrentPosition.HasValue 
-                ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}" 
+        }
+        else if (_calibrationStep == 2) {
+            string suggestedCoords = vm.CurrentPosition.HasValue
+                ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                 : "0, 0";
-            var inputDialog = new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", suggestedCoords) { Owner = this };
-            if (inputDialog.ShowDialog() == true) {
+            var inputDialog =
+                new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", suggestedCoords)
+                    { Owner = this };
+            // Set the owner to the MainWindow BEFORE calling ShowDialog()
+            // You can access the MainWindow via Application.Current.MainWindow
+            inputDialog.Owner = System.Windows.Application.Current.MainWindow;
+            inputDialog.ShowDialog();
+
+            // Check your manual property instead of the built-in DialogResult
+            if (inputDialog.ManualDialogResult == true) {
                 if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
                     vm.Settings.Point2.X = coords.X;
                     vm.Settings.Point2.Y = coords.Y;
@@ -453,24 +553,25 @@ public partial class MapWindow : Window {
 
                     vm.Settings.IsCalibrated = true;
                     vm.UpdateMarkers();
-                    
+
                     _isCalibrating = false;
                     _calibrationStep = 0;
                     StatusTextBlock.Text = "Status: Calibrated";
-                } else {
-                    MessageBox.Show("Invalid coordinates format.");
+                }
+                else {
+                    System.Windows.MessageBox.Show("Invalid coordinates format.");
                 }
             }
         }
     }
 
-    private void MapCanvas_MouseMove(object sender, MouseEventArgs e) {
+    private void MapCanvas_MouseMove(object sender, System.Windows.Input.MouseEventArgs e) {
         var vm = (MapViewModel)DataContext;
-        Point currentPoint = e.GetPosition(MapCanvas);
+        System.Windows.Point currentPoint = e.GetPosition(MapCanvas);
         vm.UpdateHoverCoordinates(currentPoint.X, currentPoint.Y);
 
         if (_isDragging) {
-            Point currentScrollPoint = e.GetPosition(MapScrollViewer);
+            System.Windows.Point currentScrollPoint = e.GetPosition(MapScrollViewer);
             double deltaX = currentScrollPoint.X - _lastMousePosition.X;
             double deltaY = currentScrollPoint.Y - _lastMousePosition.Y;
 
@@ -486,20 +587,24 @@ public partial class MapWindow : Window {
         if (_isDragging) {
             _isDragging = false;
             MapCanvas.ReleaseMouseCapture();
-            MapCanvas.Cursor = Cursors.Arrow;
+            MapCanvas.Cursor = System.Windows.Input.Cursors.Arrow;
 
-            if (Application.Current.MainWindow?.DataContext is MainViewModel mainVm && mainVm.Settings.KeyboardClickThrough) {
-                IntPtr currentForeground = GetForegroundWindow();
+            if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+                mainVm.Settings.KeyboardClickThrough) {
+                IntPtr currentForeground = Helpers.NativeMethods.GetForegroundWindow();
                 if (currentForeground == _hwnd) {
                     if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
-                        SetForegroundWindow(_preDragForegroundWindow);
-                    } else {
+                        Helpers.NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
+                    }
+                    else {
                         IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, (uint)NativeMethods.GW_HWNDNEXT);
-                        if (nextWnd != IntPtr.Zero) SetForegroundWindow(nextWnd);
+                        if (nextWnd != IntPtr.Zero) Helpers.NativeMethods.SetForegroundWindow(nextWnd);
                     }
                 }
+
                 _preDragForegroundWindow = IntPtr.Zero;
             }
+
             e.Handled = true;
         }
     }
@@ -515,7 +620,7 @@ public partial class MapWindow : Window {
 
         zoom = newScale / vm.Settings.ZoomLevel;
 
-        Point mousePos = e.GetPosition(MapScrollViewer);
+        System.Windows.Point mousePos = e.GetPosition(MapScrollViewer);
 
         double relativeMouseX = (mousePos.X + MapScrollViewer.HorizontalOffset) / vm.Settings.ZoomLevel;
         double relativeMouseY = (mousePos.Y + MapScrollViewer.VerticalOffset) / vm.Settings.ZoomLevel;

@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using MMONavigator.Models;
 using System.Text.RegularExpressions;
@@ -16,14 +14,30 @@ public interface ISettingsService {
 }
 
 public class SettingsService : ISettingsService {
-    private readonly string _settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
-    private string _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
 
+    private readonly string _settingsPath = string.Empty;
+    private string _locationsPath = string.Empty;
+
+    public SettingsService() {
+        var appFolder = Helpers.NativeMethods.AppFolder();
+        _settingsPath = Path.Combine(appFolder, "settings.json");
+        _locationsPath = Path.Combine(appFolder, "locations.json");
+    }
+    
+    // public string AppFolder() {
+    //     string exePath = Process.GetCurrentProcess().MainModule.FileName;
+    //     string exeFolder = Path.GetDirectoryName(exePath);   
+    //     return exeFolder;
+    // }
+    
     public AppSettings LoadSettings() {
         try {
+            //MessageBox.Show("Loading settings from " + _settingsPath);
             if (File.Exists(_settingsPath)) {
+                //MessageBox.Show("settings file exists " + _settingsPath);
                 string json = File.ReadAllText(_settingsPath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                //MessageBox.Show("settings file exists " + _settingsPath);
                 settings.MigrateLegacySettings();
                 return settings;
             }
@@ -53,13 +67,15 @@ public class SettingsService : ISettingsService {
 
     public List<LocationItem> LoadLocations(GameProfile profile) {
         try {
+            // MessageBox.Show("Loading locations from profile.LastLocationsFile" + profile.LastLocationsFile);
+            
             if (string.IsNullOrEmpty(profile.LastLocationsFile)) {
                 if (profile.Name != "Default") {
-                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                    _locationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
                         MakeValidFileName(profile.Name) + "_locations.json");
                 }
                 else {
-                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                    _locationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
                 }
             }
             else {
@@ -67,6 +83,7 @@ public class SettingsService : ISettingsService {
             }
 
             if (File.Exists(_locationsPath)) {
+                //MessageBox.Show("Loading locations from " + _locationsPath);
                 string json = File.ReadAllText(_locationsPath);
                 return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
             }
@@ -80,11 +97,11 @@ public class SettingsService : ISettingsService {
         try {
             if (string.IsNullOrEmpty(profile.LastLocationsFile)) {
                 if (profile.Name != "Default") {
-                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                    _locationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
                         MakeValidFileName(profile.Name) + "_locations.json");
                 }
                 else {
-                    _locationsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "locations.json");
+                    _locationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
                 }
 
                 profile.LastLocationsFile = _locationsPath;

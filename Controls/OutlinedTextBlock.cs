@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Documents;
@@ -15,7 +14,7 @@ namespace MMONavigator.Controls;
 public class OutlinedTextBlock : FrameworkElement
 {
     private void UpdatePen() {
-        _Pen = new Pen(Stroke, StrokeThickness) {
+        _Pen = new System.Windows.Media.Pen(Stroke, StrokeThickness) {
             DashCap = PenLineCap.Round,
             EndLineCap = PenLineCap.Round,
             LineJoin = PenLineJoin.Round,
@@ -27,15 +26,15 @@ public class OutlinedTextBlock : FrameworkElement
 
     public static readonly DependencyProperty FillProperty = DependencyProperty.Register(
       "Fill",
-      typeof(Brush),
+      typeof(System.Windows.Media.Brush),
       typeof(OutlinedTextBlock),
-      new FrameworkPropertyMetadata(Brushes.Black, FrameworkPropertyMetadataOptions.AffectsRender));
+      new FrameworkPropertyMetadata(System.Windows.Media.Brushes.Black, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public static readonly DependencyProperty StrokeProperty = DependencyProperty.Register(
       "Stroke",
-      typeof(Brush),
+      typeof(System.Windows.Media.Brush),
       typeof(OutlinedTextBlock),
-      new FrameworkPropertyMetadata(Brushes.Black, FrameworkPropertyMetadataOptions.AffectsRender, StrokePropertyChangedCallback));
+      new FrameworkPropertyMetadata(System.Windows.Media.Brushes.Black, FrameworkPropertyMetadataOptions.AffectsRender, StrokePropertyChangedCallback));
 
     private static void StrokePropertyChangedCallback(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs dependencyPropertyChangedEventArgs) {
         (dependencyObject as OutlinedTextBlock)?.UpdatePen();
@@ -99,17 +98,17 @@ public class OutlinedTextBlock : FrameworkElement
 
     private FormattedText _FormattedText;
     private Geometry _TextGeometry;
-    private Pen _Pen;
+    private System.Windows.Media.Pen _Pen;
 
-    public Brush Fill
+    public System.Windows.Media.Brush Fill
     {
-        get { return (Brush)GetValue(FillProperty); }
+        get { return (System.Windows.Media.Brush)GetValue(FillProperty); }
         set { SetValue(FillProperty, value); }
     }
 
-    public FontFamily FontFamily
+    public System.Windows.Media.FontFamily FontFamily
     {
-        get { return (FontFamily)GetValue(FontFamilyProperty); }
+        get { return (System.Windows.Media.FontFamily)GetValue(FontFamilyProperty); }
         set { SetValue(FontFamilyProperty, value); }
     }
 
@@ -126,9 +125,9 @@ public class OutlinedTextBlock : FrameworkElement
         set { SetValue(FontStretchProperty, value); }
     }
 
-    public FontStyle FontStyle
+    public System.Windows.FontStyle FontStyle
     {
-        get { return (FontStyle)GetValue(FontStyleProperty); }
+        get { return (System.Windows.FontStyle)GetValue(FontStyleProperty); }
         set { SetValue(FontStyleProperty, value); }
     }
 
@@ -138,9 +137,9 @@ public class OutlinedTextBlock : FrameworkElement
         set { SetValue(FontWeightProperty, value); }
     }
 
-    public Brush Stroke
+    public System.Windows.Media.Brush Stroke
     {
-        get { return (Brush)GetValue(StrokeProperty); }
+        get { return (System.Windows.Media.Brush)GetValue(StrokeProperty); }
         set { SetValue(StrokeProperty, value); }
     }
 
@@ -192,7 +191,7 @@ public class OutlinedTextBlock : FrameworkElement
         drawingContext.DrawGeometry(Fill, null, _TextGeometry);
     }
 
-    protected override Size MeasureOverride(Size availableSize) {
+    protected override System.Windows.Size MeasureOverride(System.Windows.Size availableSize) {
         EnsureFormattedText();
 
         // constrain the formatted text according to the available size
@@ -206,10 +205,10 @@ public class OutlinedTextBlock : FrameworkElement
         _FormattedText.MaxTextHeight = Math.Max(0.0001d, h);
 
         // return the desired size
-        return new Size(Math.Ceiling(_FormattedText.Width), Math.Ceiling(_FormattedText.Height));
+        return new System.Windows.Size(Math.Ceiling(_FormattedText.Width), Math.Ceiling(_FormattedText.Height));
     }
 
-    protected override Size ArrangeOverride(Size finalSize) {
+    protected override System.Windows.Size ArrangeOverride(System.Windows.Size finalSize) {
         EnsureFormattedText();
 
         // update the formatted text with the final size
@@ -252,7 +251,7 @@ public class OutlinedTextBlock : FrameworkElement
           FlowDirection,
           new Typeface(FontFamily, FontStyle, FontWeight, FontStretch),
           FontSize,
-          Brushes.Black);
+          System.Windows.Media.Brushes.Black);
 
         UpdateFormattedText();
     }
@@ -280,6 +279,6 @@ public class OutlinedTextBlock : FrameworkElement
         }
 
         EnsureFormattedText();
-        _TextGeometry = _FormattedText.BuildGeometry(new Point(0, 0));
+        _TextGeometry = _FormattedText.BuildGeometry(new System.Windows.Point(0, 0));
     }
 }

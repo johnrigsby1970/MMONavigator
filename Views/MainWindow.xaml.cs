@@ -1,9 +1,7 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
-using System.Runtime.InteropServices;
-using System.Windows.Input;
 using System.Windows.Interop;
+using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.ViewModels;
 
@@ -18,70 +16,32 @@ namespace MMONavigator.Views;
 /// <summary>
 /// Interaction logic for MainWindow.xaml
 /// </summary>
-public partial class MainWindow : Window {
+public partial class MainWindow : Window, IWindowHandleProvider {
     private readonly MainViewModel _viewModel;
-
+    public IntPtr GetWindowHandle() => new WindowInteropHelper(this).Handle;
     public const double StandardRowHeight = 30;
     private const double CollapsedRowHeight = 0;
     public static GridLength StandardGridRowHeight => new GridLength(StandardRowHeight);
     private static readonly GridLength HiddenRowHeight = new GridLength(CollapsedRowHeight);
-    
-    private const int WM_CLIPBOARDUPDATE = 0x031D;
-    private const int WM_MOUSEACTIVATE = 0x0021;
-    private const int MA_NOACTIVATE = 3;
-    private const int MA_ACTIVATE = 1;
-    private readonly IntPtr _windowHandle;
-
-    // Win32 Constants
-    private const int GWL_EXSTYLE = -20;
-    private const int WS_EX_TRANSPARENT = 0x00000020;
-    private const int WS_EX_NOACTIVATE = 0x08000000;
-
-    [DllImport("user32.dll")]
-    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
     private IntPtr _hwnd;
+    private const int WM_CLIPBOARDUPDATE = 0x031D;
+    
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-
-        // Get this window's handle
+        
         _hwnd = new WindowInteropHelper(this).Handle;
-
-        // Don't enable click-through by default - let interactive areas work normally
-        UpdateKeyboardClickThrough();
-    }
-    
-    public void SetClickThrough(bool isClickThrough)
-    {
-        int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
-        if (isClickThrough)
-        {
-            // Add the Transparent flag (Click-through ON)
-            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT);
-        }
-        else
-        {
-            // Remove the Transparent flag (Click-through OFF)
-            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
-        }
+        _viewModel.InitializeWindow(_hwnd);
+        
+        // Only keep this if you have other HwndSource hooks (like your Clipboard handler)
+        var source = HwndSource.FromHwnd(_hwnd);
+        source?.AddHook(HwndHandler);
+        StartWatcher();
+        // You no longer need to call UpdateKeyboardClickThrough() here 
+        // because the behavior will handle the activation state 
+        // as soon as the user interacts with a control.
     }
 
-    private void UpdateKeyboardClickThrough()
-    {
-        int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
-        if (_viewModel.Settings.KeyboardClickThrough)
-        {
-            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
-        }
-        else
-        {
-            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
-        }
-    }
-    
     public MainWindow() {
         InitializeComponent();
         _viewModel = new MainViewModel();
@@ -100,91 +60,43 @@ public partial class MainWindow : Window {
         _viewModel.ShowTimers = _viewModel.Settings.ShowTimers;
         ApplyTimersVisibility();
 
-        _windowHandle = new WindowInteropHelper(this).EnsureHandle();
-        HwndSource? source = HwndSource.FromHwnd(_windowHandle);
-        source?.AddHook(HwndHandler);
-
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
         _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
 
-        _viewModel.StartWatcher(_windowHandle);
+        //StartWatcher();
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainViewModel.Settings)) {
             _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
-            _viewModel.StartWatcher(_windowHandle);
+            StartWatcher();
         }
     }
 
     private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(AppSettings.LastSelectedProfileName)) {
-            _viewModel.StartWatcher(_windowHandle);
+            StartWatcher();
         }
-        if (e.PropertyName == nameof(AppSettings.KeyboardClickThrough)) {
-            UpdateKeyboardClickThrough();
-        }
+    }
+
+    private void StartWatcher() {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        _viewModel.StartWatcher(hwnd);
     }
     
     private void Stop() {
         _viewModel.StopWatcher();
     }
 
-    private void TextBox_GotFocus(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel.Settings.KeyboardClickThrough)
-        {
-            // Allow this window to be activated when a TextBox is focused
-            int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
-            SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
-            
-            // Force focus to the control and ensure the window is activated
-            if (sender is UIElement element)
-            {
-                this.Activate();
-                element.Focus();
-            }
-        }
-    }
-
-    private void TextBox_LostFocus(object sender, RoutedEventArgs e)
-    {
-        if (_viewModel.Settings.KeyboardClickThrough)
-        {
-            UpdateKeyboardClickThrough();
-        }
-    }
-
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
+        // 1. Handle the specific message you need to monitor
         if (msg == WM_CLIPBOARDUPDATE) {
             KeepOnTop();
             _viewModel.HandleClipboardUpdate();
         }
-
-        if (msg == WM_MOUSEACTIVATE && _viewModel.Settings.KeyboardClickThrough)
-        {
-            // If the user is clicking on a TextBox, we allow activation.
-            // Otherwise, we return MA_NOACTIVATE to prevent stealing focus.
-            if (_isClickingTextBox)
-            {
-                _isClickingTextBox = false; // Reset for next time
-                
-                // When we return MA_ACTIVATE, Windows will activate the window.
-                // However, we also need to ensure the WS_EX_NOACTIVATE style is removed
-                // so the window actually gets focus and can receive keyboard input.
-                int extendedStyle = GetWindowLong(_hwnd, GWL_EXSTYLE);
-                SetWindowLong(_hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
-
-                handled = false; // Let Windows handle the activation
-                return (IntPtr)MA_ACTIVATE;
-            }
-            
-            // Setting handled = true and returning MA_NOACTIVATE should prevent activation.
-            // But we must ensure WPF doesn't try to activate it anyway.
-            handled = true;
-            return (IntPtr)MA_NOACTIVATE;
-        }
-
+        
+        // 2. Everything else is ignored by this handler and passed through 
+        // to the default WPF window procedure.
         handled = false;
         return IntPtr.Zero;
     }
@@ -192,39 +104,11 @@ public partial class MainWindow : Window {
     private void KeepOnTop() {
         // SWP_NOACTIVATE is the key here. It prevents your window 
         // from stealing focus from the game/media player.
-        NativeMethods.SetWindowPos(_windowHandle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
-
-    private bool _isClickingTextBox;
-    private void TextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        if (_viewModel.Settings.KeyboardClickThrough)
-        {
-            _isClickingTextBox = true;
-        }
-    }
-
-
-    private static class NativeMethods {
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool AddClipboardFormatListener(IntPtr hwnd);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
-
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-
-        public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
-        public const uint SWP_NOSIZE = 0x0001;
-        public const uint SWP_NOMOVE = 0x0002;
-        public const uint SWP_NOACTIVATE = 0x0010;
-    }
-
+    
     #region Title Bar
 
     //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
@@ -232,7 +116,11 @@ public partial class MainWindow : Window {
     private void ConfigureWatcher_Click(object sender, RoutedEventArgs e) {
         var dialog = new WatcherConfigurationDialog(_viewModel.Settings);
         dialog.Owner = this;
-        if (dialog.ShowDialog() == true) {
+        dialog.ShowDialog(); 
+
+        // Check your manual property instead of the built-in DialogResult
+        if (dialog.ManualDialogResult == true)
+        {
             System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Watcher configuration dialog OK");
             
             // The dialog now manages profiles and settings directly on the passed _viewModel.Settings
@@ -279,37 +167,19 @@ public partial class MainWindow : Window {
         //timerRow.Height = _viewModel.ShowTimers ? StandardGridRowHeight : HiddenRowHeight;
     }
 
-    private void TitleBar_MouseEnter(object sender, MouseEventArgs e) {
+    private void TitleBar_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
         settingsbutton.Visibility = Visibility.Visible;
         timerbutton.Visibility = Visibility.Visible;
         togglebutton.Visibility = Visibility.Visible;
         //minbutton.Visibility = Visibility.Visible;
         closebutton.Visibility = Visibility.Visible;
-        SetClickThrough(false);
     }
 
-    private void TitleBar_MouseLeave(object sender, MouseEventArgs e) {
+    private void TitleBar_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
         settingsbutton.Visibility = Visibility.Collapsed;
         timerbutton.Visibility = Visibility.Collapsed;
         togglebutton.Visibility = Visibility.Collapsed;
-        //minbutton.Visibility = Visibility.Collapsed;
         closebutton.Visibility = Visibility.Collapsed;
-    }
-
-    private void DirectionsArea_MouseEnter(object sender, MouseEventArgs e) {
-        SetClickThrough(true);
-    }
-
-    private void DirectionsArea_MouseLeave(object sender, MouseEventArgs e) {
-        SetClickThrough(false);
-    }
-    
-    private void CompassArea_MouseEnter(object sender, MouseEventArgs e) {
-        SetClickThrough(true);
-    }
-
-    private void CompassArea_MouseLeave(object sender, MouseEventArgs e) {
-        SetClickThrough(false);
     }
     
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
@@ -329,36 +199,90 @@ public partial class MainWindow : Window {
     }
 
     protected override void OnClosed(EventArgs e) {
-        _viewModel.SaveSettings();
-        HwndSource.FromHwnd(_windowHandle)?.RemoveHook(HwndHandler);
-        _viewModel.StopWatcher();
-        base.OnClosed(e);
+        try {
+            _viewModel.SaveSettings();
+        }
+        finally{}
+        try {
+            _viewModel.StopWatcher();
+        }
+        finally{}
+        try {
+            HwndSource.FromHwnd(_hwnd)?.RemoveHook(HwndHandler);
+        }
+        finally{}
+        // try {
+        //     IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        //     HwndSource.FromHwnd(hwnd)?.RemoveHook(HwndHandler);
+        // }
+        // finally{}
+        try {
+            base.OnClosed(e);
+        }
+        finally{}
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
-        Close();
+        Hide();
+        Dispatcher.BeginInvoke(new Action(() => {
+            this.Close();
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-    private void Rectangle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        IntPtr foregroundWindow = IntPtr.Zero;
-        bool isClickThrough = false;
-        if (_viewModel.Settings.KeyboardClickThrough) {
-            isClickThrough = true;
-            foregroundWindow = GetForegroundWindow();
-        }
-
-        this.DragMove();
-
-        if (isClickThrough && foregroundWindow != IntPtr.Zero && foregroundWindow != _hwnd) {
-            SetForegroundWindow(foregroundWindow);
-        }
-    }
-
+    // private HwndSource _popupHwndSource;
+    // private void Popup_Opened(object sender, EventArgs e)
+    // {
+    //     if (sender is Popup popup && popup.Child != null)
+    //     {
+    //         var hwnd = ((HwndSource)PresentationSource.FromVisual(popup.Child)).Handle;
+    //     
+    //         // 1. Hook the popup's message loop so we can intercept mouse clicks
+    //         _popupHwndSource = HwndSource.FromHwnd(hwnd);
+    //         _popupHwndSource.AddHook(PopupHwndHandler);
+    //     }
+    // }
+    //
+    // private IntPtr PopupHwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled)
+    // {
+    //     // WM_MOUSEACTIVATE = 0x0021
+    //     if (msg == 0x0021)
+    //     {
+    //         handled = true;
+    //         // MA_NOACTIVATE (3): Allow the mouse click, but do NOT take focus
+    //         return (IntPtr)3; 
+    //     }
+    //     return IntPtr.Zero;
+    // }
+    //
+    // private void Popup_Closed(object sender, EventArgs e)
+    // {
+    //     // Clean up the hook so we don't leak memory
+    //     _popupHwndSource?.RemoveHook(PopupHwndHandler);
+    //     _popupHwndSource = null;
+    // }
+    //
+    // private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    // {
+    //     // If the popup is open, intercept the arrow keys
+    //     if (LocationPopup.IsOpen)
+    //     {
+    //         if (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Enter)
+    //         {
+    //             // Manually route the key to the TreeView
+    //             var treeView = LocationPopup.Child as ExtendedTreeView;
+    //         
+    //             // Create a new KeyEventArgs to 'replay' the key press into the tree
+    //             var routedEvent = Keyboard.KeyDownEvent;
+    //             var newArgs = new System.Windows.Input.KeyEventArgs(e.KeyboardDevice, e.InputSource, e.Timestamp, e.Key) 
+    //             { 
+    //                 RoutedEvent = routedEvent 
+    //             };
+    //         
+    //             treeView.RaiseEvent(newArgs);
+    //         
+    //             // Mark as handled so the game doesn't see the arrow keys
+    //             e.Handled = true;
+    //         }
+    //     }
+    // }
     #endregion
 }

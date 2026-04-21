@@ -1,4 +1,3 @@
-using System;
 using MMONavigator.Models;
 
 namespace MMONavigator.Interfaces;

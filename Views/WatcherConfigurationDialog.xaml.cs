@@ -1,18 +1,15 @@
-using System;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using Microsoft.Win32;
+using System.Windows.Interop;
+using MMONavigator.Controls;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
-using MMONavigator.ViewModels;
 
 namespace MMONavigator.Views;
 
-public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged {
+public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyChanged {
     private readonly AppSettings _settings;
     private GameProfile? _currentProfile;
     private bool _isUpdatingUI;
@@ -25,14 +22,15 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
 
     public WatcherConfigurationDialog(AppSettings settings) {
         InitializeComponent();
+        DataContext = this;
         _settings = settings;
 
         ProfileComboBox.ItemsSource = _settings.Profiles;
         ProfileComboBox.DisplayMemberPath = "Name";
-        
-        var selectedProfile = _settings.Profiles.FirstOrDefault(p => p.Name == _settings.LastSelectedProfileName) 
-                             ?? _settings.Profiles.FirstOrDefault();
-        
+
+        var selectedProfile = _settings.Profiles.FirstOrDefault(p => p.Name == _settings.LastSelectedProfileName)
+                              ?? _settings.Profiles.FirstOrDefault();
+
         ProfileComboBox.SelectedItem = selectedProfile;
 
         SystemComboBox.ItemsSource = Enum.GetValues(typeof(CoordinateSystem));
@@ -41,32 +39,32 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
         ClipboardRadio.Checked += WatchMode_Checked;
         FileRadio.Checked += WatchMode_Checked;
 
-        ProfileComboBox.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler(ProfileComboBox_TextChanged));
+        ProfileComboBox.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+            new TextChangedEventHandler(ProfileComboBox_TextChanged));
 
         LoadProfile(selectedProfile);
         UpdateProfileButtons();
     }
-    
+
     private bool _readMore;
+
     public bool ReadMore {
         get => _readMore;
         set => SetField(ref _readMore, value);
     }
-    
+
     private void ReadMore_Click(object sender, RoutedEventArgs e) {
         ReadMore = !ReadMore;
-        if (ReadMore)
-        {
+        if (ReadMore) {
             ExtraContent.Visibility = Visibility.Visible;
             ReadMoreBtn.Content = "Read Less";
         }
-        else
-        {
+        else {
             ExtraContent.Visibility = Visibility.Collapsed;
             ReadMoreBtn.Content = "Read More";
         }
     }
-    
+
     private void ProfileComboBox_TextChanged(object sender, TextChangedEventArgs e) {
         UpdateProfileButtons();
     }
@@ -75,13 +73,17 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
         string currentText = ProfileComboBox.Text.Trim();
         bool isDefault = currentText.Equals("Default", StringComparison.OrdinalIgnoreCase);
         bool isEmpty = string.IsNullOrWhiteSpace(currentText);
-        bool exists = _settings.Profiles.Any(p => p.Name.Trim().Equals(currentText, StringComparison.OrdinalIgnoreCase));
+        bool exists =
+            _settings.Profiles.Any(p => p.Name.Trim().Equals(currentText, StringComparison.OrdinalIgnoreCase));
 
         if (isDefault || isEmpty) {
             AddProfileButton.Visibility = Visibility.Visible;
             DuplicateProfileButton.Visibility = isDefault && exists ? Visibility.Visible : Visibility.Collapsed;
-            RemoveProfileButton.Visibility = isDefault && exists ? Visibility.Collapsed : (exists ? Visibility.Visible : Visibility.Collapsed);
-        } else {
+            RemoveProfileButton.Visibility = isDefault && exists
+                ? Visibility.Collapsed
+                : (exists ? Visibility.Visible : Visibility.Collapsed);
+        }
+        else {
             AddProfileButton.Visibility = exists ? Visibility.Collapsed : Visibility.Visible;
             DuplicateProfileButton.Visibility = exists ? Visibility.Visible : Visibility.Collapsed;
             RemoveProfileButton.Visibility = exists ? Visibility.Visible : Visibility.Collapsed;
@@ -90,7 +92,7 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
 
     private void WatchMode_Checked(object sender, RoutedEventArgs e) {
         if (_isUpdatingUI || _currentProfile == null) return;
-        
+
         // If switching to File mode and it looks like a "fresh" profile for File mode
         // (i.e. path is empty and it was using default RightHanded/x z y d)
         // then apply the suggested defaults for Log File games.
@@ -98,9 +100,11 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
             if (SystemComboBox.SelectedItem is CoordinateSystem cs && cs == CoordinateSystem.RightHanded) {
                 SystemComboBox.SelectedItem = CoordinateSystem.LeftHanded;
             }
+
             if (OrderComboBox.SelectedItem?.ToString() == "x z y d") {
                 OrderComboBox.SelectedItem = "y x z";
             }
+
             if (string.IsNullOrEmpty(RegexTextBox.Text) || RegexTextBox.Text == Constants.EQLocationRegex) {
                 RegexTextBox.Text = Constants.EQLocationRegex;
             }
@@ -113,6 +117,7 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
                 // Only switch if it matches the "Log File" default we might have just set or was there
                 SystemComboBox.SelectedItem = CoordinateSystem.RightHanded;
             }
+
             if (OrderComboBox.SelectedItem?.ToString() == "y x" || OrderComboBox.SelectedItem?.ToString() == "y x z") {
                 OrderComboBox.SelectedItem = "x z y d";
             }
@@ -126,7 +131,8 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
 
         if (profile.WatchMode == WatchMode.Clipboard) {
             ClipboardRadio.IsChecked = true;
-        } else {
+        }
+        else {
             FileRadio.IsChecked = true;
         }
 
@@ -159,11 +165,12 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
 
     private void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
         if (_isUpdatingUI) return;
-        
+
         SaveToCurrentProfile();
         if (ProfileComboBox.SelectedItem is GameProfile selectedProfile) {
             LoadProfile(selectedProfile);
         }
+
         UpdateProfileButtons();
     }
 
@@ -198,12 +205,14 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
     private void AddProfile_Click(object sender, RoutedEventArgs e) {
         string newName = ProfileComboBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(newName)) {
-            MessageBox.Show("Please enter a name for the new profile.", "New Profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show("Please enter a name for the new profile.", "New Profile", MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return;
         }
 
         if (_settings.Profiles.Any(p => p.Name.Trim().Equals(newName, StringComparison.OrdinalIgnoreCase))) {
-            MessageBox.Show("A profile with this name already exists.", "New Profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show("A profile with this name already exists.", "New Profile", MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return;
         }
 
@@ -212,17 +221,23 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
 
     private void DuplicateProfile_Click(object sender, RoutedEventArgs e) {
         if (ProfileComboBox.SelectedItem is GameProfile profileToDuplicate) {
-            var dialog = new InputDialog("Enter a name for the duplicated profile:", "Duplicate Profile", $"{profileToDuplicate.Name} - Copy");
+            var dialog = new InputDialog("Enter a name for the duplicated profile:", "Duplicate Profile",
+                $"{profileToDuplicate.Name} - Copy");
             dialog.Owner = this;
-            if (dialog.ShowDialog() == true) {
+            dialog.ShowDialog();
+
+            // Check your manual property instead of the built-in DialogResult
+            if (dialog.ManualDialogResult == true) {
                 string newName = dialog.Answer.Trim();
                 if (string.IsNullOrWhiteSpace(newName)) {
-                    MessageBox.Show("Please enter a name for the new profile.", "Duplicate Profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    System.Windows.MessageBox.Show("Please enter a name for the new profile.", "Duplicate Profile",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (_settings.Profiles.Any(p => p.Name.Trim().Equals(newName, StringComparison.OrdinalIgnoreCase))) {
-                    MessageBox.Show("A profile with this name already exists.", "Duplicate Profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    System.Windows.MessageBox.Show("A profile with this name already exists.", "Duplicate Profile",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -234,11 +249,13 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
     private void RemoveProfile_Click(object sender, RoutedEventArgs e) {
         if (ProfileComboBox.SelectedItem is GameProfile profileToRemove) {
             if (_settings.Profiles.Count <= 1) {
-                MessageBox.Show("Cannot remove the last profile.", "Remove Profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Cannot remove the last profile.", "Remove Profile", MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 return;
             }
 
-            var result = MessageBox.Show($"Are you sure you want to remove the profile '{profileToRemove.Name}'?", "Remove Profile", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var result = System.Windows.MessageBox.Show($"Are you sure you want to remove the profile '{profileToRemove.Name}'?",
+                "Remove Profile", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes) {
                 _settings.Profiles.Remove(profileToRemove);
                 var nextProfile = _settings.Profiles.FirstOrDefault();
@@ -250,19 +267,42 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
     }
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e) {
-        OpenFileDialog openFileDialog = new OpenFileDialog();
-        openFileDialog.Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*";
-        if (openFileDialog.ShowDialog() == true) {
-            FilePathTextBox.Text = openFileDialog.FileName;
+        IsDialogActive = true;
+        Window helperWindow = null;
+        
+        try {
+            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
+            
+            Microsoft.Win32.OpenFileDialog openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            openFileDialog.Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*";
+            
+            // Use the native interop handle to ensure the dialog 
+            // feels 'attached' to the helper
+            var helper = new WindowInteropHelper(helperWindow);
+            
+            if (openFileDialog.ShowDialog() == true) {
+                FilePathTextBox.Text = openFileDialog.FileName;
+            }
+        }
+        finally {
+            // ALWAYS close the helper to prevent memory leaks
+            helperWindow?.Close();
+            IsDialogActive = false;
         }
     }
 
+    public bool IsConfirmed { get; private set; }
+
     private void OkButton_Click(object sender, RoutedEventArgs e) {
         string currentProfileName = ProfileComboBox.Text.Trim();
-        bool profileExists = _settings.Profiles.Any(p => p.Name.Trim().Equals(currentProfileName, StringComparison.OrdinalIgnoreCase));
+        bool profileExists = _settings.Profiles.Any(p =>
+            p.Name.Trim().Equals(currentProfileName, StringComparison.OrdinalIgnoreCase));
 
-        if (!profileExists && !string.IsNullOrWhiteSpace(currentProfileName) && !currentProfileName.Equals("Default", StringComparison.OrdinalIgnoreCase)) {
-            var result = MessageBox.Show($"The profile '{currentProfileName}' does not exist. Would you like to add it?", "Add New Profile", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (!profileExists && !string.IsNullOrWhiteSpace(currentProfileName) &&
+            !currentProfileName.Equals("Default", StringComparison.OrdinalIgnoreCase)) {
+            var result =
+                System.Windows.MessageBox.Show($"The profile '{currentProfileName}' does not exist. Would you like to add it?",
+                    "Add New Profile", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes) {
                 AddNewProfile(currentProfileName);
             }
@@ -270,25 +310,74 @@ public partial class WatcherConfigurationDialog : Window, INotifyPropertyChanged
 
         SaveToCurrentProfile();
         if (WatchMode == WatchMode.File && string.IsNullOrWhiteSpace(LogFilePath)) {
-            var result = MessageBox.Show("No log file has been selected. The program will not be able to watch for location changes until a log file is defined.\n\nDo you want to continue?", "No Log File Selected", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var result = System.Windows.MessageBox.Show(
+                "No log file has been selected. The program will not be able to watch for location changes until a log file is defined.\n\nDo you want to continue?",
+                "No Log File Selected", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result == MessageBoxResult.No) {
                 return;
             }
         }
+
         if (ProfileComboBox.SelectedItem is GameProfile selectedProfile) {
             _settings.LastSelectedProfileName = selectedProfile.Name;
         }
-        DialogResult = true;
+
+// // Instead of: DialogResult = true;
+        ////     
+        ////         // Dispatch to the UI thread's next available tick
+        ////         Dispatcher.BeginInvoke(new Action(() => {
+        ////             this.DialogResult = true;
+        ////         }), System.Windows.Threading.DispatcherPriority.Background);
+        ///
+        /// // Clear the owner before closing. 
+        // This stops WPF's internal focus-tracking from trying to "return" focus 
+        // to the owner, which is what triggers the crash.
+        //this.Owner = null;
+
+        this.IsConfirmed = true;
+        this.ManualDialogResult = true;
+// 3. Instead of this.Close(), hide the window first to remove it from 
+        // the UI thread's "modal" tracking before the hard-close occurs.
+        this.Hide(); 
+    
+        // 4. Close the window after a tiny delay so the UI loop finishes 
+        // processing the 'Hide' message before the OS-level 'Close' message.
+        Dispatcher.BeginInvoke(new Action(() => {
+            this.Close();
+        }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
-        DialogResult = false;
-    }
+// // Instead of: DialogResult = false;
+//     
+//         // Dispatch to the UI thread's next available tick
+//         Dispatcher.BeginInvoke(new Action(() => {
+//             this.DialogResult = false;
+//         }), System.Windows.Threading.DispatcherPriority.Background);
+// Clear the owner before closing. 
+        // This stops WPF's internal focus-tracking from trying to "return" focus 
+        // to the owner, which is what triggers the crash.
+        //this.Owner = null;
+
+        this.IsConfirmed = false;
+        this.ManualDialogResult = false;
+// 3. Instead of this.Close(), hide the window first to remove it from 
+        // the UI thread's "modal" tracking before the hard-close occurs.
+        this.Hide(); 
     
+        // 4. Close the window after a tiny delay so the UI loop finishes 
+        // processing the 'Hide' message before the OS-level 'Close' message.
+        Dispatcher.BeginInvoke(new Action(() => {
+            this.Close();
+        }), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
+
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
     protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;

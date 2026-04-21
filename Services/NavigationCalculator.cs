@@ -1,5 +1,4 @@
-﻿using System;
-using MMONavigator.Models;
+﻿using MMONavigator.Models;
 
 namespace MMONavigator.Services;
 

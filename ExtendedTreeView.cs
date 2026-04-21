@@ -1,10 +1,9 @@
 ﻿using System.Windows;
-using System.Windows.Controls;
 
 namespace MMONavigator;
 
 //https://stackoverflow.com/questions/1000040/data-binding-to-selecteditem-in-a-wpf-treeview
-public class ExtendedTreeView : TreeView
+public class ExtendedTreeView : System.Windows.Controls.TreeView
 {
     public ExtendedTreeView()
         : base()

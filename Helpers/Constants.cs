@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace MMONavigator.Helpers;
 
 public static class Constants {

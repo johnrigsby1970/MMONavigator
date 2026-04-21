@@ -11,7 +11,7 @@ namespace MMONavigator.Tests;
 
 public class SettingsTests : IDisposable
 {
-    private readonly string _settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+    private readonly string _settingsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "settings.json");
 
     public SettingsTests()
     {

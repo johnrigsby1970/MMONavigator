@@ -15,7 +15,9 @@
         <SelfContained>true</SelfContained>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     </PropertyGroup>
-
+    <PropertyGroup>
+        <UseWindowsForms>true</UseWindowsForms>
+    </PropertyGroup>
     <ItemGroup>
         <Compile Remove="MMONavigator.Tests\**" />
         <EmbeddedResource Remove="MMONavigator.Tests\**" />

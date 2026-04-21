@@ -1,7 +1,6 @@
-using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows;
+using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
 
@@ -44,7 +43,7 @@ public class WatcherService : IWatcherService {
     public void HandleClipboardUpdate() {
         if (_settings?.SelectedProfile.WatchMode != WatchMode.Clipboard) return;
         try {
-            var text = Clipboard.GetText();
+            var text = System.Windows.Clipboard.GetText();
             if (string.IsNullOrEmpty(text)) return;
             if (text.Length > Scrubber.MaxLength) return;
 
@@ -167,13 +166,5 @@ public class WatcherService : IWatcherService {
         Stop();
     }
 
-    private static class NativeMethods {
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool AddClipboardFormatListener(IntPtr hwnd);
 
-        [DllImport("user32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
-    }
 }

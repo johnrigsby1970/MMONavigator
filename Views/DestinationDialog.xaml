@@ -1,9 +1,11 @@
-﻿<Window x:Class="MMONavigator.Views.DestinationDialog"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Remember Destination" Height="210" Width="300" 
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
-        Background="#2D2D30" Foreground="White">
+﻿<controls:ChildWindow x:Class="MMONavigator.Views.DestinationDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:helpers="clr-namespace:MMONavigator.Helpers"
+             xmlns:controls="clr-namespace:MMONavigator.Controls"
+             Title="Remember Destination" Height="210" Width="300" 
+             WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+             Background="#2D2D30" Foreground="White">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="30"/>
@@ -21,6 +23,7 @@
                  Padding="2" 
                  Margin="0,0,0,5"
                  Height="30"
+                 helpers:ClickThroughBehavior.IsEnabled="True"
                  />
         
         <TextBlock Grid.Row="2" x:Name="GroupLabel" Text="Enter group: (optional, Ex. zone or dungeon)" Margin="0,0,0,5" Foreground="White"
@@ -39,6 +42,7 @@
             IsEditable="True"
             Height="30"
             FontSize="8pt"
+            helpers:ClickThroughBehavior.IsEnabled="True"
             VerticalAlignment="Center"/>
         
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
@@ -48,4 +52,4 @@
                     Background="#3E3E42" Foreground="White"/>
         </StackPanel>
     </Grid>
-</Window>
+</controls:ChildWindow>

@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Windows.Controls;
-using Microsoft.VisualBasic.CompilerServices;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
@@ -396,9 +390,9 @@ public class MainViewModel : INotifyPropertyChanged {
         set => SetField(ref _distanceInt, value);
     }
 
-    private Brush _compassBrush = Brushes.Gold;
+    private System.Windows.Media.Brush _compassBrush = System.Windows.Media.Brushes.Gold;
 
-    public Brush CompassBrush {
+    public System.Windows.Media.Brush CompassBrush {
         get => _compassBrush;
         set => SetField(ref _compassBrush, value);
     }
@@ -445,9 +439,9 @@ public class MainViewModel : INotifyPropertyChanged {
         set => SetField(ref _rightButtonVisibility, value);
     }
 
-    private Brush _labelDirectionFill = Brushes.White;
+    private System.Windows.Media.Brush _labelDirectionFill = System.Windows.Media.Brushes.White;
 
-    public Brush LabelDirectionFill {
+    public System.Windows.Media.Brush LabelDirectionFill {
         get => _labelDirectionFill;
         set => SetField(ref _labelDirectionFill, value);
     }
@@ -606,8 +600,12 @@ public class MainViewModel : INotifyPropertyChanged {
         string? group = string.Empty;
         List<string> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
         var dialog = new DestinationDialog("", "", groups);
-        dialog.Owner = Application.Current.MainWindow;
-        if (dialog.ShowDialog() == true) {
+        dialog.Owner = System.Windows.Application.Current.MainWindow;
+        dialog.ShowDialog(); 
+
+        // Check your manual property instead of the built-in DialogResult
+        if (dialog.ManualDialogResult == true)
+        {
             name = dialog.Answer;
             group = dialog.Group;
         }
@@ -651,9 +649,16 @@ public class MainViewModel : INotifyPropertyChanged {
         var group = SelectedLocation.Header;
         var groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
         var dialog = new DestinationDialog(name, group, groups) {
-            Owner = Application.Current.MainWindow
+            Owner = System.Windows.Application.Current.MainWindow
         };
-        if (dialog.ShowDialog() == true) {
+        // Set the owner to the MainWindow BEFORE calling ShowDialog()
+        // You can access the MainWindow via Application.Current.MainWindow
+        dialog.Owner = System.Windows.Application.Current.MainWindow;
+        dialog.ShowDialog(); 
+
+        // Check your manual property instead of the built-in DialogResult
+        if (dialog.ManualDialogResult == true)
+        {
             SelectedLocation.Name = dialog.Answer;
             SelectedLocation.Header = dialog.Group;
 
@@ -671,9 +676,16 @@ public class MainViewModel : INotifyPropertyChanged {
     
     private void SelectLocationFile() {
         var dialog = new LocationsFileAssignmentDialog(_settings.SelectedProfile) {
-            Owner = Application.Current.MainWindow
+            Owner = System.Windows.Application.Current.MainWindow
         };
-        if (dialog.ShowDialog() == true) {
+        // Set the owner to the MainWindow BEFORE calling ShowDialog()
+        // You can access the MainWindow via Application.Current.MainWindow
+        dialog.Owner = System.Windows.Application.Current.MainWindow;
+        dialog.ShowDialog(); 
+
+        // Check your manual property instead of the built-in DialogResult
+        if (dialog.ManualDialogResult == true)
+        {
             _settings.SelectedProfile.LastLocationsFile = dialog.LocationsPath??"";
             OnPropertyChanged(nameof(SelectedLocation));
             OnPropertyChanged(nameof(Locations));
@@ -702,7 +714,7 @@ public class MainViewModel : INotifyPropertyChanged {
             item = Locations.Where(x => x.Items == null).FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
 
             if (item != null) {
-                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
+                var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
                     "Remove Location", MessageBoxButton.YesNo);
                 if (result == MessageBoxResult.Yes) {
                     Locations.Remove(item);
@@ -723,7 +735,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 .FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
 
             if (item != null) {
-                var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
+                var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
                     "Remove Location", MessageBoxButton.YesNo);
                 if (result == MessageBoxResult.Yes) {
                     foreach (var location in Locations.Where(x => x.Items == null)) {
@@ -869,24 +881,24 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void UpdateDirectionUI(CoordinateData current, CoordinateData target, double direction, double distance) {
-        LabelDirectionFill = Brushes.White;
+        LabelDirectionFill = System.Windows.Media.Brushes.White;
 
         DistanceInt = (int)distance;
-        CompassBrush = distance <= ProximityDistanceThreshold ? Brushes.DodgerBlue : Brushes.Gold;
+        CompassBrush = distance <= ProximityDistanceThreshold ? System.Windows.Media.Brushes.DodgerBlue : System.Windows.Media.Brushes.Gold;
         ShowCoffeeIcon = distance <= ArrivalDistance ? Visibility.Visible : Visibility.Collapsed;
 
         if (current.Heading.HasValue) {
             double h = current.Heading.Value;
             if (h >= direction - HeadingTolerancePerfect && h <= direction + HeadingTolerancePerfect)
-                LabelDirectionFill = Brushes.Green;
+                LabelDirectionFill = System.Windows.Media.Brushes.Green;
             else if (h >= direction - HeadingToleranceGood && h <= direction + HeadingToleranceGood)
-                LabelDirectionFill = Brushes.YellowGreen;
+                LabelDirectionFill = System.Windows.Media.Brushes.YellowGreen;
             else if (h >= direction - HeadingToleranceFair && h <= direction + HeadingToleranceFair)
-                LabelDirectionFill = Brushes.Yellow;
+                LabelDirectionFill = System.Windows.Media.Brushes.Yellow;
         }
 
         if (distance <= ArrivalDistance) {
-            LabelDirectionFill = Brushes.Green;
+            LabelDirectionFill = System.Windows.Media.Brushes.Green;
         }
 
         if (target.Heading.HasValue) {
@@ -968,7 +980,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void OpenMap() {
-        if (_mapWindow == null || !Application.Current.Windows.OfType<MapWindow>().Any()) {
+        if (_mapWindow == null || !System.Windows.Application.Current.Windows.OfType<MapWindow>().Any()) {
             _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings);
             _mapViewModel.CoordinateSystem = Settings.SelectedProfile.CoordinateSystem;
             _mapViewModel.CurrentCoordinatesLabel = CurrentCoordinates;
@@ -1009,7 +1021,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 ShowDirection();
             };
             _mapViewModel.PinRequested += coords => {
-                Application.Current.Dispatcher.Invoke(() => {
+                System.Windows.Application.Current.Dispatcher.Invoke(() => {
                     AddLocation(coords);
                     UpdateMapLocations();
                 });
@@ -1040,5 +1052,9 @@ public class MainViewModel : INotifyPropertyChanged {
         field = value;
         OnPropertyChanged(propertyName);
         return true;
+    }
+
+    public void InitializeWindow(IntPtr windowHAndle) {
+        _lastWindowHandle = windowHAndle;
     }
 }
