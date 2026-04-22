@@ -41,12 +41,13 @@
                      FontSize="8pt"
                      Margin="3,0,0,0"
                      VerticalAlignment="Center"
+                     Style="{StaticResource MainTextBoxStyle}"
                      helpers:ClickThroughBehavior.IsEnabled="True"
                      Width="227" />
-            <Button x:Name="browsefilebutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue"
+            <Button x:Name="browsefilebutton" Width="24" Height="24" Margin="3" 
                     Click="OpenFileButton_Click" ToolTip="Open Locations File"
                     Content="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="12pt"
-                    Foreground="White" FontWeight="ExtraBold">
+                    Style="{StaticResource PrimaryButtonStyle}" FontWeight="ExtraBold">
             </Button>
 
         </StackPanel>
@@ -79,19 +80,19 @@
                 FontFamily="Segoe MDL2 Assets"
                 Width="25" Margin="0,0,10,0" Click="SaveAsButton_Click" IsDefault="True"
                 ToolTip="Download File"
-                Background="#3E3E42" Foreground="White" />
-            <Button x:Name="setdefaultbutton" Width="80" Margin="0,0,0,0" Background="Red"
+                Style="{StaticResource MainButtonStyle}" />
+            <Button x:Name="setdefaultbutton" Width="80" Margin="0,0,0,0" 
                     Click="SetDefaultButton_Click" ToolTip="Use Default for Game Profile"
-                    Foreground="White" FontWeight="ExtraBold">
+                    Style="{StaticResource DeleteButtonStyle}" FontWeight="ExtraBold">
                 Use Default
             </Button>
 
         </StackPanel>
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button Content="Assign" Width="75" Margin="0,0,10,0" Click="OkButton_Click" IsDefault="True"
-                    Background="#3E3E42" Foreground="White" />
+                    Style="{StaticResource MainButtonStyle}" />
             <Button Content="Cancel" Width="75" Click="CancelButton_Click" IsCancel="True"
-                    Background="#3E3E42" Foreground="White" />
+                    Style="{StaticResource MainButtonStyle}" />
         </StackPanel>
     </Grid>
 </controls:ChildWindow>

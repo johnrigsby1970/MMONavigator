@@ -18,11 +18,33 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
     public string LogFilePath => FilePathTextBox.Text;
     public string LogFileRegex => RegexTextBox.Text;
     public string CoordinateOrder => OrderComboBox.SelectedItem?.ToString() ?? "x z y d";
-    public CoordinateSystem CoordinateSystem => (CoordinateSystem)SystemComboBox.SelectedItem;
-
+    
+    private CoordinateSystem _currentCoordinateSystem;
+    public CoordinateSystem CurrentCoordinateSystem {
+        get => _currentCoordinateSystem;
+        set {
+            if (_currentCoordinateSystem != value) {
+                _currentCoordinateSystem = value;
+                OnPropertyChanged(); // Crucial: This tells the UI to refresh
+            }
+        }
+    }
+    
+// Property
+    public List<CoordinateItem> Items = Enum.GetValues(typeof(CoordinateSystem))
+        .Cast<CoordinateSystem>()
+        .Select(e => new CoordinateItem { 
+            Value = e, 
+            Label = Methods.GetDisplayName(e) 
+        })
+        .ToList();
+    
     public WatcherConfigurationDialog(AppSettings settings) {
         InitializeComponent();
         DataContext = this;
+        
+        SystemComboBox.ItemsSource = Items;
+        
         _settings = settings;
 
         ProfileComboBox.ItemsSource = _settings.Profiles;
@@ -32,8 +54,7 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
                               ?? _settings.Profiles.FirstOrDefault();
 
         ProfileComboBox.SelectedItem = selectedProfile;
-
-        SystemComboBox.ItemsSource = Enum.GetValues(typeof(CoordinateSystem));
+        
         OrderComboBox.ItemsSource = Constants.AvailableCoordinateOrders;
 
         ClipboardRadio.Checked += WatchMode_Checked;
@@ -44,6 +65,15 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
 
         LoadProfile(selectedProfile);
         UpdateProfileButtons();
+        
+        // Inside your Window/UserControl constructor or ViewModel
+        
+        // Items = Enum.GetValues(typeof(CoordinateSystem))
+        //     .Cast<CoordinateSystem>()
+        //     .Select(e => (Value: e, Label: Methods.GetDisplayName(e)))
+        //     .ToList();
+        
+
     }
 
     private bool _readMore;
@@ -70,10 +100,10 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
     }
 
     private void UpdateProfileButtons() {
-        string currentText = ProfileComboBox.Text.Trim();
-        bool isDefault = currentText.Equals("Default", StringComparison.OrdinalIgnoreCase);
-        bool isEmpty = string.IsNullOrWhiteSpace(currentText);
-        bool exists =
+        var currentText = ProfileComboBox.Text.Trim();
+        var isDefault = currentText.Equals("Default", StringComparison.OrdinalIgnoreCase);
+        var isEmpty = string.IsNullOrWhiteSpace(currentText);
+        var exists =
             _settings.Profiles.Any(p => p.Name.Trim().Equals(currentText, StringComparison.OrdinalIgnoreCase));
 
         if (isDefault || isEmpty) {
@@ -97,8 +127,8 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         // (i.e. path is empty and it was using default RightHanded/x z y d)
         // then apply the suggested defaults for Log File games.
         if (FileRadio.IsChecked == true && string.IsNullOrEmpty(FilePathTextBox.Text)) {
-            if (SystemComboBox.SelectedItem is CoordinateSystem cs && cs == CoordinateSystem.RightHanded) {
-                SystemComboBox.SelectedItem = CoordinateSystem.LeftHanded;
+            if (CurrentCoordinateSystem is CoordinateSystem cs && cs == CoordinateSystem.RightHanded) {
+                CurrentCoordinateSystem = Items.First(i => i.Value == CoordinateSystem.LeftHanded).Value;
             }
 
             if (OrderComboBox.SelectedItem?.ToString() == "x z y d") {
@@ -113,9 +143,10 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         // (i.e. it was using Log File defaults y x and LeftHanded)
         // then apply the suggested defaults for Clipboard (Pantheon-style) games.
         else if (ClipboardRadio.IsChecked == true) {
-            if (SystemComboBox.SelectedItem is CoordinateSystem cs && cs == CoordinateSystem.LeftHanded) {
+            if (CurrentCoordinateSystem is CoordinateSystem cs && cs == CoordinateSystem.LeftHanded) {
                 // Only switch if it matches the "Log File" default we might have just set or was there
-                SystemComboBox.SelectedItem = CoordinateSystem.RightHanded;
+                //SystemComboBox.SelectedItem = CoordinateSystem.RightHanded;
+                CurrentCoordinateSystem = Items.First(i => i.Value == CoordinateSystem.RightHanded).Value;
             }
 
             if (OrderComboBox.SelectedItem?.ToString() == "y x" || OrderComboBox.SelectedItem?.ToString() == "y x z") {
@@ -138,7 +169,8 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
 
         FilePathTextBox.Text = profile.LogFilePath;
         RegexTextBox.Text = profile.LogFileRegex;
-        SystemComboBox.SelectedItem = profile.CoordinateSystem;
+        
+        CurrentCoordinateSystem = Items.First(i => i.Value == profile.CoordinateSystem).Value;
         OrderComboBox.SelectedItem = profile.CoordinateOrder;
         KeyboardClickThroughCheckBox.IsChecked = _settings.KeyboardClickThrough;
         _isUpdatingUI = false;
@@ -150,7 +182,7 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         // Only save back to the current profile if the name in the combo box matches it.
         // If the user has typed a new name, we don't want to overwrite the old profile's settings
         // with whatever they are currently changing in the UI.
-        string currentText = ProfileComboBox.Text.Trim();
+        var currentText = ProfileComboBox.Text.Trim();
         if (!currentText.Equals(_currentProfile.Name, StringComparison.OrdinalIgnoreCase)) {
             return;
         }
@@ -158,7 +190,7 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         _currentProfile.WatchMode = WatchMode;
         _currentProfile.LogFilePath = LogFilePath;
         _currentProfile.LogFileRegex = LogFileRegex;
-        _currentProfile.CoordinateSystem = CoordinateSystem;
+        _currentProfile.CoordinateSystem = CurrentCoordinateSystem;
         _currentProfile.CoordinateOrder = CoordinateOrder;
         _settings.KeyboardClickThrough = KeyboardClickThroughCheckBox.IsChecked == true;
     }
@@ -175,7 +207,7 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
     }
 
     private void AddNewProfile(string name) {
-        string trimmedName = name.Trim();
+        var trimmedName = name.Trim();
         // We DON'T call SaveToCurrentProfile here because if we are adding a new profile,
         // it means the name in the combo box is already different from _currentProfile.Name,
         // so SaveToCurrentProfile wouldn't do anything anyway.
@@ -193,7 +225,7 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         newProfile.WatchMode = WatchMode;
         newProfile.LogFilePath = LogFilePath;
         newProfile.LogFileRegex = LogFileRegex;
-        newProfile.CoordinateSystem = CoordinateSystem;
+        newProfile.CoordinateSystem = CurrentCoordinateSystem;
         newProfile.CoordinateOrder = CoordinateOrder;
 
         _settings.Profiles.Add(newProfile);
@@ -273,9 +305,10 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
             
-            Microsoft.Win32.OpenFileDialog openFileDialog = new Microsoft.Win32.OpenFileDialog();
-            openFileDialog.Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*";
-            
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog {
+                Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*"
+            };
+
             // Use the native interop handle to ensure the dialog 
             // feels 'attached' to the helper
             var helper = new WindowInteropHelper(helperWindow);
@@ -294,8 +327,8 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
     public bool IsConfirmed { get; private set; }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) {
-        string currentProfileName = ProfileComboBox.Text.Trim();
-        bool profileExists = _settings.Profiles.Any(p =>
+        var currentProfileName = ProfileComboBox.Text.Trim();
+        var profileExists = _settings.Profiles.Any(p =>
             p.Name.Trim().Equals(currentProfileName, StringComparison.OrdinalIgnoreCase));
 
         if (!profileExists && !string.IsNullOrWhiteSpace(currentProfileName) &&
@@ -322,53 +355,28 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
             _settings.LastSelectedProfileName = selectedProfile.Name;
         }
 
-// // Instead of: DialogResult = true;
-        ////     
-        ////         // Dispatch to the UI thread's next available tick
-        ////         Dispatcher.BeginInvoke(new Action(() => {
-        ////             this.DialogResult = true;
-        ////         }), System.Windows.Threading.DispatcherPriority.Background);
-        ///
-        /// // Clear the owner before closing. 
-        // This stops WPF's internal focus-tracking from trying to "return" focus 
-        // to the owner, which is what triggers the crash.
-        //this.Owner = null;
-
-        this.IsConfirmed = true;
-        this.ManualDialogResult = true;
-// 3. Instead of this.Close(), hide the window first to remove it from 
-        // the UI thread's "modal" tracking before the hard-close occurs.
-        this.Hide(); 
-    
-        // 4. Close the window after a tiny delay so the UI loop finishes 
+        //See notes.txt
+        IsConfirmed = true;
+        ManualDialogResult = true;
+        Hide(); 
+        
+        // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
         Dispatcher.BeginInvoke(new Action(() => {
-            this.Close();
+            Close();
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
-// // Instead of: DialogResult = false;
-//     
-//         // Dispatch to the UI thread's next available tick
-//         Dispatcher.BeginInvoke(new Action(() => {
-//             this.DialogResult = false;
-//         }), System.Windows.Threading.DispatcherPriority.Background);
-// Clear the owner before closing. 
-        // This stops WPF's internal focus-tracking from trying to "return" focus 
-        // to the owner, which is what triggers the crash.
-        //this.Owner = null;
-
-        this.IsConfirmed = false;
-        this.ManualDialogResult = false;
-// 3. Instead of this.Close(), hide the window first to remove it from 
-        // the UI thread's "modal" tracking before the hard-close occurs.
-        this.Hide(); 
+        //See notes.txt
+        IsConfirmed = false;
+        ManualDialogResult = false;
+        Hide(); 
     
-        // 4. Close the window after a tiny delay so the UI loop finishes 
+        // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
         Dispatcher.BeginInvoke(new Action(() => {
-            this.Close();
+            Close();
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
 

@@ -7,18 +7,20 @@
              xmlns:controls="clr-namespace:MMONavigator.Controls"
              mc:Ignorable="d"
              Title="Map" Height="600" Width="800"
-             Background="Transparent"
+
              WindowStyle="None"
              AllowsTransparency="True"
              Topmost="True"
              Focusable="False"
-             Opacity="{Binding EffectiveOpacity}"
-             MouseEnter="Window_MouseEnter"
-             MouseLeave="Window_MouseLeave">
+Opacity="1"
+             IsHitTestVisible="True"
+             Background="#01000000"
+             >
+    
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Window.Resources>
-    <Grid Name="myMapGrid">
+    <Grid Name="myMapGrid" Background="Transparent" IsHitTestVisible="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="30"/>
             <RowDefinition Height="Auto"/>
@@ -28,25 +30,28 @@
 
         <!-- Title Bar -->
         <Border Grid.Row="0" 
-                Background="#333333" 
+                Style="{StaticResource MainBorderStyle}"
                 MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" 
                 Visibility="{Binding UIVisibility}" 
                 IsHitTestVisible="True"
+                Background="{Binding EffectiveBackgroundBrush}"
                 Focusable="False"/>
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0" Visibility="{Binding UIVisibility}" Focusable="False">
-            <TextBlock Text="Map Overlay" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" Focusable="False"/>
+        <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0" Visibility="{Binding UIVisibility}" Focusable="False">
+            <TextBlock Text="{Binding AppTitle}" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" Focusable="False"/>
         </StackPanel>
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding UIVisibility}" Focusable="False">
+        <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding UIVisibility}" Focusable="False">
             <Button Content="0" FontFamily="Marlett" Width="30" Click="MinimizeButton_Click" Background="Transparent" Foreground="White" BorderThickness="0" Focusable="False"/>
             <Button Content="r" FontFamily="Marlett" Width="30" Click="CloseButton_Click" Background="Transparent" Foreground="White" BorderThickness="0" Focusable="False"/>
         </StackPanel>
 
-        <Grid Grid.Row="1" Background="#333333" Visibility="{Binding UIVisibility}" Focusable="False">
+        <Grid Grid.Row="1" Style="{StaticResource MainGridStyle}" Visibility="{Binding UIVisibility}" Focusable="False">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Focusable="False">
-                <Button Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2" Focusable="False"/>
-                <Button Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"/>
-                <Button Content="Save Map" Click="SaveMap_Click" Margin="0,2,5,2" Padding="5,2" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False"/>
-                <Button Content="Load Map" Click="LoadMap_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"/>
+                <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2" Focusable="False"/>
+                <Button Style="{StaticResource CalibrationButtonStyle}" 
+                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"/>
+                <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click" Margin="0,2,5,2" Padding="5,2" 
+                        IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False"/>
+                <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"/>
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Text="Status: Ready" Focusable="False"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Focusable="False">
@@ -56,9 +61,15 @@
         </Grid>
 
         <!-- Map Area -->
-        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="-1" Background="#2D2D2D" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel" Focusable="False">
+        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="-1" 
+                 
+                      Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel" Focusable="False">
             <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}" 
-                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp" MouseMove="MapCanvas_MouseMove" Background="Black" Focusable="False">
+                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" 
+                    MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp" 
+                    MouseMove="MapCanvas_MouseMove"
+            
+                    Background="{Binding EffectiveTransparentBrush}" Focusable="False">
                 <Canvas.ContextMenu>
                     <ContextMenu Focusable="False">
                         <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True" Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
@@ -71,7 +82,9 @@
                 <Canvas.LayoutTransform>
                     <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}" ScaleY="{Binding Settings.ZoomLevel}" />
                 </Canvas.LayoutTransform>
-                <Image Source="{Binding MapImage}" Stretch="None" Focusable="False"/>
+                <Image 
+
+                    Opacity="{Binding EffectiveOpacity}" Source="{Binding MapImage}" Stretch="None" Focusable="False"/>
                 
                 <!-- Position Marker -->
                 <Ellipse x:Name="PulseCircle" Width="12.5" Height="12.5" Stroke="Yellow" StrokeThickness="2"
@@ -184,7 +197,7 @@
                 </Ellipse>
 
                 <!-- Calibration Markers -->
-                <Grid x:Name="CalibMarker1" Background="Transparent" Width="30" Height="30" Margin="-15,-15" Focusable="False">
+                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker1" Background="Transparent" Width="30" Height="30" Margin="-15,-15" Focusable="False">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -215,7 +228,7 @@
                         </ToolTip>
                     </Grid.ToolTip>
                 </Grid>
-                <Grid x:Name="CalibMarker2" Background="Transparent" Width="30" Height="30" Margin="-15,-15" Focusable="False">
+                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker2" Background="Transparent" Width="30" Height="30" Margin="-15,-15" Focusable="False">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -248,7 +261,7 @@
                 </Grid>
 
                 <!-- Location Indicators -->
-                <ItemsControl ItemsSource="{Binding Locations}" Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}" Focusable="False">
+                <ItemsControl Opacity="{Binding EffectiveOpacity}" ItemsSource="{Binding Locations}" Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}" Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Canvas Focusable="False" />
@@ -288,7 +301,10 @@
         </ScrollViewer>
 
         <!-- Opacity Slider -->
-        <Border Grid.Row="3" Background="#333333" Padding="10,5,10,5" Visibility="{Binding UIVisibility}" Focusable="False">
+        <Border Grid.Row="3" 
+                Style="{StaticResource MainBorderStyle}"
+                Padding="10,5,10,5" 
+                Visibility="{Binding UIVisibility}" Focusable="False">
             <StackPanel Orientation="Horizontal" Focusable="False">
                 <TextBlock Text="Opacity" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" Focusable="False"/>
                 <Slider Width="100" Minimum="0.1" Maximum="1.0" Value="{Binding Opacity}" VerticalAlignment="Center" 

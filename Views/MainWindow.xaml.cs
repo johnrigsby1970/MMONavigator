@@ -24,7 +24,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     public static GridLength StandardGridRowHeight => new GridLength(StandardRowHeight);
     private static readonly GridLength HiddenRowHeight = new GridLength(CollapsedRowHeight);
     private IntPtr _hwnd;
-    private const int WM_CLIPBOARDUPDATE = 0x031D;
+    
     
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -80,7 +80,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     private void StartWatcher() {
-        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        var hwnd = new WindowInteropHelper(this).Handle;
         _viewModel.StartWatcher(hwnd);
     }
     
@@ -90,7 +90,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
 
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         // 1. Handle the specific message you need to monitor
-        if (msg == WM_CLIPBOARDUPDATE) {
+        if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
             KeepOnTop();
             _viewModel.HandleClipboardUpdate();
         }
@@ -104,7 +104,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     private void KeepOnTop() {
         // SWP_NOACTIVATE is the key here. It prevents your window 
         // from stealing focus from the game/media player.
-        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        var hwnd = new WindowInteropHelper(this).Handle;
         NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
@@ -192,6 +192,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         _viewModel.MainContentVisibility=!_viewModel.MainContentVisibility;
         togglebutton.ToolTip = _viewModel.MainContentVisibility ? "Hide Directions" : "Show Directions";
     }
+    
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         if (WindowState != WindowState.Normal) {
             WindowState = WindowState.Normal;
@@ -202,32 +203,39 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         try {
             _viewModel.SaveSettings();
         }
-        finally{}
+        catch {
+            // ignored
+        }
         try {
             _viewModel.StopWatcher();
         }
-        finally{}
+        catch {
+            // ignored
+        }
         try {
             HwndSource.FromHwnd(_hwnd)?.RemoveHook(HwndHandler);
         }
-        finally{}
-        // try {
-        //     IntPtr hwnd = new WindowInteropHelper(this).Handle;
-        //     HwndSource.FromHwnd(hwnd)?.RemoveHook(HwndHandler);
-        // }
-        // finally{}
+        catch {
+            // ignored
+        }
         try {
             base.OnClosed(e);
         }
-        finally{}
+        catch {
+            // ignored
+        }
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
         Hide();
+        // Close the window after a tiny delay so the UI loop finishes 
+        // processing the 'Hide' message before the OS-level 'Close' message.
         Dispatcher.BeginInvoke(new Action(() => {
-            this.Close();
+            Close();
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
+    
+    //code pertaining to trying to get popup list to allow keyboard navigation using only certain keys, while others pass through.
     // private HwndSource _popupHwndSource;
     // private void Popup_Opened(object sender, EventArgs e)
     // {

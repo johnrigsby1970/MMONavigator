@@ -1,0 +1,40 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <Color x:Key="PrimaryBackground">#2D2D30</Color>
+    <SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="{StaticResource PrimaryBackground}" />
+    <Color x:Key="ButtonBackgroundColor">#3E3E42</Color>
+    <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="{StaticResource ButtonBackgroundColor}" />
+    <Color x:Key="ButtonForegroundColor">white</Color>
+    <SolidColorBrush x:Key="ButtonForegroundBrush" Color="{StaticResource ButtonForegroundColor}" />
+    
+    <Color x:Key="PrimaryButtonBackgroundColor">CornflowerBlue</Color>
+    <SolidColorBrush x:Key="PrimaryButtonBackgroundBrush" Color="{StaticResource PrimaryButtonBackgroundColor}" />
+    <Color x:Key="PrimaryButtonForegroundColor">white</Color>
+    <SolidColorBrush x:Key="PrimaryButtonForegroundBrush" Color="{StaticResource PrimaryButtonForegroundColor}" />
+   
+    <Color x:Key="DeleteButtonBackgroundColor">OrangeRed</Color>
+    <SolidColorBrush x:Key="DeleteButtonBackgroundBrush" Color="{StaticResource DeleteButtonBackgroundColor}" />
+    <Color x:Key="DeleteButtonForegroundColor">white</Color>
+    <SolidColorBrush x:Key="DeleteButtonForegroundBrush" Color="{StaticResource DeleteButtonForegroundColor}" />
+    
+    <Color x:Key="TextForegroundColor">white</Color>
+    <SolidColorBrush x:Key="TextForegroundBrush" Color="{StaticResource TextForegroundColor}" />
+    
+    
+    <Color x:Key="FormControlBackgroundColor">#3E3E42</Color>
+    <SolidColorBrush x:Key="FormControlBackgroundBrush" Color="{StaticResource FormControlBackgroundColor}" />
+    <Color x:Key="FormControlForegroundColor">white</Color>
+    <SolidColorBrush x:Key="FormControlForegroundBrush" Color="{StaticResource FormControlForegroundColor}" />
+    <Color x:Key="FormControlBorderColor">#555555</Color>
+    <SolidColorBrush x:Key="FormControlBorderBrush" Color="{StaticResource FormControlBorderColor}" />
+    
+    <Color x:Key="BorderBackgroundColor">#333333</Color>
+    <SolidColorBrush x:Key="BorderBackgroundBrush" Color="{StaticResource BorderBackgroundColor}" />
+
+    <Color x:Key="GridBackgroundColor">#333333</Color>
+    <SolidColorBrush x:Key="GridBackgroundBrush" Color="{StaticResource GridBackgroundColor}" />
+    
+    <Color x:Key="HighlightBorderColor">Gold</Color>
+    <SolidColorBrush x:Key="HighlightBorderBrush" Color="{StaticResource HighlightBorderColor}" />
+</ResourceDictionary>

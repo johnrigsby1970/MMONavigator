@@ -71,13 +71,13 @@
                         FontSize="12pt"
                         ToolTip="Open Map" FontWeight="ExtraBold"
                         Command="{Binding OpenMapCommand}"
-                        Foreground="White" Background="CornflowerBlue">
+                        Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
                 <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="12pt"
                         ToolTip="Toggle Settings" FontWeight="ExtraBold"
-                        Click="HideShowSettings_Click" Foreground="White" Background="CornflowerBlue"
+                        Click="HideShowSettings_Click" Style="{StaticResource PrimaryButtonStyle}"
                         IsEnabled="{Binding MainContentVisibility}"
                         Visibility="Collapsed">
                 </Button>
@@ -87,7 +87,7 @@
                         FontSize="12pt"
                         ToolTip="Toggle Timers" FontWeight="ExtraBold"
                         IsEnabled="{Binding MainContentVisibility}"
-                        Click="HideShowTimers_Click" Foreground="White" Background="CornflowerBlue"
+                        Click="HideShowTimers_Click" Style="{StaticResource PrimaryButtonStyle}"
                         Visibility="Collapsed">
                 </Button>
             </StackPanel>
@@ -98,7 +98,7 @@
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="12pt"
                         Margin="3" Click="ToggleVisibityButton_Click"
-                        Foreground="White" ToolTip="Hide Directions" Background="CornflowerBlue"
+                         ToolTip="Hide Directions" Style="{StaticResource PrimaryButtonStyle}"
                         Visibility="Collapsed">
                 </Button>
                 <!-- <Button x:Name="minbutton" Width="24" Height="24" -->
@@ -110,8 +110,8 @@
                 <!-- </Button> -->
                 <Button x:Name="closebutton" Width="24" Height="24"
                         FontSize="12pt"
-                        Margin="3" Click="CloseButton_Click" Foreground="White"
-                        ToolTip="Close" Background="CornflowerBlue"
+                        Margin="3" Click="CloseButton_Click" 
+                        ToolTip="Close" Style="{StaticResource PrimaryButtonStyle}"
                         Visibility="Collapsed">
                     X
                 </Button>
@@ -254,7 +254,7 @@
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Remember Destination" FontWeight="ExtraBold"
                         Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Command="{Binding AddLocationCommand}" Foreground="White" Background="CornflowerBlue">
+                        Command="{Binding AddLocationCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
                 
                 <Button Width="20" Height="20" Margin="3,0,0,0" 
@@ -262,7 +262,7 @@
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Edit Destination" FontWeight="ExtraBold"
                         Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Command="{Binding EditLocationCommand}" Foreground="White" Background="CornflowerBlue">
+                        Command="{Binding EditLocationCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
 
                 <Button Width="20" Height="20" Margin="3,0,0,0"
@@ -270,14 +270,14 @@
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Forget Destination" FontWeight="ExtraBold"
                         Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Command="{Binding RemoveLocationCommand}" Foreground="White" Background="OrangeRed">
+                        Command="{Binding RemoveLocationCommand}" Style="{StaticResource DeleteButtonStyle}">
                 </Button>
                 
                 <Button Width="20" Height="20" Margin="3,0,0,0"
                         Content="&#xE8E5;"
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Select Locations File" FontWeight="ExtraBold"
-                        Command="{Binding SelectLocationFileCommand}" Foreground="White" Background="CornflowerBlue">
+                        Command="{Binding SelectLocationFileCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
             </StackPanel>
 
@@ -311,15 +311,14 @@
                         Content="&#xF272;"
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Copy Location to Destination" FontWeight="ExtraBold"
-                        Command="{Binding CopyLocationToDestinationCommand}" Foreground="White"
-                        Background="CornflowerBlue">
+                        Command="{Binding CopyLocationToDestinationCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
 
                 <Button Width="20" Height="20" Margin="0,3,3,3"
                         Content="&#xE77B;"
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Configure Location Watcher" FontWeight="ExtraBold"
-                        Click="ConfigureWatcher_Click" Foreground="White" Background="CornflowerBlue">
+                        Click="ConfigureWatcher_Click" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
 
             </StackPanel>

@@ -10,7 +10,7 @@ public class ChildWindow : Window {
 
     private IntPtr _hwnd; // Cache the handle
 
-    // A custom field to hold the result
+    // A custom field to hold the result because of the way these windows are loaded DialogResult is lost
     public bool? ManualDialogResult { get; set; }
 
     public bool IsDialogActive { get; set; }
@@ -28,7 +28,7 @@ public class ChildWindow : Window {
     }
 
     protected override void OnClosing(CancelEventArgs e) {
-        // 1. Clean up hookg
+        // 1. Clean up hook
         _hwndSource?.RemoveHook(HwndHandler);
         _hwndSource?.Dispose();
         _hwndSource = null;
@@ -65,17 +65,6 @@ public class ChildWindow : Window {
         // Remove only NOACTIVATE
         NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, style & ~NativeMethods.WS_EX_NOACTIVATE);
     }
-
-    // private void PreviewMouseDown(object sender, MouseButtonEventArgs e) {
-    //     // When the user clicks the textbox, remove the NOACTIVATE 
-    //     // so the box can accept keyboard input
-    //     RemoveNoActivateStyle();
-    // }
-    //
-    // private void LostFocus(object sender, RoutedEventArgs e) {
-    //     // When the user clicks away, put the NOACTIVATE back
-    //     AddNoActivateStyle();
-    // }
     
     //because a window might be transaparent or otherwise set to ignore
     //certain events, sometimes we need to fake a legal owner window  

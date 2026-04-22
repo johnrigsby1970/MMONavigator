@@ -81,25 +81,7 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
     }
-
-    // private string? _destinationLocation;
-    // public string? DestinationLocation
-    // {
-    //     get => _destinationLocation;
-    //     set
-    //     {
-    //         //if (SelectedLocation != null && SelectedLocation.DisplayName == value) {
-    //             TargetCoordinates = value;
-    //         //}
-    //         if (_destinationLocation != value)
-    //         {
-    //             _destinationLocation = value;
-    //             OnPropertyChanged(nameof(DestinationLocation));
-    //             // Add logic here to track the single selected item in the main ViewModel
-    //         }
-    //     }
-    // }
-
+    
     private bool _isSelected;
 
     public bool IsSelected {
@@ -158,8 +140,6 @@ public class MainViewModel : INotifyPropertyChanged {
 
             var temp = Locations.Where(l => l.Items == null).ToList();
             temp.AddRange(Locations.Where(l => l.Items != null).SelectMany(y => y.Items!));
-            // var matchingItem = Locations.FirstOrDefault(l =>
-            //     l.ScrubbedCoordinates == scrubbed || currentInput == l.DisplayName);
             var matchingItem = temp.FirstOrDefault(l =>
                 l.ScrubbedCoordinates == scrubbed || currentInput == l.DisplayName);
             if (_selectedLocation != matchingItem) {
@@ -187,12 +167,6 @@ public class MainViewModel : INotifyPropertyChanged {
             return;
         }
         var found = !string.IsNullOrEmpty(scrubbedT) && (Locations.Where(x => x.Items == null).Any(l => {
-            // string scrubbedT;
-            // if (SelectedLocation != null && TargetCoordinates == SelectedLocation.DisplayName) {
-            //     scrubbedT = SelectedLocation.ScrubbedCoordinates ?? "";
-            // } else {
-            //     scrubbedT = Scrubber.ScrubEntry(TargetCoordinates) ?? "";
-            // }
             return !string.IsNullOrEmpty(l.ScrubbedCoordinates) && l.ScrubbedCoordinates == scrubbedT;
         }) || Locations.Where(x => x.Items != null).SelectMany(y => y.Items!).Any(l => {
             return !string.IsNullOrEmpty(l.ScrubbedCoordinates) && l.ScrubbedCoordinates == scrubbedT;
@@ -596,8 +570,8 @@ public class MainViewModel : INotifyPropertyChanged {
         
         if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
-        string? name = string.Empty;
-        string? group = string.Empty;
+        var name = string.Empty;
+        var group = string.Empty;
         List<string> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
         var dialog = new DestinationDialog("", "", groups);
         dialog.Owner = System.Windows.Application.Current.MainWindow;
@@ -766,18 +740,7 @@ public class MainViewModel : INotifyPropertyChanged {
                     UpdateListStatus();
                 }
             }
-            //item = Locations.FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
         }
-
-        // if (item != null) {
-        //     var result = MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?", "Remove Location", MessageBoxButton.YesNo);
-        //     if (result == MessageBoxResult.Yes) {
-        //         Locations.Remove(item);
-        //         SelectedLocation = null;
-        //         OnPropertyChanged(nameof(TargetCoordinates));
-        //         SaveLocations();
-        //     }
-        // }
     }
 
     private string? _locationTooltip;
@@ -827,8 +790,8 @@ public class MainViewModel : INotifyPropertyChanged {
                 return;
             }
 
-            string targetInput = TargetCoordinates ?? string.Empty;
-            string? coordinatesToParse = targetInput;
+            var targetInput = TargetCoordinates ?? string.Empty;
+            var coordinatesToParse = targetInput;
             if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
                 coordinatesToParse = SelectedLocation.Coordinates;
             }
@@ -852,7 +815,7 @@ public class MainViewModel : INotifyPropertyChanged {
 
             var direction = NavigationCalculator.GetDirection(current.X, current.Y, target.X, target.Y,
                 Settings.SelectedProfile.CoordinateSystem);
-            double distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
+            var distance = Math.Sqrt(Math.Pow(target.X - current.X, 2) + Math.Pow(target.Y - current.Y, 2));
 
             UpdateDirectionUI(current, target, direction, distance);
             if (_mapViewModel != null) {
@@ -873,8 +836,8 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private string FormatTooltip(CoordinateData data) {
-        string zPart = data.Z.HasValue ? $", Z: {data.Z}" : "";
-        string direction = data.Heading.HasValue
+        var zPart = data.Z.HasValue ? $", Z: {data.Z}" : "";
+        var direction = data.Heading.HasValue
             ? $", Facing: {NavigationCalculator.GetCompassDirection(data.Heading.Value)} ({data.Heading.Value:F1}°)"
             : "";
         return $"X: {data.X}, Y: {data.Y}{zPart}{direction}";
@@ -990,8 +953,8 @@ public class MainViewModel : INotifyPropertyChanged {
                 _mapViewModel.CurrentPosition = null;
             }
 
-            string targetInput = TargetCoordinates ?? string.Empty;
-            string? coordinatesToParse = targetInput;
+            var targetInput = TargetCoordinates ?? string.Empty;
+            var coordinatesToParse = targetInput;
             if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
                 coordinatesToParse = SelectedLocation.Coordinates;
             }

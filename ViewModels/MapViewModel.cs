@@ -2,9 +2,11 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MMONavigator.Models;
 using MMONavigator.Services;
+using Color = System.Drawing.Color;
 
 namespace MMONavigator.ViewModels;
 
@@ -64,10 +66,52 @@ public class MapViewModel : INotifyPropertyChanged {
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(EffectiveOpacity));
                 OnPropertyChanged(nameof(UIVisibility));
+                OnPropertyChanged(nameof(EffectiveBackgroundBrush));
+                OnPropertyChanged(nameof(EffectiveTransparentBrush));
+                OnPropertyChanged(nameof(EffectiveTransparent));
             }
         }
     }
+    
+    private string? _mapName;
+    public string? MapName {
+        get => _mapName;
+        set {
+            if (_mapName != value) {
+                if (string.IsNullOrEmpty(value)) {
+                    _mapName = string.Empty;
+                }
+                else {
+                    _mapName = System.IO.Path.GetFileName(value);
+                }
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(AppTitle));
+            }
+        }
+    }
+    
 
+    public string? AppTitle => string.IsNullOrWhiteSpace(_mapName) ? "Map Overlay" : "Map Overlay" + " [" + _mapName + "]";
+
+    // In your ViewModel
+    public SolidColorBrush EffectiveBackgroundBrush {
+        get {
+            // Assume _opacityLevel is your 0.0 - 1.0 double
+            byte alpha = (byte)(EffectiveOpacity * 255);
+            return new SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha, 62, 62, 66)); // Black with variable transparency
+        }
+    }
+    
+    public SolidColorBrush EffectiveTransparentBrush {
+        get {
+            // Assume _opacityLevel is your 0.0 - 1.0 double
+            byte alpha = (byte)(1 * 255);
+            return !IsHovered && Opacity<1 ? System.Windows.Media.Brushes.Transparent : new SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha, 62, 62, 66)); // Black with variable transparency
+        }
+    }
+    
+    public double EffectiveTransparent => IsHovered ? 1.0 : 0;
+    
     public double EffectiveOpacity => IsHovered ? 1.0 : Opacity;
 
     public Visibility UIVisibility => (IsHovered || Opacity >= 1.0) ? Visibility.Visible : Visibility.Collapsed;
@@ -289,6 +333,7 @@ public class MapViewModel : INotifyPropertyChanged {
 
     private void LoadImage() {
         if (string.IsNullOrEmpty(_settings.ImagePath)) {
+            MapName = string.Empty;
             MapImage = null;
             UpdateMarkers();
             return;
@@ -301,9 +346,11 @@ public class MapViewModel : INotifyPropertyChanged {
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.EndInit();
             MapImage = image;
+            MapName = _settings.ImagePath;
             UpdateMarkers();
         } catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error loading map image: {ex.Message}");
+            MapName = string.Empty;
             MapImage = null;
             UpdateMarkers();
         }

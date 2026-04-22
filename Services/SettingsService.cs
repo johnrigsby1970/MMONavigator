@@ -24,20 +24,11 @@ public class SettingsService : ISettingsService {
         _locationsPath = Path.Combine(appFolder, "locations.json");
     }
     
-    // public string AppFolder() {
-    //     string exePath = Process.GetCurrentProcess().MainModule.FileName;
-    //     string exeFolder = Path.GetDirectoryName(exePath);   
-    //     return exeFolder;
-    // }
-    
     public AppSettings LoadSettings() {
         try {
-            //MessageBox.Show("Loading settings from " + _settingsPath);
             if (File.Exists(_settingsPath)) {
-                //MessageBox.Show("settings file exists " + _settingsPath);
-                string json = File.ReadAllText(_settingsPath);
+                var json = File.ReadAllText(_settingsPath);
                 var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
-                //MessageBox.Show("settings file exists " + _settingsPath);
                 settings.MigrateLegacySettings();
                 return settings;
             }
@@ -51,14 +42,14 @@ public class SettingsService : ISettingsService {
 
     private static string MakeValidFileName(string name)
     {
-        string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
-        string invalidRegStr = string.Format(@"([{0}]* windfall +$)|([{0}]+)", invalidChars);
+        var invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+        var invalidRegStr = string.Format(@"([{0}]* windfall +$)|([{0}]+)", invalidChars);
         return Regex.Replace(name, invalidRegStr, "_");
     }
     
     public void SaveSettings(AppSettings settings) {
         try {
-            string json = JsonSerializer.Serialize(settings);
+            var json = JsonSerializer.Serialize(settings);
             File.WriteAllText(_settingsPath, json);
         } catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
@@ -67,8 +58,6 @@ public class SettingsService : ISettingsService {
 
     public List<LocationItem> LoadLocations(GameProfile profile) {
         try {
-            // MessageBox.Show("Loading locations from profile.LastLocationsFile" + profile.LastLocationsFile);
-            
             if (string.IsNullOrEmpty(profile.LastLocationsFile)) {
                 if (profile.Name != "Default") {
                     _locationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
@@ -83,8 +72,7 @@ public class SettingsService : ISettingsService {
             }
 
             if (File.Exists(_locationsPath)) {
-                //MessageBox.Show("Loading locations from " + _locationsPath);
-                string json = File.ReadAllText(_locationsPath);
+                var json = File.ReadAllText(_locationsPath);
                 return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
             }
         } catch (Exception ex) {

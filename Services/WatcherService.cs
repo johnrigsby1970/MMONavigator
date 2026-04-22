@@ -68,8 +68,8 @@ public class WatcherService : IWatcherService {
         }
 
         try {
-            string? directory = Path.GetDirectoryName(_settings.SelectedProfile.LogFilePath);
-            string? fileName = Path.GetFileName(_settings.SelectedProfile.LogFilePath);
+            var directory = Path.GetDirectoryName(_settings.SelectedProfile.LogFilePath);
+            var fileName = Path.GetFileName(_settings.SelectedProfile.LogFilePath);
 
             if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName)) {
                 System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid path or filename: {directory} / {fileName}");
@@ -165,6 +165,4 @@ public class WatcherService : IWatcherService {
     public void Dispose() {
         Stop();
     }
-
-
 }

@@ -36,7 +36,7 @@ public static class NavigationCalculator {
         var dy = y2 - y1;
 
         if (coordinateSystem == CoordinateSystem.LeftHanded) {
-            // In left-handed system, +X is West.
+            // In the left-handed system, +X is West.
             // Standard Navigation expects +X to be East.
             // So we negate dx to treat it as if +X was East.
             dx = -dx;
@@ -53,10 +53,10 @@ public static class NavigationCalculator {
 
     // private static double ReverseAngle(double angleInDegrees) {
     //     var normalizedAngle = angleInDegrees % 360;
-    //     if (normalizedAngle < 0) normalizedAngle += 360;
+    //     if (normalizedAngle < 0), normalizedAngle += 360;
     //     var reversed = (180 - normalizedAngle) % 360;
     //     reversed = reversed - 90;
-    //     if (reversed < 0) reversed += 360;
+    //     if (reversed < 0), reversed += 360;
     //     return reversed;
     // }
 

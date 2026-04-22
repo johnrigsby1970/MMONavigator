@@ -15,15 +15,15 @@
         
         <TextBlock x:Name="PromptLabel" Text="Enter text:" Margin="0,0,0,5" Foreground="White"/>
         <TextBox x:Name="InputTextBox" Grid.Row="1" VerticalAlignment="Center" 
-                 Background="#3E3E42" Foreground="White" BorderBrush="#555555"
+                 Style="{StaticResource MainTextBoxStyle}"
                  helpers:ClickThroughBehavior.IsEnabled="True"
                  Padding="2" KeyDown="InputTextBox_KeyDown"/>
         
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="OK" Width="75" Margin="0,0,10,0" Click="OkButton_Click" IsDefault="True"
-                    Background="#3E3E42" Foreground="White"/>
+                    Style="{StaticResource MainButtonStyle}"/>
             <Button Content="Cancel" Width="75" Click="CancelButton_Click" IsCancel="True"
-                    Background="#3E3E42" Foreground="White"/>
+                    Style="{StaticResource MainButtonStyle}"/>
         </StackPanel>
     </Grid>
 </controls:ChildWindow>

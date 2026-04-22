@@ -1,0 +1,47 @@
+﻿To help with keyboard passthrough, child windows lose their owner when created. This causes issues when you try to 
+close them because Windows wants to clean up some things, and it cannot get a reference to window handler, there is no 
+owner. There also is no DialogResult. Errors result. To handle this, don't do a normal close and use a different 
+property to track the state of the dialog. Hide the window and then close it on a background thread.
+
+This is the history of going from 
+
+DialogResult = true
+Close()
+
+to what you will see in the code sample below.
+
+private void OkButton_Click(object sender, RoutedEventArgs e) {
+        // //Due to code we are using to handle focus management, WPF can lose track of things. 
+                // //The Fix: "Safe Closing"
+                // //Instead of setting DialogResult = false directly (which triggers the internal DoDialogHide immediately),
+                // //you should dispatch the close operation to the end of the message queue.
+                // //This lets the current mouse/keyboard event finish processing before the window starts its teardown.
+                //
+                // // Instead of: DialogResult = false;
+                //
+                // // Dispatch to the UI thread's next available tick
+                // Dispatcher.BeginInvoke(new Action(() => {
+                //     this.DialogResult = false;
+                // }), System.Windows.Threading.DispatcherPriority.Background);
+        
+                //The stack trace shows the crash happens inside Window.OnDialogCancelCommand().
+                //You should not use the default Cancel button command if you are using custom window styles.
+                //Instead, manually handle the click and close the window yourself,
+                //bypassing the internal WPF command logic entirely.
+                // Clear the owner before closing. 
+                // This stops WPF's internal focus-tracking from trying to "return" focus 
+                // to the owner, which is what triggers the crash.
+                //this.Owner = null; 
+        
+                IsConfirmed = false;
+                ManualDialogResult = false;
+                // 3. Instead of this.Close(), hide the window first to remove it from 
+                // the UI thread's "modal" tracking before the hard-close occurs.
+                Hide(); 
+            
+                // 4. Close the window after a tiny delay so the UI loop finishes 
+                // processing the 'Hide' message before the OS-level 'Close' message.
+                Dispatcher.BeginInvoke(new Action(() => {
+                    Close();
+                }), System.Windows.Threading.DispatcherPriority.Background);
+}

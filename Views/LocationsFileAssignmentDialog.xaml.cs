@@ -9,7 +9,6 @@ using System.Windows.Interop;
 using MMONavigator.Controls;
 using MMONavigator.Models;
 using MMONavigator.Services;
-using MessageBox = System.Windows.MessageBox;
 
 namespace MMONavigator.Views;
 
@@ -91,7 +90,7 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
             var helper = new WindowInteropHelper(helperWindow);
 
             // Show the open file dialog box
-            bool? result = dialog.ShowDialog();
+            var result = dialog.ShowDialog();
 
             // Process open file dialog box results
             if (result == true) {
@@ -125,7 +124,6 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
             // ALWAYS close the helper to prevent memory leaks
             helperWindow?.Close();
             IsDialogActive = false;
-
         }
     }
 
@@ -152,12 +150,12 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
             var helper = new WindowInteropHelper(helperWindow);
             
             // Show the open file dialog box
-            bool? result = dialog.ShowDialog();
+            var result = dialog.ShowDialog();
 
             // Process open file dialog box results
             if (result == true) {
                 // Open document - get the name of the selected file
-                string filename = dialog.FileName;
+                var filename = dialog.FileName;
 
                 if (File.Exists(LocationsPath)) {
                     File.Copy(LocationsPath, filename, true);
@@ -180,17 +178,26 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
             LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
         }
 
-        LoadLocations(LocationsPath);
+        var message = $"Use the locations stored in '{LocationsPath}'.\r\n\r\nDo you want to use the locations stored in this file?";
+        const string caption = "Confirm File Assignment";
+        const MessageBoxButton buttons = MessageBoxButton.YesNo;
+        const MessageBoxImage icon = MessageBoxImage.Question;
+
+        var result = System.Windows.MessageBox.Show(message, caption, buttons, icon);
+
+        // Handle the result
+        if (result == MessageBoxResult.Yes) {
+            LoadLocations(LocationsPath);
+        }
     }
 
     private static string MakeValidFileName(string name) {
-        string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
-        string invalidRegStr = string.Format(@"([{0}]* windfall +$)|([{0}]+)", invalidChars);
+        var invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
+        var invalidRegStr = string.Format(@"([{0}]* windfall +$)|([{0}]+)", invalidChars);
         return Regex.Replace(name, invalidRegStr, "_");
     }
 
     public void LoadLocations(string path) {
-        //MessageBox.Show("Loading locations from " + path);
         if (string.IsNullOrEmpty(path)) {
             if (Profile.Name != "Default") {
                 path = Path.Combine(Helpers.NativeMethods.AppFolder(),
@@ -204,8 +211,8 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
         LocationsPath = path;
 
         if (!File.Exists(path)) return;
-        //MessageBox.Show("Loading locations from " + path);
-        string json = File.ReadAllText(path);
+        
+        var json = File.ReadAllText(path);
         var list = JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
 
         Locations.Clear();
@@ -234,65 +241,30 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) {
-        // // Instead of: DialogResult = true;
-        //
-        // // Dispatch to the UI thread's next available tick
-        // Dispatcher.BeginInvoke(new Action(() => {
-        //     this.DialogResult = true;
-        // }), System.Windows.Threading.DispatcherPriority.Background);
-        // Clear the owner before closing. 
-        // This stops WPF's internal focus-tracking from trying to "return" focus 
-        // to the owner, which is what triggers the crash.
-        //this.Owner = null; 
-
-        this.IsConfirmed = true;
-        this.ManualDialogResult = true;
-// 3. Instead of this.Close(), hide the window first to remove it from 
-        // the UI thread's "modal" tracking before the hard-close occurs.
-        this.Hide(); 
-    
-        // 4. Close the window after a tiny delay so the UI loop finishes 
+        //See notes.txt
+        IsConfirmed = true;
+        ManualDialogResult = true;
+        Hide(); 
+        
+        // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
         Dispatcher.BeginInvoke(new Action(() => {
-            this.Close();
+            Close();
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     public bool IsConfirmed { get; private set; }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
-        // //Due to code we are using to handle focus management, WPF can lose track of things. 
-        // //The Fix: "Safe Closing"
-        // //Instead of setting DialogResult = false directly (which triggers the internal DoDialogHide immediately),
-        // //you should dispatch the close operation to the end of the message queue.
-        // //This lets the current mouse/keyboard event finish processing before the window starts its teardown.
-        //
-        // // Instead of: DialogResult = false;
-        //
-        // // Dispatch to the UI thread's next available tick
-        // Dispatcher.BeginInvoke(new Action(() => {
-        //     this.DialogResult = false;
-        // }), System.Windows.Threading.DispatcherPriority.Background);
+        //See notes.txt
+        IsConfirmed = false;
+        ManualDialogResult = false;
+        Hide(); 
 
-        //The stack trace shows the crash happens inside Window.OnDialogCancelCommand().
-        //You should not use the default Cancel button command if you are using custom window styles.
-        //Instead, manually handle the click and close the window yourself,
-        //bypassing the internal WPF command logic entirely.
-        // Clear the owner before closing. 
-        // This stops WPF's internal focus-tracking from trying to "return" focus 
-        // to the owner, which is what triggers the crash.
-        //this.Owner = null; 
-
-        this.IsConfirmed = false;
-        this.ManualDialogResult = false;
-// 3. Instead of this.Close(), hide the window first to remove it from 
-        // the UI thread's "modal" tracking before the hard-close occurs.
-        this.Hide(); 
-    
-        // 4. Close the window after a tiny delay so the UI loop finishes 
+        // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
         Dispatcher.BeginInvoke(new Action(() => {
-            this.Close();
+            Close();
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
 

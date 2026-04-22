@@ -28,6 +28,11 @@ public static class NativeMethods {
     public const uint SWP_NOMOVE = 0x0002;
     public const uint SWP_NOACTIVATE = 0x0010;
     public const int WS_EX_TRANSPARENT = 0x00000020;
+    public const int WM_MOUSEACTIVATE = 0x0021;
+    public const int MA_NOACTIVATE = 3;
+    public const int WM_ACTIVATE = 0x0006;
+    public const int WA_INACTIVE = 0;
+    public const int WM_CLIPBOARDUPDATE = 0x031D;
     
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();

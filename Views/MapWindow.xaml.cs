@@ -4,11 +4,14 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Threading;
 using MMONavigator.Controls;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.Services;
 using MMONavigator.ViewModels;
+using MessageBox = System.Windows.MessageBox;
+using System.Drawing;
 
 namespace MMONavigator.Views;
 
@@ -22,14 +25,76 @@ public partial class MapWindow : ChildWindow {
     private IntPtr _preDragForegroundWindow;
     private System.Drawing.Point _lastMousePos;
     private System.Windows.Threading.DispatcherTimer? _dragTimer;
+    private DispatcherTimer _hoverTimer;
 
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
         Loaded += MapWindow_Loaded;
         SourceInitialized += MapWindow_SourceInitialized;
+        // Forcefully attach to the main grid
+       // myMapGrid.MouseLeave += Root_MouseLeave;
+        
+        _hoverTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+        _hoverTimer.Tick += HoverTimer_Tick;
+        _hoverTimer.Start();
     }
+    
+    private DateTime _lastMouseOutsideTime = DateTime.MinValue;
 
+    private void HoverTimer_Tick(object sender, EventArgs e)
+    {
+        if (DataContext is MapViewModel vm)
+        {
+            System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
+            var topLeft = this.PointToScreen(new System.Windows.Point(0, 0));
+            var bounds = new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)this.ActualWidth, (int)this.ActualHeight);
+        
+            bool isInside = bounds.Contains(cursor.X, cursor.Y);
+
+            if (isInside)
+            {
+                // Mouse is inside, reset the "outside" timer and set hovered
+                _lastMouseOutsideTime = DateTime.MinValue;
+                if (!vm.IsHovered) vm.IsHovered = true;
+            }
+            else
+            {
+                // Mouse is outside
+                if (_lastMouseOutsideTime == DateTime.MinValue)
+                    _lastMouseOutsideTime = DateTime.Now;
+
+                // Only hide if the mouse has been outside for 300ms
+                //As you drag around the window, the hover state will be maintained for a short period to avoid flickering
+                if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300))
+                {
+                    if (vm.IsHovered) vm.IsHovered = false;
+                }
+            }
+        }
+    }
+    
+    // private void HoverTimer_Tick(object sender, EventArgs e)
+    // {
+    //     if (DataContext is MapViewModel vm)
+    //     {
+    //         // 1. Get global screen position of the mouse
+    //         System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
+    //         
+    //         // 2. Get the screen bounds of this window
+    //         var topLeft = this.PointToScreen(new System.Windows.Point(0, 0));
+    //         var bounds = new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)this.ActualWidth, (int)this.ActualHeight);
+    //         
+    //         // 3. Check if the global cursor is inside the window rectangle
+    //         bool isInside = bounds.Contains(cursor.X, cursor.Y);
+    //         
+    //         // 4. Update VM without relying on events
+    //         if (vm.IsHovered != isInside)
+    //         {
+    //             vm.IsHovered = isInside;
+    //         }
+    //     }
+    // }
     private IntPtr _hwnd;
 
     private void MapWindow_SourceInitialized(object? sender, EventArgs e) {
@@ -77,31 +142,26 @@ public partial class MapWindow : ChildWindow {
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
 
-    private const int WM_MOUSEACTIVATE = 0x0021;
-    private const int MA_NOACTIVATE = 3;
-    private const int WM_ACTIVATE = 0x0006;
-    private const int WA_INACTIVE = 0;
-
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
-        if (msg == WM_MOUSEACTIVATE) {
+        if (msg == NativeMethods.WM_MOUSEACTIVATE) {
             if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
                 // Return MA_NOACTIVATE and set handled = true to prevent stealing focus.
                 handled = true;
-                return (IntPtr)MA_NOACTIVATE;
+                return (IntPtr)NativeMethods.MA_NOACTIVATE;
             }
         }
 
-        if (msg == WM_ACTIVATE) {
-            if ((int)wparam != WA_INACTIVE) {
+        if (msg == NativeMethods.WM_ACTIVATE) {
+            if ((int)wparam != NativeMethods.WA_INACTIVE) {
                 if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
                     System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] MapWindow activated. wparam: {wparam}");
                     // If we are being activated and click-through is on, push focus back to previous window.
 
                     // We try to restore to the window that WAS foreground BEFORE this activation happened.
                     // If we don't have one, we try the window that is currently foreground (if it's not us).
-                    IntPtr foregroundWindow = Helpers.NativeMethods.GetForegroundWindow();
+                    var foregroundWindow = NativeMethods.GetForegroundWindow();
 
-                    IntPtr targetWnd = IntPtr.Zero;
+                    var targetWnd = IntPtr.Zero;
                     if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
                         targetWnd = _preDragForegroundWindow;
                     }
@@ -114,7 +174,7 @@ public partial class MapWindow : ChildWindow {
                     }
 
                     if (targetWnd != IntPtr.Zero && targetWnd != _hwnd) {
-                        Helpers.NativeMethods.SetForegroundWindow(targetWnd);
+                        NativeMethods.SetForegroundWindow(targetWnd);
                     }
 
                     handled = true;
@@ -141,18 +201,65 @@ public partial class MapWindow : ChildWindow {
         }
     }
 
-    private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
-        if (DataContext is MapViewModel vm) {
-            vm.IsHovered = true;
-        }
-    }
-
-    private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
-        if (DataContext is MapViewModel vm) {
-            vm.IsHovered = false;
-        }
-    }
-
+    // private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
+    //     if (DataContext is MapViewModel vm) {
+    //         vm.IsHovered = true;
+    //     }
+    // }
+    //
+    // private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
+    //     if (DataContext is MapViewModel vm) {
+    //         vm.IsHovered = false;
+    //     }
+    // }
+    
+    // private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    // {
+    //     if (DataContext is MapViewModel vm)
+    //     {
+    //         // Get the current position relative to the Window
+    //         var pos = e.GetPosition(this);
+    //     
+    //         // Only set to false if the mouse is ACTUALLY outside the window boundaries
+    //         // This prevents the ContextMenu/Drag glitches
+    //         bool isOutside = pos.X <= 0 || pos.Y <= 0 || pos.X >= ActualWidth || pos.Y >= ActualHeight;
+    //     
+    //         // Add a small buffer or check if a context menu is open
+    //         if (isOutside)
+    //         {
+    //             vm.IsHovered = false;
+    //         }
+    //     }
+    // }
+    //
+    // private void Window_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    // {
+    //     if (DataContext is MapViewModel vm && !vm.IsHovered)
+    //     {
+    //         vm.IsHovered = true;
+    //     }
+    //     // if (DataContext is MapViewModel vm)
+    //     // {
+    //     //     // Check if mouse is actually inside the window boundaries
+    //     //     var pos = e.GetPosition(this);
+    //     //     bool isInside = pos.X >= 0 && pos.Y >= 0 && pos.X <= ActualWidth && pos.Y <= ActualHeight;
+    //     //
+    //     //     // Only update if the state has changed
+    //     //     if (vm.IsHovered != isInside)
+    //     //     {
+    //     //         vm.IsHovered = isInside;
+    //     //     }
+    //     // }
+    // }
+    // private void Root_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    // {
+    //     // The visual check is now unnecessary if we are sure we are 
+    //     // attached to the actual container covering the whole window
+    //     if (DataContext is MapViewModel vm)
+    //     {
+    //         vm.IsHovered = false;
+    //     }
+    // }
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         // Start the timer-based drag instead of DragMove()
         StartManualDrag();
@@ -163,7 +270,7 @@ public partial class MapWindow : ChildWindow {
         // Capture the window we want to return focus to
         if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
             mainVm.Settings.KeyboardClickThrough) {
-            _preDragForegroundWindow = Helpers.NativeMethods.GetForegroundWindow();
+            _preDragForegroundWindow = NativeMethods.GetForegroundWindow();
         }
 
         _lastMousePos = System.Windows.Forms.Cursor.Position;
@@ -181,7 +288,7 @@ public partial class MapWindow : ChildWindow {
 
             // Return focus to the background app
             if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
-                Helpers.NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
+                NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
             }
 
             return;
@@ -193,15 +300,16 @@ public partial class MapWindow : ChildWindow {
         var source = System.Windows.PresentationSource.FromVisual(this);
         if (source == null) return;
 
-        double dpiX = source.CompositionTarget.TransformToDevice.M11;
-        double dpiY = source.CompositionTarget.TransformToDevice.M22;
+        var dpiX = source.CompositionTarget.TransformToDevice.M11;
+        var dpiY = source.CompositionTarget.TransformToDevice.M22;
 
-        this.Left += (currentMousePos.X - _lastMousePos.X) / dpiX;
-        this.Top += (currentMousePos.Y - _lastMousePos.Y) / dpiY;
+        Left += (currentMousePos.X - _lastMousePos.X) / dpiX;
+        Top += (currentMousePos.Y - _lastMousePos.Y) / dpiY;
 
         _lastMousePos = currentMousePos;
     }
 
+    //Normal drag behavior abandoned due to issues related in preventing keys from passing through
     // private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
     //     IntPtr foregroundWindow = IntPtr.Zero;
     //     bool isClickThrough = false;
@@ -243,6 +351,7 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
+        _hoverTimer.Stop();
         Close();
     }
 
@@ -253,9 +362,9 @@ public partial class MapWindow : ChildWindow {
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
 
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog();
-            openFileDialog.Filter =
-                "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp|All files (*.*)|*.*";
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog {
+                Filter = "Image files (*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif)|*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif"
+            };
 
             // Use the native interop handle to ensure the dialog 
             // feels 'attached' to the helper
@@ -266,6 +375,18 @@ public partial class MapWindow : ChildWindow {
                 vm.Settings.ImagePath = openFileDialog.FileName;
                 ClearCalibration(vm.Settings);
                 StatusTextBlock.Text = "Status: Image loaded. Please calibrate.";
+
+                const string message = "Image loaded successfully. Please calibrate the map.\r\n\r\nYou will pick two points on the map and identify their coordinates. With that, the map knows where you are and can show destinations you've stored.\r\n\r\nSee status message for guidance.\r\n\r\nDo you want to go ahead and calibrate at this time?";
+                const string caption = "Image Loaded";
+                const MessageBoxButton buttons = MessageBoxButton.YesNo;
+                const MessageBoxImage icon = MessageBoxImage.Question;
+
+                var result = MessageBox.Show(message, caption, buttons, icon);
+
+                // Handle the result
+                if (result == MessageBoxResult.Yes) {
+                    StartCalibration();
+                }
             }
         }
         finally {
@@ -418,6 +539,10 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void Calibrate_Click(object sender, RoutedEventArgs e) {
+        StartCalibration();
+    }
+
+    private void StartCalibration() {
         _isCalibrating = true;
         _isSettingDestination = false;
         SetDestinationMenuItem.IsChecked = false;
@@ -572,8 +697,8 @@ public partial class MapWindow : ChildWindow {
 
         if (_isDragging) {
             System.Windows.Point currentScrollPoint = e.GetPosition(MapScrollViewer);
-            double deltaX = currentScrollPoint.X - _lastMousePosition.X;
-            double deltaY = currentScrollPoint.Y - _lastMousePosition.Y;
+            var deltaX = currentScrollPoint.X - _lastMousePosition.X;
+            var deltaY = currentScrollPoint.Y - _lastMousePosition.Y;
 
             MapScrollViewer.ScrollToHorizontalOffset(MapScrollViewer.HorizontalOffset - deltaX);
             MapScrollViewer.ScrollToVerticalOffset(MapScrollViewer.VerticalOffset - deltaY);
@@ -622,8 +747,8 @@ public partial class MapWindow : ChildWindow {
 
         System.Windows.Point mousePos = e.GetPosition(MapScrollViewer);
 
-        double relativeMouseX = (mousePos.X + MapScrollViewer.HorizontalOffset) / vm.Settings.ZoomLevel;
-        double relativeMouseY = (mousePos.Y + MapScrollViewer.VerticalOffset) / vm.Settings.ZoomLevel;
+        var relativeMouseX = (mousePos.X + MapScrollViewer.HorizontalOffset) / vm.Settings.ZoomLevel;
+        var relativeMouseY = (mousePos.Y + MapScrollViewer.VerticalOffset) / vm.Settings.ZoomLevel;
 
         vm.Settings.ZoomLevel = newScale;
 
