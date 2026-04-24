@@ -33,47 +33,42 @@ public partial class MapWindow : ChildWindow {
         Loaded += MapWindow_Loaded;
         SourceInitialized += MapWindow_SourceInitialized;
         // Forcefully attach to the main grid
-       // myMapGrid.MouseLeave += Root_MouseLeave;
-        
+        // myMapGrid.MouseLeave += Root_MouseLeave;
+
         _hoverTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _hoverTimer.Tick += HoverTimer_Tick;
         _hoverTimer.Start();
     }
-    
+
     private DateTime _lastMouseOutsideTime = DateTime.MinValue;
 
-    private void HoverTimer_Tick(object sender, EventArgs e)
-    {
-        if (DataContext is MapViewModel vm)
-        {
+    private void HoverTimer_Tick(object sender, EventArgs e) {
+        if (DataContext is MapViewModel vm) {
             System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
             var topLeft = this.PointToScreen(new System.Windows.Point(0, 0));
             var bounds = new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)this.ActualWidth, (int)this.ActualHeight);
-        
+
             bool isInside = bounds.Contains(cursor.X, cursor.Y);
 
-            if (isInside)
-            {
+            if (isInside) {
                 // Mouse is inside, reset the "outside" timer and set hovered
                 _lastMouseOutsideTime = DateTime.MinValue;
                 if (!vm.IsHovered) vm.IsHovered = true;
             }
-            else
-            {
+            else {
                 // Mouse is outside
                 if (_lastMouseOutsideTime == DateTime.MinValue)
                     _lastMouseOutsideTime = DateTime.Now;
 
                 // Only hide if the mouse has been outside for 300ms
                 //As you drag around the window, the hover state will be maintained for a short period to avoid flickering
-                if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300))
-                {
+                if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300)) {
                     if (vm.IsHovered) vm.IsHovered = false;
                 }
             }
         }
     }
-    
+
     // private void HoverTimer_Tick(object sender, EventArgs e)
     // {
     //     if (DataContext is MapViewModel vm)
@@ -212,7 +207,7 @@ public partial class MapWindow : ChildWindow {
     //         vm.IsHovered = false;
     //     }
     // }
-    
+
     // private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     // {
     //     if (DataContext is MapViewModel vm)
@@ -352,6 +347,13 @@ public partial class MapWindow : ChildWindow {
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
         _hoverTimer.Stop();
+        if (DataContext is MapViewModel vm) {
+            if (vm.FogImage != null && !string.IsNullOrEmpty(vm.FogOfWarFilePath)) {
+                ImageHelpers.SaveWriteableBitMap(vm.FogOfWarFilePath, vm.FogImage.Clone());
+            }
+            vm.StopFading();
+        }
+
         Close();
     }
 
@@ -363,7 +365,8 @@ public partial class MapWindow : ChildWindow {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
 
             var openFileDialog = new Microsoft.Win32.OpenFileDialog {
-                Filter = "Image files (*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif)|*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif"
+                Filter =
+                    "Image files (*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif)|*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif"
             };
 
             // Use the native interop handle to ensure the dialog 
@@ -376,7 +379,8 @@ public partial class MapWindow : ChildWindow {
                 ClearCalibration(vm.Settings);
                 StatusTextBlock.Text = "Status: Image loaded. Please calibrate.";
 
-                const string message = "Image loaded successfully. Please calibrate the map.\r\n\r\nYou will pick two points on the map and identify their coordinates. With that, the map knows where you are and can show destinations you've stored.\r\n\r\nSee status message for guidance.\r\n\r\nDo you want to go ahead and calibrate at this time?";
+                const string message =
+                    "Image loaded successfully. Please calibrate the map.\r\n\r\nYou will pick two points on the map and identify their coordinates. With that, the map knows where you are and can show destinations you've stored.\r\n\r\nSee status message for guidance.\r\n\r\nDo you want to go ahead and calibrate at this time?";
                 const string caption = "Image Loaded";
                 const MessageBoxButton buttons = MessageBoxButton.YesNo;
                 const MessageBoxImage icon = MessageBoxImage.Question;
@@ -470,6 +474,7 @@ public partial class MapWindow : ChildWindow {
 
         IsDialogActive = true;
         Window helperWindow = null;
+        var vm = (MapViewModel)DataContext;
 
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
@@ -484,35 +489,22 @@ public partial class MapWindow : ChildWindow {
             var helper = new WindowInteropHelper(helperWindow);
 
             if (openFileDialog.ShowDialog() == true) {
-                var vm = (MapViewModel)DataContext;
+                vm.IsLoadingFile = true;
                 var imagePath = openFileDialog.FileName;
                 var configPath = Path.ChangeExtension(imagePath, ".json");
 
                 if (File.Exists(configPath)) {
                     try {
-                        var json = File.ReadAllText(configPath);
-                        var savedSettings = JsonSerializer.Deserialize<MapSettings>(json);
-                        if (savedSettings != null) {
-                            vm.Settings.ImagePath = imagePath;
-                            vm.Settings.Point1.X = savedSettings.Point1.X;
-                            vm.Settings.Point1.Y = savedSettings.Point1.Y;
-                            vm.Settings.Point1.PixelX = savedSettings.Point1.PixelX;
-                            vm.Settings.Point1.PixelY = savedSettings.Point1.PixelY;
-                            vm.Settings.Point2.X = savedSettings.Point2.X;
-                            vm.Settings.Point2.Y = savedSettings.Point2.Y;
-                            vm.Settings.Point2.PixelX = savedSettings.Point2.PixelX;
-                            vm.Settings.Point2.PixelY = savedSettings.Point2.PixelY;
-                            vm.Settings.IsCalibrated = savedSettings.IsCalibrated;
-                            vm.Settings.ZoomLevel = savedSettings.ZoomLevel;
-                            vm.Settings.ShowLocations = savedSettings.ShowLocations;
-                            vm.Settings.ShowCalibrationMarkers = savedSettings.ShowCalibrationMarkers;
-
+                        var calibrated = vm.LoadImageConfig(imagePath);
+                        
+                        if (calibrated) {
                             Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
                             Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
 
                             Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
                             Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
-
+                            vm.IsLoadingFile = false;
+                            vm.LoadImage();
                             vm.UpdateMarkers();
                             StatusTextBlock.Text = $"Status: Loaded {Path.GetFileName(imagePath)} with config.";
                         }
@@ -535,6 +527,7 @@ public partial class MapWindow : ChildWindow {
             // ALWAYS close the helper to prevent memory leaks
             helperWindow?.Close();
             IsDialogActive = false;
+            vm.IsLoadingFile = false;
         }
     }
 
@@ -681,6 +674,25 @@ public partial class MapWindow : ChildWindow {
 
                     _isCalibrating = false;
                     _calibrationStep = 0;
+
+                    if (vm.MapImage != null && !string.IsNullOrEmpty(vm.MapPath)) {
+                        var mapsDir = Path.Combine(Helpers.NativeMethods.AppFolder(), "maps");
+                        if (!Directory.Exists(mapsDir)) {
+                            Directory.CreateDirectory(mapsDir);
+                        }
+
+                        var newName = Path.GetFileNameWithoutExtension(vm.MapPath);
+
+                        // Remove invalid characters
+                        foreach (char c in Path.GetInvalidFileNameChars()) {
+                            newName = newName.Replace(c, '_');
+                        }
+
+                        var configPath = Path.Combine(mapsDir, newName + ".json");
+                        var json = JsonSerializer.Serialize(vm.Settings);
+                        File.WriteAllText(configPath, json);
+                    }
+
                     StatusTextBlock.Text = "Status: Calibrated";
                 }
                 else {

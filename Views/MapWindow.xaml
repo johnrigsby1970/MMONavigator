@@ -77,20 +77,31 @@ Opacity="1"
                         <Separator Focusable="False" />
                         <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                         <MenuItem Header="Show Calibration Markers" IsCheckable="True" IsChecked="{Binding ShowCalibrationMarkers}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Show Breadcrumbs" IsCheckable="True" IsChecked="{Binding ShowBreadcrumb}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                     </ContextMenu>
                 </Canvas.ContextMenu>
                 <Canvas.LayoutTransform>
                     <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}" ScaleY="{Binding Settings.ZoomLevel}" />
                 </Canvas.LayoutTransform>
-                <Image 
+                <Image  Canvas.ZIndex="0"
+                        Opacity="{Binding EffectiveOpacity}" 
+                        Source="{Binding MapImage}" Stretch="None" Focusable="False"/>
+                <Image  Canvas.ZIndex="10"
+                        Opacity="{Binding EffectiveOpacity}" 
+                        Source="{Binding FogImage}" Stretch="None" Focusable="False"
+                        Visibility="{Binding ShowFogOfWar, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <Image  Canvas.ZIndex="10"
+                        Opacity="{Binding EffectiveOpacity}" 
+                        Source="{Binding BreadcrumbImage}" Stretch="None" Focusable="False"
+                        Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                    Opacity="{Binding EffectiveOpacity}" Source="{Binding MapImage}" Stretch="None" Focusable="False"/>
-                
                 <!-- Position Marker -->
                 <Ellipse x:Name="PulseCircle" Width="12.5" Height="12.5" Stroke="Yellow" StrokeThickness="2"
-                         Visibility="{Binding MarkerVisibility}"
+                         Visibility="{Binding CurrentPositionMarkerVisibility}"
                          Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
-                         Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False">
+                         Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
+                         Canvas.ZIndex="40">
                     <Ellipse.RenderTransform>
                         <ScaleTransform ScaleX="1" ScaleY="1" />
                     </Ellipse.RenderTransform>
@@ -127,9 +138,9 @@ Opacity="1"
                     </Ellipse.Style>
                 </Ellipse>
                 <Ellipse x:Name="PositionMarker" Width="12.5" Height="12.5" Fill="Red" Stroke="White" StrokeThickness="1"
-                         Visibility="{Binding MarkerVisibility}"
+                         Visibility="{Binding CurrentPositionMarkerVisibility}"
                          Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
-                         Margin="-6.25,-6.25" Focusable="False">
+                         Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
                     <Ellipse.RenderTransform>
                          <TranslateTransform X="0" Y="0"/>
                     </Ellipse.RenderTransform>
@@ -138,7 +149,7 @@ Opacity="1"
                 <!-- Heading Arrow -->
                 <Path Data="M 0,-8 L 4,2 L 0,0 L -4,2 Z" Fill="Red" Stroke="White" StrokeThickness="1"
                       Visibility="{Binding HeadingVisibility}"
-                      Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}" Focusable="False">
+                      Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}" Focusable="False" Canvas.ZIndex="40">
                     <Path.RenderTransform>
                         <TransformGroup>
                             <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
@@ -151,7 +162,8 @@ Opacity="1"
                 <Ellipse x:Name="DestinationPulseCircle" Width="12.5" Height="12.5" Stroke="Purple" StrokeThickness="2"
                          Visibility="{Binding TargetMarkerVisibility}"
                          Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
-                         Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False">
+                         Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
+                         Canvas.ZIndex="40">
                     <Ellipse.RenderTransform>
                         <ScaleTransform ScaleX="1" ScaleY="1" />
                     </Ellipse.RenderTransform>
@@ -190,7 +202,7 @@ Opacity="1"
                 <Ellipse x:Name="DestinationMarker" Width="12.5" Height="12.5" Fill="Yellow" Stroke="Black" StrokeThickness="1"
                          Visibility="{Binding TargetMarkerVisibility}"
                          Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
-                         Margin="-6.25,-6.25" Focusable="False">
+                         Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
                     <Ellipse.RenderTransform>
                          <TranslateTransform X="0" Y="0"/>
                     </Ellipse.RenderTransform>

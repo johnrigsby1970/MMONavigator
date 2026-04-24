@@ -76,7 +76,19 @@ public class MapSettings : INotifyPropertyChanged {
         get => _showCalibrationMarkers;
         set { _showCalibrationMarkers = value; OnPropertyChanged(); }
     }
-
+        
+    private bool _showBreadcrumb = true;
+    public bool ShowBreadcrumb {
+        get => _showBreadcrumb;
+        set { _showBreadcrumb = value; OnPropertyChanged(); }
+    }
+    
+    private bool _showFogOfWar = false;
+    public bool ShowFogOfWar {
+        get => _showFogOfWar;
+        set { _showFogOfWar = value; OnPropertyChanged(); }
+    }
+    
     private double _opacity = 1.0;
     public double Opacity {
         get => _opacity;
