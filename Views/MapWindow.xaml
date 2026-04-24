@@ -1,101 +1,120 @@
 ﻿<controls:ChildWindow x:Class="MMONavigator.Views.MapWindow"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:MMONavigator.Views"
-             xmlns:controls="clr-namespace:MMONavigator.Controls"
-             mc:Ignorable="d"
-             Title="Map" Height="600" Width="800"
+                      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                      xmlns:local="clr-namespace:MMONavigator.Views"
+                      xmlns:controls="clr-namespace:MMONavigator.Controls"
+                      mc:Ignorable="d"
+                      Title="Map" Height="600" Width="800"
 
-             WindowStyle="None"
-             AllowsTransparency="True"
-             Topmost="True"
-             Focusable="False"
-Opacity="1"
-             IsHitTestVisible="True"
-             Background="#01000000"
-             >
-    
+                      WindowStyle="None"
+                      AllowsTransparency="True"
+                      Topmost="True"
+                      Focusable="False"
+                      Opacity="1"
+                      IsHitTestVisible="True"
+                      Background="#01000000">
+
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Window.Resources>
     <Grid Name="myMapGrid" Background="Transparent" IsHitTestVisible="True">
         <Grid.RowDefinitions>
-            <RowDefinition Height="30"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="30" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Title Bar -->
-        <Border Grid.Row="0" 
+        <Border Grid.Row="0"
                 Style="{StaticResource MainBorderStyle}"
-                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown" 
-                Visibility="{Binding UIVisibility}" 
+                MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"
+                Visibility="{Binding UIVisibility}"
                 IsHitTestVisible="True"
                 Background="{Binding EffectiveBackgroundBrush}"
-                Focusable="False"/>
-        <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="5,0,0,0" Visibility="{Binding UIVisibility}" Focusable="False">
-            <TextBlock Text="{Binding AppTitle}" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" Focusable="False"/>
+                Focusable="False" />
+        <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal"
+                    HorizontalAlignment="Left" Margin="5,0,0,0" Visibility="{Binding UIVisibility}" Focusable="False">
+            <TextBlock Text="{Binding AppTitle}" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"
+                       Focusable="False" />
         </StackPanel>
-        <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding UIVisibility}" Focusable="False">
-            <Button Content="0" FontFamily="Marlett" Width="30" Click="MinimizeButton_Click" Background="Transparent" Foreground="White" BorderThickness="0" Focusable="False"/>
-            <Button Content="r" FontFamily="Marlett" Width="30" Click="CloseButton_Click" Background="Transparent" Foreground="White" BorderThickness="0" Focusable="False"/>
+        <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Visibility="{Binding UIVisibility}" Focusable="False">
+            <Button Content="0" FontFamily="Marlett" Width="30" Click="MinimizeButton_Click" Background="Transparent"
+                    Foreground="White" BorderThickness="0" Focusable="False" />
+            <Button Content="r" FontFamily="Marlett" Width="30" Click="CloseButton_Click" Background="Transparent"
+                    Foreground="White" BorderThickness="0" Focusable="False" />
         </StackPanel>
 
         <Grid Grid.Row="1" Style="{StaticResource MainGridStyle}" Visibility="{Binding UIVisibility}" Focusable="False">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Focusable="False">
-                <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click" Margin="5,2,5,2" Padding="5,2" Focusable="False"/>
-                <Button Style="{StaticResource CalibrationButtonStyle}" 
-                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"/>
-                <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click" Margin="0,2,5,2" Padding="5,2" 
-                        IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False"/>
-                <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"/>
-                <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" Text="Status: Ready" Focusable="False"/>
+                <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click"
+                        Margin="5,2,5,2" Padding="5,2" Focusable="False" />
+                <Button Style="{StaticResource CalibrationButtonStyle}"
+                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False" />
+                <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click"
+                        Margin="0,2,5,2" Padding="5,2"
+                        IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click"
+                        Margin="0,2,5,2" Padding="5,2" Focusable="False" />
+                <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0"
+                           Text="Status: Ready" Focusable="False" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Focusable="False">
-                <TextBlock Text="{Binding HoverCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11" Margin="0,0,15,0" Focusable="False"/>
-                <TextBlock Text="{Binding CurrentCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11" Focusable="False"/>
+                <TextBlock Text="{Binding HoverCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center"
+                           FontSize="11" Margin="0,0,15,0" Focusable="False" />
+                <TextBlock Text="{Binding CurrentCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center"
+                           FontSize="11" Focusable="False" />
             </StackPanel>
         </Grid>
 
         <!-- Map Area -->
-        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="-1" 
-                 
-                      Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel" Focusable="False">
-            <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}" 
-                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown" 
-                    MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp" 
+        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="-1"
+
+                      Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
+                      Focusable="False">
+            <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}"
+                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
+                    MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
                     MouseMove="MapCanvas_MouseMove"
-            
+
                     Background="{Binding EffectiveTransparentBrush}" Focusable="False">
                 <Canvas.ContextMenu>
                     <ContextMenu Focusable="False">
-                        <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True" Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True"
+                                  Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}"
+                                  Focusable="False" />
+                        <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click"
+                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                         <Separator Focusable="False" />
-                        <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Show Calibration Markers" IsCheckable="True" IsChecked="{Binding ShowCalibrationMarkers}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Show Breadcrumbs" IsCheckable="True" IsChecked="{Binding ShowBreadcrumb}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}" IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}"
+                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Show Calibration Markers" IsCheckable="True"
+                                  IsChecked="{Binding ShowCalibrationMarkers}"
+                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Show Breadcrumbs" IsCheckable="True" IsChecked="{Binding ShowBreadcrumb}"
+                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}"
+                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                     </ContextMenu>
                 </Canvas.ContextMenu>
                 <Canvas.LayoutTransform>
-                    <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}" ScaleY="{Binding Settings.ZoomLevel}" />
+                    <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}"
+                                    ScaleY="{Binding Settings.ZoomLevel}" />
                 </Canvas.LayoutTransform>
-                <Image  Canvas.ZIndex="0"
-                        Opacity="{Binding EffectiveOpacity}" 
-                        Source="{Binding MapImage}" Stretch="None" Focusable="False"/>
-                <Image  Canvas.ZIndex="10"
-                        Opacity="{Binding EffectiveOpacity}" 
-                        Source="{Binding FogImage}" Stretch="None" Focusable="False"
-                        Visibility="{Binding ShowFogOfWar, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <Image  Canvas.ZIndex="10"
-                        Opacity="{Binding EffectiveOpacity}" 
-                        Source="{Binding BreadcrumbImage}" Stretch="None" Focusable="False"
-                        Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
+                <Grid Opacity="{Binding EffectiveOpacity}">
+                    <Image Canvas.ZIndex="0"
+                           Source="{Binding MapImage}" Stretch="None" Focusable="False" />
+                    <Image Canvas.ZIndex="10"
+                           Source="{Binding FogImage}" Stretch="None" Focusable="False"
+                           Visibility="{Binding ShowFogOfWar, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Image Canvas.ZIndex="10"
+                           Source="{Binding BreadcrumbImage}" Stretch="None" Focusable="False"
+                           Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </Grid>
                 <!-- Position Marker -->
                 <Ellipse x:Name="PulseCircle" Width="12.5" Height="12.5" Stroke="Yellow" StrokeThickness="2"
                          Visibility="{Binding CurrentPositionMarkerVisibility}"
@@ -112,20 +131,23 @@ Opacity="1"
                                     <Trigger.EnterActions>
                                         <BeginStoryboard Name="PulseStoryboard">
                                             <Storyboard RepeatBehavior="Forever">
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                <DoubleAnimation
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
                                                     <DoubleAnimation.EasingFunction>
                                                         <QuadraticEase EasingMode="EaseInOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                <DoubleAnimation
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
                                                     <DoubleAnimation.EasingFunction>
                                                         <QuadraticEase EasingMode="EaseInOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
                                                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                 From="1.0" To="0.2" Duration="0:0:1.5" AutoReverse="True" />
+                                                                 From="1.0" To="0.2" Duration="0:0:1.5"
+                                                                 AutoReverse="True" />
                                             </Storyboard>
                                         </BeginStoryboard>
                                     </Trigger.EnterActions>
@@ -137,19 +159,21 @@ Opacity="1"
                         </Style>
                     </Ellipse.Style>
                 </Ellipse>
-                <Ellipse x:Name="PositionMarker" Width="12.5" Height="12.5" Fill="Red" Stroke="White" StrokeThickness="1"
+                <Ellipse x:Name="PositionMarker" Width="12.5" Height="12.5" Fill="Red" Stroke="White"
+                         StrokeThickness="1"
                          Visibility="{Binding CurrentPositionMarkerVisibility}"
                          Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
                          Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
                     <Ellipse.RenderTransform>
-                         <TranslateTransform X="0" Y="0"/>
+                        <TranslateTransform X="0" Y="0" />
                     </Ellipse.RenderTransform>
                 </Ellipse>
-                
+
                 <!-- Heading Arrow -->
                 <Path Data="M 0,-8 L 4,2 L 0,0 L -4,2 Z" Fill="Red" Stroke="White" StrokeThickness="1"
                       Visibility="{Binding HeadingVisibility}"
-                      Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}" Focusable="False" Canvas.ZIndex="40">
+                      Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}" Focusable="False"
+                      Canvas.ZIndex="40">
                     <Path.RenderTransform>
                         <TransformGroup>
                             <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
@@ -174,20 +198,23 @@ Opacity="1"
                                     <Trigger.EnterActions>
                                         <BeginStoryboard Name="DestinationPulseStoryboard">
                                             <Storyboard RepeatBehavior="Forever">
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                <DoubleAnimation
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
                                                     <DoubleAnimation.EasingFunction>
                                                         <QuadraticEase EasingMode="EaseInOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                 From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                <DoubleAnimation
+                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
                                                     <DoubleAnimation.EasingFunction>
                                                         <QuadraticEase EasingMode="EaseInOut" />
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
                                                 <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                 From="1.0" To="0.2" Duration="0:0:1.5" AutoReverse="True" />
+                                                                 From="1.0" To="0.2" Duration="0:0:1.5"
+                                                                 AutoReverse="True" />
                                             </Storyboard>
                                         </BeginStoryboard>
                                     </Trigger.EnterActions>
@@ -199,17 +226,19 @@ Opacity="1"
                         </Style>
                     </Ellipse.Style>
                 </Ellipse>
-                <Ellipse x:Name="DestinationMarker" Width="12.5" Height="12.5" Fill="Yellow" Stroke="Black" StrokeThickness="1"
+                <Ellipse x:Name="DestinationMarker" Width="12.5" Height="12.5" Fill="Yellow" Stroke="Black"
+                         StrokeThickness="1"
                          Visibility="{Binding TargetMarkerVisibility}"
                          Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
                          Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
                     <Ellipse.RenderTransform>
-                         <TranslateTransform X="0" Y="0"/>
+                        <TranslateTransform X="0" Y="0" />
                     </Ellipse.RenderTransform>
                 </Ellipse>
 
                 <!-- Calibration Markers -->
-                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker1" Background="Transparent" Width="30" Height="30" Margin="-15,-15" Focusable="False">
+                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker1" Background="Transparent" Width="30"
+                      Height="30" Margin="-15,-15" Focusable="False">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -224,23 +253,26 @@ Opacity="1"
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-                    <Ellipse Width="10" Height="10" Fill="#E1151D" Stroke="White" StrokeThickness="1" IsHitTestVisible="False" Focusable="False" />
-                    <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
+                    <Ellipse Width="10" Height="10" Fill="#E1151D" Stroke="White" StrokeThickness="1"
+                             IsHitTestVisible="False" Focusable="False" />
+                    <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center"
+                             VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
                     <Grid.ToolTip>
                         <ToolTip>
                             <StackPanel>
-                                <TextBlock FontWeight="Bold" Text="Calibration Point 1"/>
+                                <TextBlock FontWeight="Bold" Text="Calibration Point 1" />
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="X: "/>
-                                    <TextBlock Text="{Binding Settings.Point1.X, StringFormat=F1}"/>
-                                    <TextBlock Text=", Y: " Margin="5,0,0,0"/>
-                                    <TextBlock Text="{Binding Settings.Point1.Y, StringFormat=F1}"/>
+                                    <TextBlock Text="X: " />
+                                    <TextBlock Text="{Binding Settings.Point1.X, StringFormat=F1}" />
+                                    <TextBlock Text=", Y: " Margin="5,0,0,0" />
+                                    <TextBlock Text="{Binding Settings.Point1.Y, StringFormat=F1}" />
                                 </StackPanel>
                             </StackPanel>
                         </ToolTip>
                     </Grid.ToolTip>
                 </Grid>
-                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker2" Background="Transparent" Width="30" Height="30" Margin="-15,-15" Focusable="False">
+                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker2" Background="Transparent" Width="30"
+                      Height="30" Margin="-15,-15" Focusable="False">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -255,17 +287,19 @@ Opacity="1"
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-                    <Ellipse Width="10" Height="10" Fill="Green" Stroke="White" StrokeThickness="1" IsHitTestVisible="False" Focusable="False" />
-                    <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
+                    <Ellipse Width="10" Height="10" Fill="Green" Stroke="White" StrokeThickness="1"
+                             IsHitTestVisible="False" Focusable="False" />
+                    <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center"
+                             VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
                     <Grid.ToolTip>
                         <ToolTip>
                             <StackPanel>
-                                <TextBlock FontWeight="Bold" Text="Calibration Point 2"/>
+                                <TextBlock FontWeight="Bold" Text="Calibration Point 2" />
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="X: "/>
-                                    <TextBlock Text="{Binding Settings.Point2.X, StringFormat=F1}"/>
-                                    <TextBlock Text=", Y: " Margin="5,0,0,0"/>
-                                    <TextBlock Text="{Binding Settings.Point2.Y, StringFormat=F1}"/>
+                                    <TextBlock Text="X: " />
+                                    <TextBlock Text="{Binding Settings.Point2.X, StringFormat=F1}" />
+                                    <TextBlock Text=", Y: " Margin="5,0,0,0" />
+                                    <TextBlock Text="{Binding Settings.Point2.Y, StringFormat=F1}" />
                                 </StackPanel>
                             </StackPanel>
                         </ToolTip>
@@ -273,7 +307,9 @@ Opacity="1"
                 </Grid>
 
                 <!-- Location Indicators -->
-                <ItemsControl Opacity="{Binding EffectiveOpacity}" ItemsSource="{Binding Locations}" Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}" Focusable="False">
+                <ItemsControl Opacity="{Binding EffectiveOpacity}" ItemsSource="{Binding Locations}"
+                              Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
+                              Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Canvas Focusable="False" />
@@ -292,18 +328,21 @@ Opacity="1"
                                   ToolTipService.InitialShowDelay="200"
                                   ToolTipService.ShowDuration="30000"
                                   ToolTipService.BetweenShowDelay="0" Focusable="False">
-                                <Ellipse Width="30" Height="30" Fill="Transparent" Margin="-15,-20,0,0" IsHitTestVisible="True" Focusable="False" />
-                                <Path Data="M 0,0 L -3.5,-5.5 A 4,4 0 1 1 3.5,-5.5 Z M 0,-7.5 A 1.5,1.5 0 1 0 0.0001,-7.5" 
-                                      Fill="#E1151D" Stroke="White" StrokeThickness="1" 
-                                      IsHitTestVisible="False" Focusable="False">
+                                <Ellipse Width="30" Height="30" Fill="Transparent" Margin="-15,-20,0,0"
+                                         IsHitTestVisible="True" Focusable="False" />
+                                <Path
+                                    Data="M 0,0 L -3.5,-5.5 A 4,4 0 1 1 3.5,-5.5 Z M 0,-7.5 A 1.5,1.5 0 1 0 0.0001,-7.5"
+                                    Fill="#E1151D" Stroke="White" StrokeThickness="1"
+                                    IsHitTestVisible="False" Focusable="False">
                                     <Path.RenderTransform>
                                         <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
                                     </Path.RenderTransform>
                                 </Path>
-                                <Ellipse x:Name="TooltipAnchor" Width="1" Height="1" Fill="Transparent" 
+                                <Ellipse x:Name="TooltipAnchor" Width="1" Height="1" Fill="Transparent"
                                          Margin="0,-9.375,0,0" IsHitTestVisible="False" Focusable="False" />
                                 <Grid.ToolTip>
-                                    <ToolTip Content="{Binding Tooltip}" Placement="Top" PlacementTarget="{Binding ElementName=TooltipAnchor}" Focusable="False" />
+                                    <ToolTip Content="{Binding Tooltip}" Placement="Top"
+                                             PlacementTarget="{Binding ElementName=TooltipAnchor}" Focusable="False" />
                                 </Grid.ToolTip>
                             </Grid>
                         </DataTemplate>
@@ -313,14 +352,15 @@ Opacity="1"
         </ScrollViewer>
 
         <!-- Opacity Slider -->
-        <Border Grid.Row="3" 
+        <Border Grid.Row="3"
                 Style="{StaticResource MainBorderStyle}"
-                Padding="10,5,10,5" 
+                Padding="10,5,10,5"
                 Visibility="{Binding UIVisibility}" Focusable="False">
             <StackPanel Orientation="Horizontal" Focusable="False">
-                <TextBlock Text="Opacity" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11" Focusable="False"/>
-                <Slider Width="100" Minimum="0.1" Maximum="1.0" Value="{Binding Opacity}" VerticalAlignment="Center" 
-                        TickFrequency="0.05" IsSnapToTickEnabled="True" Focusable="False"/>
+                <TextBlock Text="Opacity" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"
+                           Focusable="False" />
+                <Slider Width="100" Minimum="0.1" Maximum="1.0" Value="{Binding Opacity}" VerticalAlignment="Center"
+                        TickFrequency="0.05" IsSnapToTickEnabled="True" Focusable="False" />
             </StackPanel>
         </Border>
     </Grid>
