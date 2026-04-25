@@ -99,6 +99,9 @@
                                   IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                         <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}"
                                   IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <!-- <Separator Focusable="False" /> -->
+                        <!-- <MenuItem Header="Create Challenge" IsCheckable="False" IsEnabled="{Binding Settings.IsCalibrated}" -->
+                        <!--           Click="CreateChallenge_Click"></MenuItem> -->
                     </ContextMenu>
                 </Canvas.ContextMenu>
                 <Canvas.LayoutTransform>
@@ -110,7 +113,22 @@
                            Source="{Binding MapImage}" Stretch="None" Focusable="False" />
                     <Image Canvas.ZIndex="10"
                            Source="{Binding FogImage}" Stretch="None" Focusable="False"
-                           Visibility="{Binding ShowFogOfWar, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                           >
+                        <Image.Style>
+                            <Style TargetType="Image">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                            <Condition Binding="{Binding Settings.ShowFogOfWar}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Image.Style>
+                    </Image>
                     <Image Canvas.ZIndex="10"
                            Source="{Binding BreadcrumbImage}" Stretch="None" Focusable="False"
                            Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}" />

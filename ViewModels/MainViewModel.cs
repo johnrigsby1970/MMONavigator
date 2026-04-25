@@ -89,7 +89,7 @@ public class MainViewModel : INotifyPropertyChanged {
         set {
             if (_isSelected != value) {
                 _isSelected = value;
-                OnPropertyChanged(nameof(IsSelected));
+                OnPropertyChanged();
                 // Add logic here to track the single selected item in the main ViewModel
             }
         }
@@ -102,8 +102,10 @@ public class MainViewModel : INotifyPropertyChanged {
         set {
             if (_isExpanded != value) {
                 _isExpanded = value;
-                OnPropertyChanged(nameof(IsExpanded));
+                OnPropertyChanged();
                 // Add logic here to track the single selected item in the main ViewModel
+                // Check if it's actually in the visual tree
+                System.Diagnostics.Debug.WriteLine($"Popup is open: {_isExpanded}");
             }
         }
     }
@@ -435,7 +437,7 @@ public class MainViewModel : INotifyPropertyChanged {
     public ICommand OpenMapCommand { get; }
     public ICommand TimerCommand { get; }
     public ICommand BuyMeACoffeeCommand { get; }
-
+    
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(Settings)) {
             if (_lastWindowHandle != IntPtr.Zero) {
@@ -765,7 +767,8 @@ public class MainViewModel : INotifyPropertyChanged {
             GoDirection = string.Empty;
             LocationTooltip = null;
             DestinationTooltip = null;
-
+            var determineDirection = true;
+            
             if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var current)) {
                 LocationTooltip = FormatTooltip(current);
 
@@ -787,7 +790,7 @@ public class MainViewModel : INotifyPropertyChanged {
                 _lastCoordinateData = current;
             }
             else {
-                return;
+                determineDirection = false;
             }
 
             var targetInput = TargetCoordinates ?? string.Empty;
@@ -799,6 +802,9 @@ public class MainViewModel : INotifyPropertyChanged {
             if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var target)) {
                 DestinationTooltip = FormatTooltip(target);
                 DestinationVisibility = Visibility.Visible;
+                if (_mapViewModel != null) {
+                    _mapViewModel.TargetPosition = target;
+                }
             }
             else {
                 DestinationVisibility = Visibility.Hidden;
@@ -808,6 +814,8 @@ public class MainViewModel : INotifyPropertyChanged {
                 return;
             }
 
+            if (!determineDirection) return;
+            
             Tx = $"x:{target.X}";
             Ty = $"y:{target.Y}";
             Cx = $"x:{current.X}";

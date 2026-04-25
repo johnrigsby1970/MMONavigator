@@ -1,0 +1,413 @@
+<Window x:Class="MMONavigator.Views.ChallengeDesignerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Challenge Designer"
+        Width="1280" Height="820"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource PrimaryBackgroundBrush}">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="BrandingResources.xaml"/>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <Style x:Key="PanelHeaderStyle" TargetType="TextBlock">
+                <Setter Property="Foreground"  Value="{StaticResource TextForegroundBrush}"/>
+                <Setter Property="FontWeight"  Value="SemiBold"/>
+                <Setter Property="FontSize"    Value="13"/>
+                <Setter Property="Padding"     Value="8,6"/>
+                <Setter Property="Background"  Value="{StaticResource BorderBackgroundBrush}"/>
+            </Style>
+
+            <Style x:Key="PropGroupStyle" TargetType="Expander">
+                <Setter Property="Foreground"       Value="{StaticResource TextForegroundBrush}"/>
+                <Setter Property="Background"       Value="{StaticResource PrimaryBackgroundBrush}"/>
+                <Setter Property="BorderBrush"      Value="{StaticResource FormControlBorderBrush}"/>
+                <Setter Property="BorderThickness"  Value="0,0,0,1"/>
+                <Setter Property="Margin"           Value="0,0,0,2"/>
+                <Setter Property="Padding"          Value="4"/>
+            </Style>
+
+            <Style x:Key="PropLabelStyle" TargetType="TextBlock">
+                <Setter Property="Foreground"       Value="{StaticResource TextForegroundBrush}"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin"           Value="0,0,8,0"/>
+            </Style>
+
+            <!-- Toolbar buttons get a bit of padding beyond the base style -->
+            <Style x:Key="TbtnStyle" TargetType="Button" BasedOn="{StaticResource MainButtonStyle}">
+                <Setter Property="Padding" Value="8,4"/>
+                <Setter Property="Margin"  Value="0,0,4,0"/>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Toolbar      -->
+            <RowDefinition Height="*"/>      <!-- Panels       -->
+            <RowDefinition Height="Auto"/>   <!-- Status bar   -->
+        </Grid.RowDefinitions>
+
+        <!-- ══════════════════════════════════════════════════ TOOLBAR -->
+        <Border Grid.Row="0"
+                Background="{StaticResource BorderBackgroundBrush}"
+                BorderBrush="{StaticResource FormControlBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="6,5">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <Button Content="New"    Command="{Binding NewChallengeCommand}"
+                        Style="{StaticResource TbtnStyle}"/>
+                <Button Content="Open…"  Command="{Binding OpenChallengeCommand}"
+                        Style="{StaticResource TbtnStyle}"/>
+                <Button Content="Save"   Command="{Binding SaveChallengeCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Padding="8,4" Margin="0,0,12,0"/>
+
+                <Separator Width="1" Background="{StaticResource FormControlBorderBrush}"
+                           Margin="0,2,12,2"/>
+
+                <Button Content="Add Root"  Command="{Binding AddRootNodeCommand}"
+                        Style="{StaticResource TbtnStyle}"/>
+                <Button Content="Add Child" Command="{Binding AddChildNodeCommand}"
+                        Style="{StaticResource TbtnStyle}"
+                        IsEnabled="{Binding HasSelectedNode}"/>
+                <Button Content="Delete"    Command="{Binding DeleteNodeCommand}"
+                        Style="{StaticResource DeleteButtonStyle}"
+                        Padding="8,4" Margin="0,0,12,0"
+                        IsEnabled="{Binding HasSelectedNode}"/>
+
+                <Separator Width="1" Background="{StaticResource FormControlBorderBrush}"
+                           Margin="0,2,12,2"/>
+
+                <ToggleButton Content="Show Map"
+                              IsChecked="{Binding ShowMiniMap}"
+                              Padding="8,4"
+                              Background="{StaticResource ButtonBackgroundBrush}"
+                              Foreground="{StaticResource ButtonForegroundBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ══════════════════════════════════════════════ THREE PANELS -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="260" MinWidth="180"/>  <!-- Tree         -->
+                <ColumnDefinition Width="5"/>                    <!-- Splitter 1   -->
+                <ColumnDefinition Width="*"   MinWidth="380"/>  <!-- Properties   -->
+                <ColumnDefinition Width="Auto"/>                 <!-- Splitter 2 (collapses with map) -->
+                <ColumnDefinition Width="Auto"/>                 <!-- Mini-map (collapses when hidden) -->
+            </Grid.ColumnDefinitions>
+
+            <!-- ─────────────────────────────── LEFT: Challenge Tree -->
+            <Border Grid.Column="0"
+                    BorderBrush="{StaticResource FormControlBorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Challenge Structure"
+                               Style="{StaticResource PanelHeaderStyle}"/>
+
+                    <TreeView Grid.Row="1"
+                              x:Name="ChallengeTree"
+                              ItemsSource="{Binding RootNodes}"
+                              Background="{StaticResource PrimaryBackgroundBrush}"
+                              BorderThickness="0"
+                              Foreground="{StaticResource TextForegroundBrush}"
+                              AllowDrop="True"
+                              SelectedItemChanged="ChallengeTree_SelectedItemChanged">
+
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                <Setter Property="IsSelected" Value="{Binding IsSelected,  Mode=TwoWay}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextForegroundBrush}"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Padding"    Value="2,3"/>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border CornerRadius="2" Background="CornflowerBlue"
+                                            Padding="3,1" Margin="0,0,4,0"
+                                            Visibility="{Binding Specs.IsStartLocation,
+                                                         Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="START" FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                    <Border CornerRadius="2" Background="Gold"
+                                            Padding="3,1" Margin="0,0,4,0"
+                                            Visibility="{Binding Specs.IsEndLocation,
+                                                         Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="END" FontSize="9" FontWeight="Bold" Foreground="#2D2D30"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding DisplayName}"
+                                               Foreground="{StaticResource TextForegroundBrush}"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="5"
+                          HorizontalAlignment="Stretch"
+                          Background="{StaticResource BorderBackgroundBrush}"/>
+
+            <!-- ────────────────────────── CENTER: Property Grid -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Node context header -->
+                <Border Grid.Row="0"
+                        Background="{StaticResource BorderBackgroundBrush}"
+                        BorderBrush="{StaticResource FormControlBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="8,6">
+                    <TextBlock Foreground="{StaticResource TextForegroundBrush}"
+                               FontWeight="SemiBold" FontSize="13"
+                               Text="{Binding SelectedNode.DisplayName,
+                                      FallbackValue='No node selected',
+                                      StringFormat='Editing: {0}'}"/>
+                </Border>
+
+                <!-- Empty state — shown when nothing is selected -->
+                <Border Grid.Row="1"
+                        Background="{StaticResource PrimaryBackgroundBrush}"
+                        Visibility="{Binding EmptyStateVisibility}">
+                    <TextBlock Text="Select a node in the tree to edit its properties."
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{StaticResource FormControlBorderBrush}"
+                               FontSize="14"/>
+                </Border>
+
+                <!-- Property group panels -->
+                <ScrollViewer Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,4"
+                              Visibility="{Binding HasSelectedNode, Converter={StaticResource BoolToVis}}">
+
+                    <!-- DataContext set to the selected ChallengeSpecs for concise bindings -->
+                    <StackPanel DataContext="{Binding SelectedNode.Specs}">
+
+                        <!-- ── Identity ─────────────────────────────────── -->
+                        <Expander Header="Identity" IsExpanded="True"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <Grid Margin="12,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="130"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Name"
+                                           Style="{StaticResource PropLabelStyle}"/>
+                                <TextBox   Grid.Row="0" Grid.Column="1" Margin="0,2"
+                                           Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                                           Style="{StaticResource MainTextBoxStyle}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Type"
+                                           Style="{StaticResource PropLabelStyle}"/>
+                                <TextBox   Grid.Row="1" Grid.Column="1" Margin="0,2"
+                                           Text="{Binding Type, UpdateSourceTrigger=PropertyChanged}"
+                                           Style="{StaticResource MainTextBoxStyle}"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Location ID"
+                                           Style="{StaticResource PropLabelStyle}"/>
+                                <TextBox   Grid.Row="2" Grid.Column="1" Margin="0,2"
+                                           Text="{Binding LocationId, UpdateSourceTrigger=PropertyChanged}"
+                                           IsEnabled="False"
+                                           Style="{StaticResource MainTextBoxStyle}"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Description"
+                                           Style="{StaticResource PropLabelStyle}"
+                                           VerticalAlignment="Top" Margin="0,5,8,0"/>
+                                <TextBox   Grid.Row="3" Grid.Column="1" Margin="0,2"
+                                           Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                           Style="{StaticResource MainTextBoxStyle}"
+                                           TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60"/>
+                            </Grid>
+                        </Expander>
+
+                        <!-- ── Location & Coordinates ─────────────────────── -->
+                        <Expander Header="Location &amp; Coordinates"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Coordinates picker — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Flow & Prerequisites ──────────────────────── -->
+                        <Expander Header="Flow &amp; Prerequisites"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Flow properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Hints ─────────────────────────────────────── -->
+                        <Expander Header="Hints"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Hint properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Triggers & Timing ─────────────────────────── -->
+                        <Expander Header="Triggers &amp; Timing"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Trigger properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Heartbeat ──────────────────────────────────── -->
+                        <Expander Header="Heartbeat"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Heartbeat properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Movement & Constraints ─────────────────────── -->
+                        <Expander Header="Movement &amp; Constraints"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Movement properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Visibility & State ─────────────────────────── -->
+                        <Expander Header="Visibility &amp; State"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(State flags — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Sounds ─────────────────────────────────────── -->
+                        <Expander Header="Sounds"
+                                  Style="{StaticResource PropGroupStyle}">
+                            <TextBlock Text="(Sound properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                        <!-- ── Challenge Outcome (end nodes only) ────────── -->
+                        <Expander Header="Challenge Outcome"
+                                  Style="{StaticResource PropGroupStyle}"
+                                  Visibility="{Binding IsEndLocation,
+                                               Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="(Outcome properties — next iteration)"
+                                       Foreground="{StaticResource FormControlBorderBrush}"
+                                       Margin="12,8"/>
+                        </Expander>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Splitter before mini-map — hides with the map panel -->
+            <GridSplitter Grid.Column="3" Width="5"
+                          HorizontalAlignment="Stretch"
+                          Background="{StaticResource BorderBackgroundBrush}"
+                          Visibility="{Binding ShowMiniMap, Converter={StaticResource BoolToVis}}"/>
+
+            <!-- ──────────────────────── RIGHT: Mini-map (toggleable) -->
+            <!-- Fixed-width Border inside an Auto column; collapse = 0px column -->
+            <Border Grid.Column="4"
+                    Width="300"
+                    BorderBrush="{StaticResource FormControlBorderBrush}"
+                    BorderThickness="1,0,0,0"
+                    Background="{StaticResource BorderBackgroundBrush}"
+                    Visibility="{Binding ShowMiniMap, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Map Preview"
+                               Style="{StaticResource PanelHeaderStyle}"/>
+
+                    <!-- Map image placeholder -->
+                    <Border Grid.Row="1" Background="#1A1A1A" Margin="4">
+                        <TextBlock Text="Map preview&#x0a;(next iteration)"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{StaticResource FormControlBorderBrush}"
+                                   TextAlignment="Center"/>
+                    </Border>
+
+                    <!-- Coordinate readout & destination picker -->
+                    <StackPanel Grid.Row="2" Margin="8,4,8,8">
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="X:" Style="{StaticResource PropLabelStyle}"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding SelectedNode.Specs.Coordinates.X, FallbackValue=''}"
+                                     Style="{StaticResource MainTextBoxStyle}"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Y:" Style="{StaticResource PropLabelStyle}"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding SelectedNode.Specs.Coordinates.Y, FallbackValue=''}"
+                                     Style="{StaticResource MainTextBoxStyle}"/>
+                        </Grid>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="30"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Z:" Style="{StaticResource PropLabelStyle}"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding SelectedNode.Specs.Coordinates.Z, FallbackValue=''}"
+                                     Style="{StaticResource MainTextBoxStyle}"/>
+                        </Grid>
+                        <Button Content="Pick from Destinations"
+                                Command="{Binding PickFromDestinationsCommand}"
+                                Style="{StaticResource MainButtonStyle}"
+                                Padding="8,4" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ══════════════════════════════════════════════ STATUS BAR -->
+        <StatusBar Grid.Row="2"
+                   Background="{StaticResource BorderBackgroundBrush}"
+                   Foreground="{StaticResource TextForegroundBrush}">
+            <StatusBarItem Content="{Binding CurrentFileName, FallbackValue='No file loaded'}"/>
+            <Separator/>
+            <StatusBarItem Content="{Binding NodeCount, StringFormat='{}{0} nodes'}"/>
+            <Separator/>
+            <StatusBarItem Content="{Binding StatusMessage}"/>
+        </StatusBar>
+    </Grid>
+</Window>

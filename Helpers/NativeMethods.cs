@@ -63,6 +63,7 @@ public static class NativeMethods {
     [DllImport("user32.dll")]
     public static extern bool TrackMouseEvent(ref TRACKMOUSEEVENT lpEventTrack);
 
+    
     [StructLayout(LayoutKind.Sequential)]
     public struct TRACKMOUSEEVENT
     {
@@ -76,5 +77,14 @@ public static class NativeMethods {
         string exePath = Process.GetCurrentProcess().MainModule.FileName;
         string exeFolder = Path.GetDirectoryName(exePath);   
         return exeFolder;
+    }
+    
+    public static void SetClickThrough(IntPtr hwnd, bool isClickThrough)
+    {
+        int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        if (isClickThrough)
+            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT);
+        else
+            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_TRANSPARENT);
     }
 }

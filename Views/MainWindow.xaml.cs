@@ -1,9 +1,12 @@
 ﻿using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Interop;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.ViewModels;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace MMONavigator.Views;
 
@@ -108,6 +111,21 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
+    
+    // protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    // {
+    //     base.OnPreviewMouseDown(e);
+    //
+    //     // Check if the click is outside the popup
+    //     if (LocationPopup.IsOpen && !LocationPopup.IsMouseOver)
+    //     {
+    //         // Force the popup to close
+    //         LocationPopup.IsOpen = false;
+    //     
+    //         // Ensure the click passes through to the game if desired
+    //         // You may need a Native Win32 call if the hit-test is blocked
+    //     }
+    // }
     
     #region Title Bar
 
@@ -235,62 +253,31 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
     
-    //code pertaining to trying to get popup list to allow keyboard navigation using only certain keys, while others pass through.
-    // private HwndSource _popupHwndSource;
-    // private void Popup_Opened(object sender, EventArgs e)
-    // {
-    //     if (sender is Popup popup && popup.Child != null)
-    //     {
-    //         var hwnd = ((HwndSource)PresentationSource.FromVisual(popup.Child)).Handle;
-    //     
-    //         // 1. Hook the popup's message loop so we can intercept mouse clicks
-    //         _popupHwndSource = HwndSource.FromHwnd(hwnd);
-    //         _popupHwndSource.AddHook(PopupHwndHandler);
-    //     }
-    // }
-    //
-    // private IntPtr PopupHwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled)
-    // {
-    //     // WM_MOUSEACTIVATE = 0x0021
-    //     if (msg == 0x0021)
-    //     {
-    //         handled = true;
-    //         // MA_NOACTIVATE (3): Allow the mouse click, but do NOT take focus
-    //         return (IntPtr)3; 
-    //     }
-    //     return IntPtr.Zero;
-    // }
-    //
-    // private void Popup_Closed(object sender, EventArgs e)
-    // {
-    //     // Clean up the hook so we don't leak memory
-    //     _popupHwndSource?.RemoveHook(PopupHwndHandler);
-    //     _popupHwndSource = null;
-    // }
-    //
-    // private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-    // {
-    //     // If the popup is open, intercept the arrow keys
-    //     if (LocationPopup.IsOpen)
-    //     {
-    //         if (e.Key == Key.Up || e.Key == Key.Down || e.Key == Key.Enter)
-    //         {
-    //             // Manually route the key to the TreeView
-    //             var treeView = LocationPopup.Child as ExtendedTreeView;
-    //         
-    //             // Create a new KeyEventArgs to 'replay' the key press into the tree
-    //             var routedEvent = Keyboard.KeyDownEvent;
-    //             var newArgs = new System.Windows.Input.KeyEventArgs(e.KeyboardDevice, e.InputSource, e.Timestamp, e.Key) 
-    //             { 
-    //                 RoutedEvent = routedEvent 
-    //             };
-    //         
-    //             treeView.RaiseEvent(newArgs);
-    //         
-    //             // Mark as handled so the game doesn't see the arrow keys
-    //             e.Handled = true;
-    //         }
-    //     }
-    // }
     #endregion
+    
+    private void ToggleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (myGrid.DataContext is MainViewModel vm)
+        {
+            // Simply flip the state
+            vm.IsExpanded = !vm.IsExpanded;
+            System.Diagnostics.Debug.WriteLine($"ToggleButton_Click");
+        }
+    }
+    
+    private void LocationPopup_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        // 1. Force the entire app to the foreground so WPF wakes up
+        NativeMethods.SetForegroundWindow(_hwnd);
+
+        // 2. Clear focus from whatever might be blocking
+        Keyboard.ClearFocus();
+
+        // 3. Force focus specifically to the TreeView
+        LocationTree.Focus();
+    
+        // 4. Force a re-evaluation of the binding if it feels "stuck"
+        // Using CommandManager causes WPF to re-evaluate all CanExecute/Bindings
+        CommandManager.InvalidateRequerySuggested();
+    }
 }

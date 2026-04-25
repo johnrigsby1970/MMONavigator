@@ -202,25 +202,49 @@
                          ToolTip="{Binding DestinationTooltip}"
                          helpers:ClickThroughBehavior.IsEnabled="True"
                          />
+                
+                <!-- <Button Width="25" Height="25" -->
+                <!--         Background="Transparent" -->
+                <!--         BorderThickness="0" -->
+                <!--         Click="ToggleButton_Click" -->
+                <!--         Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}"> -->
+                <!-- -->
+                <!--     <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="10pt" -->
+                <!--                Background="white" -->
+                <!--                Foreground="black" HorizontalAlignment="Center" VerticalAlignment="Center"/> -->
+                <!-- -->
+                <!--     <Button.Template> -->
+                <!--         <ControlTemplate TargetType="Button"> -->
+                <!--             <ContentPresenter/> -->
+                <!--         </ControlTemplate> -->
+                <!--     </Button.Template> -->
+                <!-- </Button> -->
+                
                 <!--https://stackoverflow.com/questions/722700/wpf-treeview-inside-a-combobox-->
                 <Expander Width="25" Height="25"
-                          Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}" 
+                          IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                          Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
                           >
                     <Expander.Header>
-                        <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="10pt" 
+                        <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="10pt"
                                    Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
                                    Margin="-2,0,0,0"/>
                     </Expander.Header>
                     <Popup 
                         x:Name="LocationPopup"
+                        FocusManager.IsFocusScope="True"
+                        Focusable="True"
                         PlacementTarget="{Binding ElementName=TargetCoordinates}"
-                        IsOpen="{Binding IsExpanded, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type Expander}}}"
-                        StaysOpen="False"
+
+                        IsOpen="{Binding IsExpanded}"
+                        StaysOpen="True"
+                        Placement="Bottom"
+                        AllowsTransparency="True"
                         Margin="1,1,1,1"
                         Width="200"
-            
                         >
                         <mmoNavigator:ExtendedTreeView 
+                            x:Name="LocationTree"
                             ItemsSource="{Binding Locations}" 
                             SelectedItem_="{Binding SelectedLocation, Mode=TwoWay}" 
                             Margin="1,1,1,1"
@@ -231,8 +255,7 @@
                                     
                                     <!-- Bind the IsSelected property of the TreeViewItem to a property on your ViewModel item -->
                                     <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
-                                    <!-- You can also bind IsExpanded this way -->
-                                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                 
                                 </Style>
                             </TreeView.ItemContainerStyle>
                             <TreeView.Resources>

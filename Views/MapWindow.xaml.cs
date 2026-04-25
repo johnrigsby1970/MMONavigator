@@ -17,6 +17,7 @@ namespace MMONavigator.Views;
 
 public partial class MapWindow : ChildWindow {
     private bool _isCalibrating;
+    private bool? _savedFogSettings;
     private bool _isSettingDestination;
     private bool _isAddingPin;
     private int _calibrationStep;
@@ -376,6 +377,7 @@ public partial class MapWindow : ChildWindow {
             if (openFileDialog.ShowDialog() == true) {
                 var vm = (MapViewModel)DataContext;
                 vm.Settings.ImagePath = openFileDialog.FileName;
+                vm.LoadImage();
                 ClearCalibration(vm.Settings);
                 StatusTextBlock.Text = "Status: Image loaded. Please calibrate.";
 
@@ -532,10 +534,34 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void Calibrate_Click(object sender, RoutedEventArgs e) {
+        if (_isCalibrating) {
+            CancelCalibration();
+            return;
+        }
         StartCalibration();
     }
 
+    private void CancelCalibration() {
+        if (_isCalibrating) {
+            if (_savedFogSettings.HasValue) {
+                var vm = (MapViewModel)DataContext;
+                vm.ShowFogOfWar = _savedFogSettings.Value;
+                _savedFogSettings = null;
+            }
+            _isCalibrating = false;
+            _isSettingDestination = false;
+            SetDestinationMenuItem.IsChecked = false;
+            _isAddingPin = false;
+            AddPinMenuItem.IsChecked = false;
+            _calibrationStep = 0;
+            StatusTextBlock.Text = "Status: Calibration Cancelled";
+        }
+    }
+    
     private void StartCalibration() {
+        var vm = (MapViewModel)DataContext;
+        _savedFogSettings = vm.ShowFogOfWar;
+        vm.ShowFogOfWar = false;
         _isCalibrating = true;
         _isSettingDestination = false;
         SetDestinationMenuItem.IsChecked = false;
@@ -556,6 +582,10 @@ public partial class MapWindow : ChildWindow {
         else {
             StatusTextBlock.Text = "Status: Ready";
         }
+    }
+
+    private void CreateChallenge_Click(object sender, RoutedEventArgs e) {
+        new ChallengeDesignerWindow().Show();
     }
 
     private void AddPin_Click(object sender, RoutedEventArgs e) {
@@ -672,6 +702,10 @@ public partial class MapWindow : ChildWindow {
                     vm.Settings.IsCalibrated = true;
                     vm.UpdateMarkers();
 
+                    if (_savedFogSettings.HasValue) {
+                        vm.ShowFogOfWar = _savedFogSettings.Value;
+                        _savedFogSettings = null;
+                    }
                     _isCalibrating = false;
                     _calibrationStep = 0;
 

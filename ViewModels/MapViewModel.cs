@@ -74,7 +74,7 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public bool ShowBreadcrumb {
-        get => _settings.ShowBreadcrumb && BreadcrumbImage!=null;
+        get =>  _settings.IsCalibrated && _settings.ShowBreadcrumb && BreadcrumbImage!=null;
         set {
             if (_settings.ShowBreadcrumb != value) {
                 _settings.ShowBreadcrumb = value;
@@ -578,14 +578,15 @@ public class MapViewModel : INotifyPropertyChanged {
             }
             catch (Exception ex) {
                 Settings.ImagePath = imagePath;
+                Settings.IsCalibrated = false;
                 calibrated = false;
             }
         }
         else {
             Settings.ImagePath = imagePath;
+            Settings.IsCalibrated = false;
             calibrated = false;
         }
-
         return calibrated;
     }
 
