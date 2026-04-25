@@ -51,14 +51,20 @@
         <Grid Grid.Row="1" Style="{StaticResource MainGridStyle}" Visibility="{Binding UIVisibility}" Focusable="False">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Focusable="False">
                 <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click"
-                        Margin="5,2,5,2" Padding="5,2" Focusable="False" />
+                        Margin="5,2,5,2" Padding="5,2" Focusable="False" 
+                        ToolTip="Select a new map image to use in the game."
+                        />
                 <Button Style="{StaticResource CalibrationButtonStyle}"
-                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False" />
+                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False" ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates." />
                 <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click"
                         Margin="0,2,5,2" Padding="5,2"
+                        ToolTip="Save a calibrated map so that you can select it again in the future."
                         IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                 <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click"
-                        Margin="0,2,5,2" Padding="5,2" Focusable="False" />
+                        Margin="0,2,5,2" Padding="5,2" Focusable="False"
+                        ToolTip="Load a saved calibrated map. To create a new map, use the 'Pick Image' button."
+
+                        />
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0"
                            Text="Status: Ready" Focusable="False" />
             </StackPanel>
@@ -69,9 +75,9 @@
                            FontSize="11" Focusable="False" />
             </StackPanel>
         </Grid>
-
+<Grid Grid.Row="2">
         <!-- Map Area -->
-        <ScrollViewer x:Name="MapScrollViewer" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="-1"
+        <ScrollViewer x:Name="MapScrollViewer" Panel.ZIndex="-1"
 
                       Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
@@ -367,8 +373,54 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Canvas>
-        </ScrollViewer>
 
+        </ScrollViewer>
+        <!-- Watermark Layer -->
+        <TextBlock Text="NOT CALIBRATED"
+
+                   FontSize="40"
+
+                   Foreground="LightGray"
+
+                   Opacity="0.3"
+
+                   HorizontalAlignment="Center"
+
+                   VerticalAlignment="Center"
+
+                   IsHitTestVisible="False"
+
+        >
+
+            <TextBlock.Style>
+
+                <Style TargetType="TextBlock">
+
+                    <Setter Property="Visibility" Value="Visible" />
+
+                    <Style.Triggers>
+
+                        <MultiDataTrigger>
+
+                            <MultiDataTrigger.Conditions>
+
+                                <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+
+                            </MultiDataTrigger.Conditions>
+
+                            <Setter Property="Visibility" Value="Collapsed" />
+
+                        </MultiDataTrigger>
+
+                    </Style.Triggers>
+
+                </Style>
+
+            </TextBlock.Style>
+
+
+        </TextBlock>
+</Grid>
         <!-- Opacity Slider -->
         <Border Grid.Row="3"
                 Style="{StaticResource MainBorderStyle}"
