@@ -43,9 +43,11 @@
                    Fill="{StaticResource TitleBar}"
                    MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
         </Rectangle>
-        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Height="{StaticResource StandardRowHeight}"
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
+              Height="{StaticResource StandardRowHeight}"
               VerticalAlignment="Top" Background="Transparent"
-              MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
+              MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave"
+              MouseLeftButtonUp="Close_Popup">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                 <!-- <Button x:Name="dragbutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue" -->
                 <!--         helpers:DragWindowBehavior.IsEnabled="True" -->
@@ -61,7 +63,7 @@
                                FontWeight="ExtraBold" 
                                FontSize="12pt" 
                                Background="CornflowerBlue"
-
+                                MouseLeftButtonDown="Close_Popup"
       
                                ToolTip="Drag Window"
                                Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -71,6 +73,7 @@
                         FontSize="12pt"
                         ToolTip="Open Map" FontWeight="ExtraBold"
                         Command="{Binding OpenMapCommand}"
+                        MouseLeftButtonDown="Close_Popup"
                         Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
                 <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
@@ -276,6 +279,7 @@
                         Content="&#xE710;" 
                         FontFamily="Segoe MDL2 Assets" 
                         ToolTip="Remember Destination" FontWeight="ExtraBold"
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Command="{Binding AddLocationCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
@@ -283,6 +287,7 @@
                 <Button Width="20" Height="20" Margin="3,0,0,0" 
                         Content="&#xE70F;"
                         FontFamily="Segoe MDL2 Assets" 
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         ToolTip="Edit Destination" FontWeight="ExtraBold"
                         Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Command="{Binding EditLocationCommand}" Style="{StaticResource PrimaryButtonStyle}">
@@ -290,7 +295,8 @@
 
                 <Button Width="20" Height="20" Margin="3,0,0,0"
                         Content="&#xE74D;"
-                        FontFamily="Segoe MDL2 Assets" 
+                        FontFamily="Segoe MDL2 Assets"
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         ToolTip="Forget Destination" FontWeight="ExtraBold"
                         Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
                         Command="{Binding RemoveLocationCommand}" Style="{StaticResource DeleteButtonStyle}">
@@ -299,6 +305,7 @@
                 <Button Width="20" Height="20" Margin="3,0,0,0"
                         Content="&#xE8E5;"
                         FontFamily="Segoe MDL2 Assets" 
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         ToolTip="Select Locations File" FontWeight="ExtraBold"
                         Command="{Binding SelectLocationFileCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
@@ -333,6 +340,7 @@
                 <Button Width="20" Height="20" Margin="3" 
                         Content="&#xF272;"
                         FontFamily="Segoe MDL2 Assets" 
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         ToolTip="Copy Location to Destination" FontWeight="ExtraBold"
                         Command="{Binding CopyLocationToDestinationCommand}" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
@@ -340,6 +348,7 @@
                 <Button Width="20" Height="20" Margin="0,3,3,3"
                         Content="&#xE77B;"
                         FontFamily="Segoe MDL2 Assets" 
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         ToolTip="Configure Location Watcher" FontWeight="ExtraBold"
                         Click="ConfigureWatcher_Click" Style="{StaticResource PrimaryButtonStyle}">
                 </Button>
@@ -352,6 +361,7 @@
                 <Button Width="60" Height="24"  Margin="13,3,3,3"
                         Background="{Binding Timer5.Background}"
                         Foreground="{Binding Timer5.Foreground}"
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
@@ -362,6 +372,7 @@
                 <Button Width="60" Height="24" Margin="3"
                         Background="{Binding Timer10.Background}"
                         Foreground="{Binding Timer10.Foreground}"
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         Command="{Binding TimerCommand}" CommandParameter="{Binding Timer10}" FontWeight="Bold">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
@@ -372,6 +383,7 @@
                 <Button Width="60" Height="24" Margin="3"
                         Background="{Binding Timer15.Background}"
                         Foreground="{Binding Timer15.Foreground}"
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         Command="{Binding TimerCommand}" CommandParameter="{Binding Timer15}" FontWeight="Bold">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
@@ -382,6 +394,8 @@
                 <Button Width="60" Height="24" Margin="3"
                         Background="{Binding Timer20.Background}"
                         Foreground="{Binding Timer20.Foreground}"
+                        
+                        PreviewMouseLeftButtonDown="Close_Popup"
                         Command="{Binding TimerCommand}" CommandParameter="{Binding Timer20}" FontWeight="Bold">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"

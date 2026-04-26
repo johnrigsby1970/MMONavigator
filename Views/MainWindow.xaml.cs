@@ -156,10 +156,12 @@ public partial class MainWindow : Window, IWindowHandleProvider {
 
     private void HideShowSettings_Click(object sender, RoutedEventArgs e) {
         ToggleSettings();
+        Close_Popup(sender, e);
     }
 
     private void HideShowTimers_Click(object sender, RoutedEventArgs e) {
         ToggleTimers();
+        Close_Popup(sender, e);
     }
 
     private void ToggleSettings() {
@@ -207,6 +209,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
     
     private void ToggleVisibityButton_Click(object sender, RoutedEventArgs e) {
+        Close_Popup(sender, e);
         _viewModel.MainContentVisibility=!_viewModel.MainContentVisibility;
         togglebutton.ToolTip = _viewModel.MainContentVisibility ? "Hide Directions" : "Show Directions";
     }
@@ -245,6 +248,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
+        Close_Popup(sender, e);
         Hide();
         // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
@@ -262,6 +266,16 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             // Simply flip the state
             vm.IsExpanded = !vm.IsExpanded;
             System.Diagnostics.Debug.WriteLine($"ToggleButton_Click");
+        }
+    }
+    
+    private void Close_Popup(object sender, RoutedEventArgs e)
+    {
+        if (myGrid.DataContext is MainViewModel vm)
+        {
+            // Simply flip the state
+            vm.IsExpanded = false;
+            System.Diagnostics.Debug.WriteLine($"TitleBar_MouseLeftButtonUp");
         }
     }
     
