@@ -82,7 +82,7 @@
                       Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
                       Focusable="False">
-            <Canvas x:Name="MapCanvas" Width="{Binding MapImage.PixelWidth}" Height="{Binding MapImage.PixelHeight}"
+            <Canvas x:Name="MapCanvas" Width="{Binding MapImage.Width}" Height="{Binding MapImage.Height}"
                     MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
                     MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
                     MouseMove="MapCanvas_MouseMove"

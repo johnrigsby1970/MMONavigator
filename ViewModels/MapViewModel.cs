@@ -869,7 +869,16 @@ public class MapViewModel : INotifyPropertyChanged {
             double py = py1 - rotY * scale;
 
             //Given the size of the image, is the coordinate even on the map?
-            if (px >= -10 && px <= MapImage.PixelWidth + 10 && py >= -10 && py <= MapImage.PixelHeight + 10) {
+            // if (px >= -10 && px <= MapImage.PixelWidth + 10 && py >= -10 && py <= MapImage.PixelHeight + 10) {
+            //     return (px, py, Visibility.Visible);
+            // }
+            // else {
+            //     return (0, 0, Visibility.Collapsed);
+            // }
+            //Due to DPI of 72 the PizelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
+            //Maybe if we were writing to the image file itself it would be different. This clears a bug where it was
+            //getting the right coordinates but deciding that the coordinates didnt fit on the image.
+            if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
                 return (px, py, Visibility.Visible);
             }
             else {
@@ -993,6 +1002,7 @@ public class MapViewModel : INotifyPropertyChanged {
                 x = x1 - rotX * scale;
             }
 
+            //HoverCoordinatesLabel = $"Cursor: {x:F1} [{px:F1}], {y:F1} [{py:F1}] for {MapImage?.PixelWidth}x{MapImage?.PixelHeight}";
             HoverCoordinatesLabel = $"Cursor: {x:F1}, {y:F1}";
         }
         catch (Exception ex) {
