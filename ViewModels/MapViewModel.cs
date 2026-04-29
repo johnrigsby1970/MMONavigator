@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using MMONavigator.Models;
 using MMONavigator.Services;
+using MMONavigator.Helpers;
 
 namespace MMONavigator.ViewModels;
 
@@ -605,19 +606,26 @@ public class MapViewModel : INotifyPropertyChanged {
     private void PunchTransparentCircle(double centerX, double centerY, double radiusInPixels) {
         if (FogImage == null) return;
 
+        double dpiScaleX = FogImage.PixelWidth / FogImage.Width;
+        double dpiScaleY = FogImage.PixelHeight / FogImage.Height;
+
+        double rawCenterX = centerX * dpiScaleX;
+        double rawCenterY = centerY * dpiScaleY;
+        double rawRadius = radiusInPixels * dpiScaleX; // Assuming uniform scaling
+
         FogImage.Lock();
         try {
-            int radiusSq = (int)(radiusInPixels * radiusInPixels); //punch
+            int radiusSq = (int)(rawRadius * rawRadius); //punch
             int stride = FogImage.BackBufferStride;
             IntPtr pBackBuffer = FogImage.BackBuffer;
 
             // Loop through a bounding box around the circle for efficiency
-            for (int y = (int)(centerY - radiusInPixels); y < centerY + radiusInPixels; y++) {
-                for (int x = (int)(centerX - radiusInPixels); x < centerX + radiusInPixels; x++) {
+            for (int y = (int)(rawCenterY - rawRadius); y < rawCenterY + rawRadius; y++) {
+                for (int x = (int)(rawCenterX - rawRadius); x < rawCenterX + rawRadius; x++) {
                     // Check if pixel is within image bounds and within circle radius
                     if (x >= 0 && x < FogImage.PixelWidth && y >= 0 && y < FogImage.PixelHeight) {
-                        double dx = x - centerX;
-                        double dy = y - centerY;
+                        double dx = x - rawCenterX;
+                        double dy = y - rawCenterY;
                         if (dx * dx + dy * dy <= radiusSq) {
                             // Set the pixel to Transparent (Alpha = 0)
                             // In Bgra32, the bytes are B, G, R, A. A is at index 3
@@ -631,13 +639,17 @@ public class MapViewModel : INotifyPropertyChanged {
             }
 
             // Tell WPF to update the specific rectangle
-            //Errors have resulted, so for ease of debug, set local variables
-            var xrec = (int)(centerX - radiusInPixels);
-            var yrec = (int)(centerY - radiusInPixels);
-            var w = (int)(radiusInPixels * 2);
-            var h = (int)(radiusInPixels * 2);
-            if (xrec > 0 && yrec > 0 && w > 0 && h > 0) {
-                FogImage.AddDirtyRect(new Int32Rect(xrec, yrec, w, h));
+            int xrect = Math.Max(0, (int)(rawCenterX - rawRadius));
+            int yrect = Math.Max(0, (int)(rawCenterY - rawRadius));
+            int w = Math.Min((int)(rawRadius * 2) + 1, FogImage.PixelWidth - xrect);
+            int h = Math.Min((int)(rawRadius * 2) + 1, FogImage.PixelHeight - yrect);
+            
+            if (w > 0 && h > 0) {
+                try {
+                    FogImage.AddDirtyRect(new Int32Rect(xrect, yrect, w, h));
+                } catch (Exception ex) {
+                    Logger.LogError("Error in PunchTransparentCircle.AddDirtyRect", ex);
+                }
             }
         }
         finally {
@@ -648,62 +660,73 @@ public class MapViewModel : INotifyPropertyChanged {
     private void PunchBreadcrumbCircle(double centerX, double centerY, double radiusInPixels) {
         if (BreadcrumbImage == null || !ShowBreadcrumb) return;
 
+        double dpiScaleX = BreadcrumbImage.PixelWidth / BreadcrumbImage.Width;
+        double dpiScaleY = BreadcrumbImage.PixelHeight / BreadcrumbImage.Height;
+
+        double rawCenterX = centerX * dpiScaleX;
+        double rawCenterY = centerY * dpiScaleY;
+        double rawRadius = radiusInPixels * dpiScaleX;
+
         BreadcrumbImage.Lock();
         try {
-            int radiusSq = (int)(radiusInPixels * radiusInPixels); //punch
+            int radiusSq = (int)(rawRadius * rawRadius); //punch
             int stride = BreadcrumbImage.BackBufferStride;
             IntPtr pBackBuffer = BreadcrumbImage.BackBuffer;
 
             // Loop through a bounding box around the circle for efficiency
-            for (int y = (int)(centerY - radiusInPixels); y < centerY + radiusInPixels; y++) {
-                for (int x = (int)(centerX - radiusInPixels); x < centerX + radiusInPixels; x++) {
-                    // Inside the x/y loop, replace your current if condition:
-                    double dx = x - centerX;
-                    double dy = y - centerY;
-                    double distanceSq = dx * dx + dy * dy;
+            for (int y = (int)(rawCenterY - rawRadius); y < rawCenterY + rawRadius; y++) {
+                for (int x = (int)(rawCenterX - rawRadius); x < rawCenterX + rawRadius; x++) {
+                    if (x >= 0 && x < BreadcrumbImage.PixelWidth && y >= 0 && y < BreadcrumbImage.PixelHeight) {
+                        double dx = x - rawCenterX;
+                        double dy = y - rawCenterY;
+                        double distanceSq = dx * dx + dy * dy;
 
-                    if (distanceSq <= radiusSq) {
-                        // 1. Calculate how far we are from the center (0.0 to 1.0)
-                        double distance = Math.Sqrt(distanceSq);
-                        double ratio = distance / radiusInPixels; // 0.0 is center, 1.0 is edge
+                        if (distanceSq <= radiusSq) {
+                            // 1. Calculate how far we are from the center (0.0 to 1.0)
+                            double distance = Math.Sqrt(distanceSq);
+                            double ratio = distance / rawRadius; // 0.0 is center, 1.0 is edge
 
-                        // 2. Use a "Ease Out" function for the fade (e.g., squared or cubic)
-                        // 1.0 means opaque at center, 0.0 means transparent at edge
-                        double softAlpha = Math.Pow(1.0 - ratio, 1); 
-                        //double softAlpha = 1.0;// - Math.Pow(ratio, 4);
+                            // 2. Use a "Ease Out" function for the fade (e.g., squared or cubic)
+                            // 1.0 means opaque at center, 0.0 means transparent at edge
+                            double softAlpha = Math.Pow(1.0 - ratio, 1);
 
-                        // 3. Apply the Alpha (scaled to your target intensity, e.g., 128)
-                        byte finalAlpha = (byte)(softAlpha * 128);
+                            // 3. Apply the Alpha (scaled to your target intensity, e.g., 128)
+                            byte finalAlpha = (byte)(softAlpha * 128);
 
-                        unsafe {
-                            byte* pPixel = (byte*)pBackBuffer + (y * stride) + (x * 4);
-                            //blend the new Alpha with the existing Alpha.
-                            //This makes the trail stay solid (or get slightly more solid)
-                            //rather than resetting the transparency.
-                            // Get the existing Alpha at this pixel
-                            byte currentAlpha = pPixel[3];
-    
-                            // Add the new alpha to the current one, but don't exceed 255 (Opaque)
-                            int newAlpha = Math.Min(255, currentAlpha + 128);
-                            
-                            pPixel[0] = 255; 
-                            pPixel[1] = 255; 
-                            pPixel[2] = 255; 
-                            pPixel[3] = (byte)newAlpha;
+                            unsafe {
+                                byte* pPixel = (byte*)pBackBuffer + (y * stride) + (x * 4);
+                                //blend the new Alpha with the existing Alpha.
+                                //This makes the trail stay solid (or get slightly more solid)
+                                //rather than resetting the transparency.
+                                // Get the existing Alpha at this pixel
+                                byte currentAlpha = pPixel[3];
+
+                                // Add the new alpha to the current one, but don't exceed 255 (Opaque)
+                                int newAlpha = Math.Min(255, currentAlpha + 128);
+
+                                pPixel[0] = 255;
+                                pPixel[1] = 255;
+                                pPixel[2] = 255;
+                                pPixel[3] = (byte)newAlpha;
+                            }
                         }
                     }
                 }
             }
 
             // Tell WPF to update the specific rectangle
-            var xrect = Math.Max(0, (int)(centerX - radiusInPixels));
-            var yrect = Math.Max(0, (int)(centerY - radiusInPixels));
+            int xrect = Math.Max(0, (int)(rawCenterX - rawRadius));
+            int yrect = Math.Max(0, (int)(rawCenterY - rawRadius));
             // Ensure width/height don't exceed image bounds
-            int w = Math.Min((int)(radiusInPixels * 2) + 2, BreadcrumbImage.PixelWidth - xrect);
-            int h = Math.Min((int)(radiusInPixels * 2) + 2, BreadcrumbImage.PixelHeight - yrect);
+            int w = Math.Min((int)(rawRadius * 2) + 2, BreadcrumbImage.PixelWidth - xrect);
+            int h = Math.Min((int)(rawRadius * 2) + 2, BreadcrumbImage.PixelHeight - yrect);
             
-            if (xrect > 0 && yrect > 0 && w > 0 && h > 0) {
-                BreadcrumbImage.AddDirtyRect(new Int32Rect(xrect, yrect, w, h));
+            if (w > 0 && h > 0) {
+                try {
+                    BreadcrumbImage.AddDirtyRect(new Int32Rect(xrect, yrect, w, h));
+                } catch (Exception ex) {
+                    Logger.LogError("Error in PunchBreadcrumbCircle.AddDirtyRect", ex);
+                }
             }
         }
         finally {
@@ -740,7 +763,11 @@ public class MapViewModel : INotifyPropertyChanged {
                 }
             }
             // Notify WPF to redraw the entire bitmap
-            BreadcrumbImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            try {
+                BreadcrumbImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            } catch (Exception ex) {
+                Logger.LogError("Error in FadeTrail.AddDirtyRect", ex);
+            }
         } finally {
             BreadcrumbImage.Unlock();
         }
