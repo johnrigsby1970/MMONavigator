@@ -105,6 +105,10 @@
                                   IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                         <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}"
                                   IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                        <MenuItem Header="Center Current Position" 
+                                  IsCheckable="True" 
+                                  IsChecked="{Binding IsFollowModeActive}" 
+                                  Focusable="False" />
                         <!-- <Separator Focusable="False" /> -->
                         <!-- <MenuItem Header="Create Challenge" IsCheckable="False" IsEnabled="{Binding Settings.IsCalibrated}" -->
                         <!--           Click="CreateChallenge_Click"></MenuItem> -->

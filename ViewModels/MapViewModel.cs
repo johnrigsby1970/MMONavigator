@@ -37,6 +37,23 @@ public class MapViewModel : INotifyPropertyChanged {
     private bool _locationMarkersShowing = false;
     private DispatcherTimer? _fadeTimer;
     
+    // Higher value for the "zoomed in" look
+    public double FollowZoomLevel => 2.5;
+
+    private double _previousZoom = 1.0; // Default
+    public double PreviousZoom 
+    { 
+        get => _previousZoom;
+        set { _previousZoom = value; OnPropertyChanged(); }
+    }
+    
+    private bool _isFollowModeActive;
+    public bool IsFollowModeActive 
+    { 
+        get => _isFollowModeActive;
+        set { _isFollowModeActive = value; OnPropertyChanged(); }
+    }
+    
     public ObservableCollection<MapLocation> Locations {
         get => _locations;
         set {
@@ -1129,7 +1146,7 @@ public class MapViewModel : INotifyPropertyChanged {
         UpdateMarkers();
         DestinationSelected?.Invoke(coords);
     }
-
+    
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {

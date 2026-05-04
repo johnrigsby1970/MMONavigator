@@ -1,4 +1,5 @@
-﻿using System.Windows.Interop;
+﻿using System.ComponentModel;
+using System.Windows.Interop;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -31,6 +32,10 @@ public partial class MapWindow : ChildWindow {
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
+        
+        viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        
         Loaded += MapWindow_Loaded;
         SourceInitialized += MapWindow_SourceInitialized;
         // Forcefully attach to the main grid
@@ -39,6 +44,36 @@ public partial class MapWindow : ChildWindow {
         _hoverTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _hoverTimer.Tick += HoverTimer_Tick;
         _hoverTimer.Start();
+    }
+    
+    private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    {
+        if (DataContext is not MapViewModel vm) return;
+
+        if (e.PropertyName == nameof(MapViewModel.IsFollowModeActive))
+        {
+            if (vm.IsFollowModeActive)
+            {
+                // Turning ON: Save current zoom before jumping to FollowZoom
+               // vm.PreviousZoom = MapScaleTransform.ScaleX;
+                // Entering Follow Mode: Save what we had
+                vm.PreviousZoom = vm.Settings.ZoomLevel;
+                
+                CenterMapOnMarker();
+            }
+            else
+            {
+                // Exiting Follow Mode: Restore the previous zoom
+                vm.Settings.ZoomLevel = vm.PreviousZoom;
+            
+                // Optional: If you want to stop the "jump," do NOT call CenterMapOnMarker here.
+                // Just let the map stay where it was at the normal zoom level.
+            }
+        }
+        else if (vm.IsFollowModeActive && (e.PropertyName == "MarkerX" || e.PropertyName == "MarkerY"))
+        {
+            CenterMapOnMarker();
+        }
     }
 
     private DateTime _lastMouseOutsideTime = DateTime.MinValue;
@@ -782,25 +817,48 @@ public partial class MapWindow : ChildWindow {
 
     private void MapScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
         var vm = (MapViewModel)DataContext;
-        double zoom = e.Delta > 0 ? 1.1 : 0.9;
-        double newScale = vm.Settings.ZoomLevel * zoom;
+    
+        // 1. Calculate the new scale
+        double zoomFactor = e.Delta > 0 ? 1.1 : 0.9;
+        double newScale = vm.Settings.ZoomLevel * zoomFactor;
 
-        // Limit zoom
+        // Limit zoom level
         if (newScale < 0.1) newScale = 0.1;
         if (newScale > 10) newScale = 10;
 
-        zoom = newScale / vm.Settings.ZoomLevel;
-
-        System.Windows.Point mousePos = e.GetPosition(MapScrollViewer);
-
-        var relativeMouseX = (mousePos.X + MapScrollViewer.HorizontalOffset) / vm.Settings.ZoomLevel;
-        var relativeMouseY = (mousePos.Y + MapScrollViewer.VerticalOffset) / vm.Settings.ZoomLevel;
-
+        // 2. Apply the new scale to the ViewModel/Settings
         vm.Settings.ZoomLevel = newScale;
 
-        MapScrollViewer.ScrollToHorizontalOffset(relativeMouseX * vm.Settings.ZoomLevel - mousePos.X);
-        MapScrollViewer.ScrollToVerticalOffset(relativeMouseY * vm.Settings.ZoomLevel - mousePos.Y);
+        // 3. Handle Viewport Positioning
+        if (vm.IsFollowModeActive) {
+            // If following, ignore mouse position and force center on the marker
+            CenterMapOnMarker();
+        } 
+        else {
+            // Standard "Zoom to Mouse" logic
+            System.Windows.Point mousePos = e.GetPosition(MapScrollViewer);
+
+            var relativeMouseX = (mousePos.X + MapScrollViewer.HorizontalOffset) / (newScale / zoomFactor);
+            var relativeMouseY = (mousePos.Y + MapScrollViewer.VerticalOffset) / (newScale / zoomFactor);
+
+            MapScrollViewer.ScrollToHorizontalOffset(relativeMouseX * newScale - mousePos.X);
+            MapScrollViewer.ScrollToVerticalOffset(relativeMouseY * newScale - mousePos.Y);
+        }
 
         e.Handled = true;
+    }
+    
+    private void CenterMapOnMarker()
+    {
+        if (DataContext is not MapViewModel vm) return;
+
+        // Use the current scale of the transform
+        double currentZoom = vm.Settings.ZoomLevel; // Use the VM value directly
+
+        double targetX = (vm.MarkerX * currentZoom) - (MapScrollViewer.ActualWidth / 2);
+        double targetY = (vm.MarkerY * currentZoom) - (MapScrollViewer.ActualHeight / 2);
+
+        MapScrollViewer.ScrollToHorizontalOffset(targetX);
+        MapScrollViewer.ScrollToVerticalOffset(targetY);
     }
 }
