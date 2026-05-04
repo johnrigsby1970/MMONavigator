@@ -33,12 +33,15 @@ public class MapViewModel : INotifyPropertyChanged {
     private Visibility _targetMarkerVisibility = Visibility.Collapsed;
     private ObservableCollection<MapLocation> _locations = new();
     private bool _loadingFile;
+    private bool _staticMarkersDirty = true;
+    private bool _locationMarkersShowing = false;
     private DispatcherTimer? _fadeTimer;
     
     public ObservableCollection<MapLocation> Locations {
         get => _locations;
         set {
             _locations = value;
+            _staticMarkersDirty = true;
             OnPropertyChanged();
             UpdateMarkers();
         }
@@ -57,6 +60,9 @@ public class MapViewModel : INotifyPropertyChanged {
     public bool ShowLocations {
         get => _settings.IsCalibrated && _settings.ShowLocations;
         set {
+            if(_settings.ShowLocations != value && value){
+                _staticMarkersDirty = true;
+            }
             if (_settings.ShowLocations != value) {
                 _settings.ShowLocations = value;
                 OnPropertyChanged();
@@ -231,6 +237,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
         else if (e.PropertyName == nameof(MapSettings.IsCalibrated)) {
             OnPropertyChanged(nameof(ShowLocations));
+            _staticMarkersDirty = true;
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.Point1) || e.PropertyName == nameof(MapSettings.Point2)) {
@@ -243,9 +250,11 @@ public class MapViewModel : INotifyPropertyChanged {
                 _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
             }
 
+            _staticMarkersDirty = true;
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.ZoomLevel)) {
+            //_staticMarkersDirty = true; //Despite AI adding this, it should not be necessary to recalculate during zoom
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.ShowLocations)) {
@@ -288,6 +297,7 @@ public class MapViewModel : INotifyPropertyChanged {
     private void MapPoint_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         // Trigger notification on the Settings property itself so that MainViewModel.Profile_PropertyChanged
         // picks up the change and calls SaveSettings().
+        _staticMarkersDirty = true;
         OnPropertyChanged(nameof(Settings));
         UpdateMarkers();
     }
@@ -297,6 +307,7 @@ public class MapViewModel : INotifyPropertyChanged {
         set {
             if (_coordinateSystem != value) {
                 _coordinateSystem = value;
+                _staticMarkersDirty = true;
                 OnPropertyChanged();
                 UpdateMarkers();
             }
@@ -778,8 +789,12 @@ public class MapViewModel : INotifyPropertyChanged {
         if (!_settings.IsCalibrated || MapImage == null) {
             CurrentPositionMarkerVisibility = Visibility.Collapsed;
             TargetMarkerVisibility = Visibility.Collapsed;
-            foreach (var loc in Locations) {
-                loc.Visibility = Visibility.Collapsed;
+            if (_locationMarkersShowing) {
+                foreach (var loc in Locations) {
+                    loc.Visibility = Visibility.Collapsed;
+                }
+
+                _locationMarkersShowing = false;
             }
 
             return;
@@ -826,16 +841,26 @@ public class MapViewModel : INotifyPropertyChanged {
             TargetMarkerVisibility = Visibility.Collapsed;
         }
 
-        foreach (var loc in Locations) {
-            // We use the default "x z y d" because ScrubbedCoordinates are always flattened to numbers
-            if (Scrubber.TryParse(loc.Coordinates, "x z y d", out var coords)) {
-                var (x, y, vis) = CalculatePixelPosition(coords);
-                if (Math.Abs(loc.PixelX - x) > 0.1) loc.PixelX = x;
-                if (Math.Abs(loc.PixelY - y) > 0.1) loc.PixelY = y;
-                if (loc.Visibility != vis) loc.Visibility = vis;
-            } else {
-                if (loc.Visibility != Visibility.Collapsed) loc.Visibility = Visibility.Collapsed;
+        if (_staticMarkersDirty) {
+            foreach (var loc in Locations) {
+                // We use the default "x z y d" because ScrubbedCoordinates are always flattened to numbers
+                if (Scrubber.TryParse(loc.Coordinates, "x z y d", out var coords)) {
+                    var (x, y, vis) = CalculatePixelPosition(coords);
+                    if (Math.Abs(loc.PixelX - x) > 0.1) loc.PixelX = x;
+                    if (Math.Abs(loc.PixelY - y) > 0.1) loc.PixelY = y;
+                    if (loc.Visibility != vis) {
+                        loc.Visibility = vis;
+                        if (vis == Visibility.Visible) {
+                            _locationMarkersShowing = true;
+                        }
+                    }
+                }
+                else {
+                    if (loc.Visibility != Visibility.Collapsed) loc.Visibility = Visibility.Collapsed;
+                }
             }
+
+            _staticMarkersDirty = false;
         }
     }
 
