@@ -7,9 +7,9 @@
                       xmlns:controls="clr-namespace:MMONavigator.Controls"
                       mc:Ignorable="d"
                       Title="Map" Height="600" Width="800"
-
                       WindowStyle="None"
                       AllowsTransparency="True"
+                      ResizeMode="CanResizeWithGrip"
                       Topmost="True"
                       Focusable="False"
                       Opacity="1"
@@ -43,6 +43,10 @@
         <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal"
                     HorizontalAlignment="Right" Visibility="{Binding UIVisibility}" Focusable="False">
             <Button Content="0" FontFamily="Marlett" Width="30" Click="MinimizeButton_Click" Background="Transparent"
+                    Foreground="White" BorderThickness="0" Focusable="False" />
+            <Button Content="2" FontFamily="Marlett" Width="30" Click="NormalButton_Click" Background="Transparent"
+                    Foreground="White" BorderThickness="0" Focusable="False" />
+            <Button Content="1" FontFamily="Marlett" Width="30" Click="MaximizeButton_Click" Background="Transparent"
                     Foreground="White" BorderThickness="0" Focusable="False" />
             <Button Content="r" FontFamily="Marlett" Width="30" Click="CloseButton_Click" Background="Transparent"
                     Foreground="White" BorderThickness="0" Focusable="False" />

@@ -380,7 +380,12 @@ public partial class MapWindow : ChildWindow {
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Minimized;
     }
-
+    private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
+        WindowState = WindowState.Maximized;
+    }
+    private void NormalButton_Click(object sender, RoutedEventArgs e) {
+        WindowState = WindowState.Normal;
+    }
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
         _hoverTimer.Stop();
         if (DataContext is MapViewModel vm) {
