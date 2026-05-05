@@ -51,20 +51,18 @@
         <Grid Grid.Row="1" Style="{StaticResource MainGridStyle}" Visibility="{Binding UIVisibility}" Focusable="False">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Focusable="False">
                 <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click"
-                        Margin="5,2,5,2" Padding="5,2" Focusable="False" 
-                        ToolTip="Select a new map image to use in the game."
-                        />
+                        Margin="5,2,5,2" Padding="5,2" Focusable="False"
+                        ToolTip="Select a new map image to use in the game." />
                 <Button Style="{StaticResource CalibrationButtonStyle}"
-                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False" ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates." />
+                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"
+                        ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates." />
                 <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click"
                         Margin="0,2,5,2" Padding="5,2"
                         ToolTip="Save a calibrated map so that you can select it again in the future."
                         IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
                 <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click"
                         Margin="0,2,5,2" Padding="5,2" Focusable="False"
-                        ToolTip="Load a saved calibrated map. To create a new map, use the 'Pick Image' button."
-
-                        />
+                        ToolTip="Load a saved calibrated map. To create a new map, use the 'Pick Image' button." />
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0"
                            Text="Status: Ready" Focusable="False" />
             </StackPanel>
@@ -75,356 +73,413 @@
                            FontSize="11" Focusable="False" />
             </StackPanel>
         </Grid>
-<Grid Grid.Row="2">
-        <!-- Map Area -->
-        <ScrollViewer x:Name="MapScrollViewer" Panel.ZIndex="-1"
+        <Grid Grid.Row="2">
+            <!-- Map Area -->
+            <ScrollViewer x:Name="MapScrollViewer" 
+                          Panel.ZIndex="-1"
+                          Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
+                          Focusable="False">
+                <ScrollViewer.Resources>
+                    <Style TargetType="ScrollBar">
+                        <Setter Property="Opacity" Value="{Binding EffectiveOpacity}" />
+                        <Setter Property="Background" Value="{Binding EffectiveTransparentBrush}" />
+                        <Setter Property="Width" Value="12" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ScrollBar">
+                                    <Grid x:Name="Bg" Background="{TemplateBinding Background}"
+                                          SnapsToDevicePixels="true">
+                                        <Track x:Name="PART_Track" IsDirectionReversed="true"
+                                               IsEnabled="{TemplateBinding IsEnabled}">
+                                            <Track.Thumb>
+                                                <Thumb>
+                                                    <Thumb.Template>
+                                                        <ControlTemplate TargetType="Thumb">
+                                                            <Grid>
+                                                                <Border Background="Black" CornerRadius="2"
+                                                                        BorderBrush="White" BorderThickness="0.75" />
+                                                                <Border Margin="2">
+                                                                    <Border.Background>
+                                                                        <DrawingBrush TileMode="Tile"
+                                                                                Viewport="0,0,4,4"
+                                                                                ViewportUnits="Absolute">
+                                                                            <DrawingBrush.Drawing>
+                                                                                <GeometryDrawing Brush="#AA444444">
+                                                                                    <GeometryDrawing.Geometry>
+                                                                                        <EllipseGeometry Center="2,2"
+                                                                                            RadiusX="2"
+                                                                                            RadiusY="2" />
+                                                                                    </GeometryDrawing.Geometry>
+                                                                                </GeometryDrawing>
+                                                                            </DrawingBrush.Drawing>
+                                                                        </DrawingBrush>
+                                                                    </Border.Background>
+                                                                </Border>
+                                                            </Grid>
+                                                        </ControlTemplate>
+                                                    </Thumb.Template>
+                                                </Thumb>
+                                            </Track.Thumb>
+                                        </Track>
+                                    </Grid>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
 
-                      Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
-                      Focusable="False">
-            <Canvas x:Name="MapCanvas" Width="{Binding MapImage.Width}" Height="{Binding MapImage.Height}"
-                    MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
-                    MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
-                    MouseMove="MapCanvas_MouseMove"
+                        <Style.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter Property="Width" Value="Auto" />
+                                <Setter Property="Height" Value="12" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Resources>
+                <Canvas x:Name="MapCanvas" Width="{Binding MapImage.Width}" Height="{Binding MapImage.Height}"
+                        MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
+                        MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
+                        MouseMove="MapCanvas_MouseMove"
 
-                    Background="{Binding EffectiveTransparentBrush}" Focusable="False">
-                <Canvas.ContextMenu>
-                    <ContextMenu Focusable="False">
-                        <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True"
-                                  Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}"
-                                  Focusable="False" />
-                        <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click"
-                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <Separator Focusable="False" />
-                        <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}"
-                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Show Calibration Markers" IsCheckable="True"
-                                  IsChecked="{Binding ShowCalibrationMarkers}"
-                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Show Breadcrumbs" IsCheckable="True" IsChecked="{Binding ShowBreadcrumb}"
-                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}"
-                                  IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                        <MenuItem Header="Center Current Position" 
-                                  IsCheckable="True" 
-                                  IsChecked="{Binding IsFollowModeActive}" 
-                                  Focusable="False" />
-                        <!-- <Separator Focusable="False" /> -->
-                        <!-- <MenuItem Header="Create Challenge" IsCheckable="False" IsEnabled="{Binding Settings.IsCalibrated}" -->
-                        <!--           Click="CreateChallenge_Click"></MenuItem> -->
-                    </ContextMenu>
-                </Canvas.ContextMenu>
-                <Canvas.LayoutTransform>
-                    <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}"
-                                    ScaleY="{Binding Settings.ZoomLevel}" />
-                </Canvas.LayoutTransform>
-                <Grid Opacity="{Binding EffectiveOpacity}">
-                    <Image Canvas.ZIndex="0"
-                           Source="{Binding MapImage}" Stretch="None" Focusable="False" />
-                    <Image Canvas.ZIndex="10"
-                           Source="{Binding FogImage}" Stretch="None" Focusable="False"
-                           >
-                        <Image.Style>
-                            <Style TargetType="Image">
+
+                        Focusable="False">
+                    <Canvas.ContextMenu>
+                        <ContextMenu Focusable="False">
+                            <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True"
+                                      Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}"
+                                      Focusable="False" />
+                            <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click"
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                            <Separator Focusable="False" />
+                            <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}"
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                            <MenuItem Header="Show Calibration Markers" IsCheckable="True"
+                                      IsChecked="{Binding ShowCalibrationMarkers}"
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                            <MenuItem Header="Show Breadcrumbs" IsCheckable="True" IsChecked="{Binding ShowBreadcrumb}"
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                            <MenuItem Header="Show Fog of War" IsCheckable="True" IsChecked="{Binding ShowFogOfWar}"
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                            <MenuItem Header="Center Current Position"
+                                      IsCheckable="True"
+                                      IsChecked="{Binding IsFollowModeActive}"
+                                      Focusable="False" />
+                            <!-- <Separator Focusable="False" /> -->
+                            <!-- <MenuItem Header="Create Challenge" IsCheckable="False" IsEnabled="{Binding Settings.IsCalibrated}" -->
+                            <!--           Click="CreateChallenge_Click"></MenuItem> -->
+                        </ContextMenu>
+                    </Canvas.ContextMenu>
+                    <Canvas.LayoutTransform>
+                        <ScaleTransform x:Name="MapScaleTransform" ScaleX="{Binding Settings.ZoomLevel}"
+                                        ScaleY="{Binding Settings.ZoomLevel}" />
+                    </Canvas.LayoutTransform>
+                    <Grid Opacity="{Binding EffectiveOpacity}">
+                        <Image Canvas.ZIndex="0"
+                               Source="{Binding MapImage}" Stretch="None" Focusable="False" />
+                        <Image Canvas.ZIndex="10"
+                               Source="{Binding FogImage}" Stretch="None" Focusable="False">
+                            <Image.Style>
+                                <Style TargetType="Image">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                                <Condition Binding="{Binding Settings.ShowFogOfWar}" Value="True" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Image.Style>
+                        </Image>
+                        <Image Canvas.ZIndex="10"
+                               Source="{Binding BreadcrumbImage}" Stretch="None" Focusable="False"
+                               Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    </Grid>
+                    <!-- Position Marker -->
+                    <Ellipse x:Name="PulseCircle" Width="12.5" Height="12.5" Stroke="Yellow" StrokeThickness="2"
+                             Visibility="{Binding CurrentPositionMarkerVisibility}"
+                             Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
+                             Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
+                             Canvas.ZIndex="40">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1" />
+                        </Ellipse.RenderTransform>
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Style.Triggers>
+                                    <Trigger Property="Visibility" Value="Visible">
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard Name="PulseStoryboard">
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                        From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <QuadraticEase EasingMode="EaseInOut" />
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                        From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <QuadraticEase EasingMode="EaseInOut" />
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                     From="1.0" To="0.2" Duration="0:0:1.5"
+                                                                     AutoReverse="True" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="PulseStoryboard" />
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <Ellipse x:Name="PositionMarker" Width="12.5" Height="12.5" Fill="Red" Stroke="White"
+                             StrokeThickness="1"
+                             Visibility="{Binding CurrentPositionMarkerVisibility}"
+                             Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
+                             Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
+                        <Ellipse.RenderTransform>
+                            <TranslateTransform X="0" Y="0" />
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+
+                    <!-- Heading Arrow -->
+                    <Path Data="M 0,-8 L 4,2 L 0,0 L -4,2 Z" Fill="Red" Stroke="White" StrokeThickness="1"
+                          Visibility="{Binding HeadingVisibility}"
+                          Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}" Focusable="False"
+                          Canvas.ZIndex="40">
+                        <Path.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
+                                <RotateTransform Angle="{Binding MarkerHeading}" />
+                            </TransformGroup>
+                        </Path.RenderTransform>
+                    </Path>
+
+                    <!-- Destination Marker -->
+                    <Ellipse x:Name="DestinationPulseCircle" Width="12.5" Height="12.5" Stroke="Purple"
+                             StrokeThickness="2"
+                             Visibility="{Binding TargetMarkerVisibility}"
+                             Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
+                             Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
+                             Canvas.ZIndex="40">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform ScaleX="1" ScaleY="1" />
+                        </Ellipse.RenderTransform>
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Style.Triggers>
+                                    <Trigger Property="Visibility" Value="Visible">
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard Name="DestinationPulseStoryboard">
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                        From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <QuadraticEase EasingMode="EaseInOut" />
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                    <DoubleAnimation
+                                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                        From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <QuadraticEase EasingMode="EaseInOut" />
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                     From="1.0" To="0.2" Duration="0:0:1.5"
+                                                                     AutoReverse="True" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <StopStoryboard BeginStoryboardName="DestinationPulseStoryboard" />
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <Ellipse x:Name="DestinationMarker" Width="12.5" Height="12.5" Fill="Yellow" Stroke="Black"
+                             StrokeThickness="1"
+                             Visibility="{Binding TargetMarkerVisibility}"
+                             Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
+                             Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
+                        <Ellipse.RenderTransform>
+                            <TranslateTransform X="0" Y="0" />
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+
+                    <!-- Calibration Markers -->
+                    <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker1" Background="Transparent"
+                          Width="30"
+                          Height="30" Margin="-15,-15" Focusable="False">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed" />
                                 <Style.Triggers>
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>
                                             <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
-                                            <Condition Binding="{Binding Settings.ShowFogOfWar}" Value="True" />
+                                            <Condition Binding="{Binding Settings.ShowCalibrationMarkers}" Value="True" />
                                         </MultiDataTrigger.Conditions>
                                         <Setter Property="Visibility" Value="Visible" />
                                     </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </Image.Style>
-                    </Image>
-                    <Image Canvas.ZIndex="10"
-                           Source="{Binding BreadcrumbImage}" Stretch="None" Focusable="False"
-                           Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                </Grid>
-                <!-- Position Marker -->
-                <Ellipse x:Name="PulseCircle" Width="12.5" Height="12.5" Stroke="Yellow" StrokeThickness="2"
-                         Visibility="{Binding CurrentPositionMarkerVisibility}"
-                         Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
-                         Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
-                         Canvas.ZIndex="40">
-                    <Ellipse.RenderTransform>
-                        <ScaleTransform ScaleX="1" ScaleY="1" />
-                    </Ellipse.RenderTransform>
-                    <Ellipse.Style>
-                        <Style TargetType="Ellipse">
-                            <Style.Triggers>
-                                <Trigger Property="Visibility" Value="Visible">
-                                    <Trigger.EnterActions>
-                                        <BeginStoryboard Name="PulseStoryboard">
-                                            <Storyboard RepeatBehavior="Forever">
-                                                <DoubleAnimation
-                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseInOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation
-                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseInOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                 From="1.0" To="0.2" Duration="0:0:1.5"
-                                                                 AutoReverse="True" />
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </Trigger.EnterActions>
-                                    <Trigger.ExitActions>
-                                        <StopStoryboard BeginStoryboardName="PulseStoryboard" />
-                                    </Trigger.ExitActions>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Ellipse.Style>
-                </Ellipse>
-                <Ellipse x:Name="PositionMarker" Width="12.5" Height="12.5" Fill="Red" Stroke="White"
-                         StrokeThickness="1"
-                         Visibility="{Binding CurrentPositionMarkerVisibility}"
-                         Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
-                         Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
-                    <Ellipse.RenderTransform>
-                        <TranslateTransform X="0" Y="0" />
-                    </Ellipse.RenderTransform>
-                </Ellipse>
-
-                <!-- Heading Arrow -->
-                <Path Data="M 0,-8 L 4,2 L 0,0 L -4,2 Z" Fill="Red" Stroke="White" StrokeThickness="1"
-                      Visibility="{Binding HeadingVisibility}"
-                      Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}" Focusable="False"
-                      Canvas.ZIndex="40">
-                    <Path.RenderTransform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
-                            <RotateTransform Angle="{Binding MarkerHeading}" />
-                        </TransformGroup>
-                    </Path.RenderTransform>
-                </Path>
-
-                <!-- Destination Marker -->
-                <Ellipse x:Name="DestinationPulseCircle" Width="12.5" Height="12.5" Stroke="Purple" StrokeThickness="2"
-                         Visibility="{Binding TargetMarkerVisibility}"
-                         Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
-                         Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
-                         Canvas.ZIndex="40">
-                    <Ellipse.RenderTransform>
-                        <ScaleTransform ScaleX="1" ScaleY="1" />
-                    </Ellipse.RenderTransform>
-                    <Ellipse.Style>
-                        <Style TargetType="Ellipse">
-                            <Style.Triggers>
-                                <Trigger Property="Visibility" Value="Visible">
-                                    <Trigger.EnterActions>
-                                        <BeginStoryboard Name="DestinationPulseStoryboard">
-                                            <Storyboard RepeatBehavior="Forever">
-                                                <DoubleAnimation
-                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseInOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation
-                                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                    From="1.0" To="3.0" Duration="0:0:1.5" AutoReverse="True">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <QuadraticEase EasingMode="EaseInOut" />
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                 From="1.0" To="0.2" Duration="0:0:1.5"
-                                                                 AutoReverse="True" />
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </Trigger.EnterActions>
-                                    <Trigger.ExitActions>
-                                        <StopStoryboard BeginStoryboardName="DestinationPulseStoryboard" />
-                                    </Trigger.ExitActions>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Ellipse.Style>
-                </Ellipse>
-                <Ellipse x:Name="DestinationMarker" Width="12.5" Height="12.5" Fill="Yellow" Stroke="Black"
-                         StrokeThickness="1"
-                         Visibility="{Binding TargetMarkerVisibility}"
-                         Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
-                         Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
-                    <Ellipse.RenderTransform>
-                        <TranslateTransform X="0" Y="0" />
-                    </Ellipse.RenderTransform>
-                </Ellipse>
-
-                <!-- Calibration Markers -->
-                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker1" Background="Transparent" Width="30"
-                      Height="30" Margin="-15,-15" Focusable="False">
-                    <Grid.Style>
-                        <Style TargetType="Grid">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
-                                        <Condition Binding="{Binding Settings.ShowCalibrationMarkers}" Value="True" />
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Grid.Style>
-                    <Ellipse Width="10" Height="10" Fill="#E1151D" Stroke="White" StrokeThickness="1"
-                             IsHitTestVisible="False" Focusable="False" />
-                    <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center"
-                             VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
-                    <Grid.ToolTip>
-                        <ToolTip>
-                            <StackPanel>
-                                <TextBlock FontWeight="Bold" Text="Calibration Point 1" />
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="X: " />
-                                    <TextBlock Text="{Binding Settings.Point1.X, StringFormat=F1}" />
-                                    <TextBlock Text=", Y: " Margin="5,0,0,0" />
-                                    <TextBlock Text="{Binding Settings.Point1.Y, StringFormat=F1}" />
+                        </Grid.Style>
+                        <Ellipse Width="10" Height="10" Fill="#E1151D" Stroke="White" StrokeThickness="1"
+                                 IsHitTestVisible="False" Focusable="False" />
+                        <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
+                        <Grid.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock FontWeight="Bold" Text="Calibration Point 1" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="X: " />
+                                        <TextBlock Text="{Binding Settings.Point1.X, StringFormat=F1}" />
+                                        <TextBlock Text=", Y: " Margin="5,0,0,0" />
+                                        <TextBlock Text="{Binding Settings.Point1.Y, StringFormat=F1}" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
-                        </ToolTip>
-                    </Grid.ToolTip>
-                </Grid>
-                <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker2" Background="Transparent" Width="30"
-                      Height="30" Margin="-15,-15" Focusable="False">
-                    <Grid.Style>
-                        <Style TargetType="Grid">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
-                                        <Condition Binding="{Binding Settings.ShowCalibrationMarkers}" Value="True" />
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="Visibility" Value="Visible" />
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Grid.Style>
-                    <Ellipse Width="10" Height="10" Fill="Green" Stroke="White" StrokeThickness="1"
-                             IsHitTestVisible="False" Focusable="False" />
-                    <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center"
-                             VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
-                    <Grid.ToolTip>
-                        <ToolTip>
-                            <StackPanel>
-                                <TextBlock FontWeight="Bold" Text="Calibration Point 2" />
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="X: " />
-                                    <TextBlock Text="{Binding Settings.Point2.X, StringFormat=F1}" />
-                                    <TextBlock Text=", Y: " Margin="5,0,0,0" />
-                                    <TextBlock Text="{Binding Settings.Point2.Y, StringFormat=F1}" />
+                            </ToolTip>
+                        </Grid.ToolTip>
+                    </Grid>
+                    <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker2" Background="Transparent"
+                          Width="30"
+                          Height="30" Margin="-15,-15" Focusable="False">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                            <Condition Binding="{Binding Settings.ShowCalibrationMarkers}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Ellipse Width="10" Height="10" Fill="Green" Stroke="White" StrokeThickness="1"
+                                 IsHitTestVisible="False" Focusable="False" />
+                        <Ellipse Fill="White" Width="2.5" Height="2.5" HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" IsHitTestVisible="False" Focusable="False" />
+                        <Grid.ToolTip>
+                            <ToolTip>
+                                <StackPanel>
+                                    <TextBlock FontWeight="Bold" Text="Calibration Point 2" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="X: " />
+                                        <TextBlock Text="{Binding Settings.Point2.X, StringFormat=F1}" />
+                                        <TextBlock Text=", Y: " Margin="5,0,0,0" />
+                                        <TextBlock Text="{Binding Settings.Point2.Y, StringFormat=F1}" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </StackPanel>
-                        </ToolTip>
-                    </Grid.ToolTip>
-                </Grid>
+                            </ToolTip>
+                        </Grid.ToolTip>
+                    </Grid>
 
-                <!-- Location Indicators -->
-                <ItemsControl Opacity="{Binding EffectiveOpacity}" ItemsSource="{Binding Locations}"
-                              Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
-                              Focusable="False">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <Canvas Focusable="False" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemContainerStyle>
-                        <Style TargetType="ContentPresenter">
-                            <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
-                            <Setter Property="Canvas.Top" Value="{Binding PixelY}" />
-                            <Setter Property="Focusable" Value="False" />
-                        </Style>
-                    </ItemsControl.ItemContainerStyle>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Background="Transparent" Visibility="{Binding Visibility}"
-                                  ToolTipService.InitialShowDelay="200"
-                                  ToolTipService.ShowDuration="30000"
-                                  ToolTipService.BetweenShowDelay="0" Focusable="False">
-                                <Ellipse Width="30" Height="30" Fill="Transparent" Margin="-15,-20,0,0"
-                                         IsHitTestVisible="True" Focusable="False" />
-                                <Path
-                                    Data="M 0,0 L -3.5,-5.5 A 4,4 0 1 1 3.5,-5.5 Z M 0,-7.5 A 1.5,1.5 0 1 0 0.0001,-7.5"
-                                    Fill="#E1151D" Stroke="White" StrokeThickness="1"
-                                    IsHitTestVisible="False" Focusable="False">
-                                    <Path.RenderTransform>
-                                        <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
-                                    </Path.RenderTransform>
-                                </Path>
-                                <Ellipse x:Name="TooltipAnchor" Width="1" Height="1" Fill="Transparent"
-                                         Margin="0,-9.375,0,0" IsHitTestVisible="False" Focusable="False" />
-                                <Grid.ToolTip>
-                                    <ToolTip Content="{Binding Tooltip}" Placement="Top"
-                                             PlacementTarget="{Binding ElementName=TooltipAnchor}" Focusable="False" />
-                                </Grid.ToolTip>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Canvas>
+                    <!-- Location Indicators -->
+                    <ItemsControl Opacity="{Binding EffectiveOpacity}" ItemsSource="{Binding Locations}"
+                                  Visibility="{Binding ShowLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                  Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <Canvas Focusable="False" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <Setter Property="Canvas.Left" Value="{Binding PixelX}" />
+                                <Setter Property="Canvas.Top" Value="{Binding PixelY}" />
+                                <Setter Property="Focusable" Value="False" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Background="Transparent" Visibility="{Binding Visibility}"
+                                      ToolTipService.InitialShowDelay="200"
+                                      ToolTipService.ShowDuration="30000"
+                                      ToolTipService.BetweenShowDelay="0" Focusable="False">
+                                    <Ellipse Width="30" Height="30" Fill="Transparent" Margin="-15,-20,0,0"
+                                             IsHitTestVisible="True" Focusable="False" />
+                                    <Path
+                                        Data="M 0,0 L -3.5,-5.5 A 4,4 0 1 1 3.5,-5.5 Z M 0,-7.5 A 1.5,1.5 0 1 0 0.0001,-7.5"
+                                        Fill="#E1151D" Stroke="White" StrokeThickness="1"
+                                        IsHitTestVisible="False" Focusable="False">
+                                        <Path.RenderTransform>
+                                            <ScaleTransform ScaleX="1.25" ScaleY="1.25" />
+                                        </Path.RenderTransform>
+                                    </Path>
+                                    <Ellipse x:Name="TooltipAnchor" Width="1" Height="1" Fill="Transparent"
+                                             Margin="0,-9.375,0,0" IsHitTestVisible="False" Focusable="False" />
+                                    <Grid.ToolTip>
+                                        <ToolTip Content="{Binding Tooltip}" Placement="Top"
+                                                 PlacementTarget="{Binding ElementName=TooltipAnchor}"
+                                                 Focusable="False" />
+                                    </Grid.ToolTip>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Canvas>
 
-        </ScrollViewer>
-        <!-- Watermark Layer -->
-        <TextBlock Text="NOT CALIBRATED"
+            </ScrollViewer>
+            <!-- Watermark Layer -->
+            <TextBlock Text="NOT CALIBRATED"
 
-                   FontSize="40"
+                       FontSize="40"
 
-                   Foreground="LightGray"
+                       Foreground="LightGray"
 
-                   Opacity="0.3"
+                       Opacity="0.3"
 
-                   HorizontalAlignment="Center"
+                       HorizontalAlignment="Center"
 
-                   VerticalAlignment="Center"
+                       VerticalAlignment="Center"
 
-                   IsHitTestVisible="False"
+                       IsHitTestVisible="False">
 
-        >
+                <TextBlock.Style>
 
-            <TextBlock.Style>
+                    <Style TargetType="TextBlock">
 
-                <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible" />
 
-                    <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
 
-                    <Style.Triggers>
+                            <MultiDataTrigger>
 
-                        <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
 
-                            <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
 
-                                <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                </MultiDataTrigger.Conditions>
 
-                            </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Collapsed" />
 
-                            <Setter Property="Visibility" Value="Collapsed" />
+                            </MultiDataTrigger>
 
-                        </MultiDataTrigger>
+                        </Style.Triggers>
 
-                    </Style.Triggers>
+                    </Style>
 
-                </Style>
-
-            </TextBlock.Style>
+                </TextBlock.Style>
 
 
-        </TextBlock>
-</Grid>
+            </TextBlock>
+        </Grid>
         <!-- Opacity Slider -->
         <Border Grid.Row="3"
                 Style="{StaticResource MainBorderStyle}"
