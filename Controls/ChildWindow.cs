@@ -1,11 +1,12 @@
 ﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Interop;
 using MMONavigator.Helpers;
 
 namespace MMONavigator.Controls;
 
-public class ChildWindow : Window {
+public class ChildWindow : Window, INotifyPropertyChanged {
     private HwndSource? _hwndSource;
 
     private IntPtr _hwnd; // Cache the handle
@@ -13,8 +14,18 @@ public class ChildWindow : Window {
     // A custom field to hold the result because of the way these windows are loaded DialogResult is lost
     public bool? ManualDialogResult { get; set; }
 
-    public bool IsDialogActive { get; set; }
+    private bool _isDialogActive;
 
+    public bool IsDialogActive {
+        get => _isDialogActive;
+        set {
+            if (_isDialogActive != value) {
+                _isDialogActive = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+    
     protected override void OnSourceInitialized(EventArgs e) {
         base.OnSourceInitialized(e);
         _hwnd = new WindowInteropHelper(this).Handle;
@@ -85,5 +96,18 @@ public class ChildWindow : Window {
             Topmost = owner.Topmost // Match the owner's topmost state
         };
         helperWindow.Show();
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
     }
 }

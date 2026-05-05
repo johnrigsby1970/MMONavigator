@@ -32,31 +32,6 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                        <!-- <ControlTemplate.Resources> -->
-                        <!--     <Style x:Key="MapScrollBarStyle" TargetType="ScrollBar"> -->
-                        <!--         <Setter Property="Visibility" Value="Collapsed" /> -->
-                        <!-- -->
-                        <!--         <Style.Triggers> -->
-                        <!--             <MultiDataTrigger> -->
-                        <!--                 <MultiDataTrigger.Conditions> -->
-                        <!--                     <Condition Binding="{Binding DataContext.UIVisibility, RelativeSource={RelativeSource TemplatedParent}}" Value="Visible" /> -->
-                        <!--                     <Condition Binding="{Binding ComputedVerticalScrollBarVisibility, RelativeSource={RelativeSource TemplatedParent}}" Value="Visible" /> -->
-                        <!--                     <Condition Binding="{Binding Orientation, RelativeSource={RelativeSource Self}}" Value="Vertical" /> -->
-                        <!--                 </MultiDataTrigger.Conditions> -->
-                        <!--                 <Setter Property="Visibility" Value="Visible" /> -->
-                        <!--             </MultiDataTrigger> -->
-                        <!-- -->
-                        <!--             <MultiDataTrigger> -->
-                        <!--                 <MultiDataTrigger.Conditions> -->
-                        <!--                     <Condition Binding="{Binding DataContext.UIVisibility, RelativeSource={RelativeSource TemplatedParent}}" Value="Visible" /> -->
-                        <!--                     <Condition Binding="{Binding ComputedHorizontalScrollBarVisibility, RelativeSource={RelativeSource TemplatedParent}}" Value="Visible" /> -->
-                        <!--                     <Condition Binding="{Binding Orientation, RelativeSource={RelativeSource Self}}" Value="Horizontal" /> -->
-                        <!--                 </MultiDataTrigger.Conditions> -->
-                        <!--                 <Setter Property="Visibility" Value="Visible" /> -->
-                        <!--             </MultiDataTrigger> -->
-                        <!--         </Style.Triggers> -->
-                        <!--     </Style> -->
-                        <!-- </ControlTemplate.Resources> -->
                         <Grid>
                             <Grid.Style>
                                 <Style TargetType="Grid">
@@ -301,9 +276,9 @@
                         <ContextMenu Focusable="False">
                             <MenuItem x:Name="SetDestinationMenuItem" Header="Set Destination" IsCheckable="True"
                                       Click="SetDestination_Click" IsEnabled="{Binding Settings.IsCalibrated}"
-                                      Focusable="False" />
+                                      Focusable="True" />
                             <MenuItem x:Name="AddPinMenuItem" Header="Add Pin" IsCheckable="True" Click="AddPin_Click"
-                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="True" />
                             <Separator Focusable="False" />
                             <MenuItem Header="Show Locations" IsCheckable="True" IsChecked="{Binding ShowLocations}"
                                       IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
@@ -321,6 +296,49 @@
                             <!-- <Separator Focusable="False" /> -->
                             <!-- <MenuItem Header="Create Challenge" IsCheckable="False" IsEnabled="{Binding Settings.IsCalibrated}" -->
                             <!--           Click="CreateChallenge_Click"></MenuItem> -->
+                            
+                            <Separator Focusable="False">
+                                <Separator.Style>
+                                    <Style TargetType="Separator">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UIVisibility}" Value="Collapsed">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Separator.Style>
+                            </Separator>
+                            <MenuItem Header="Show Controls"
+                                      IsCheckable="False"
+                                      Click="ShowControls_Click">
+                                <MenuItem.Style>
+                                    <Style TargetType="MenuItem">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UIVisibility}" Value="Collapsed">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </MenuItem.Style>
+                            </MenuItem>
+                            <MenuItem Header="Hide Window"
+                                      IsCheckable="True"
+                                      Click="MinimizeButton_Click">
+                                <MenuItem.Style>
+                                    <Style TargetType="MenuItem">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UIVisibility}" Value="Collapsed">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </MenuItem.Style>
+                            </MenuItem>
+                            
+
                         </ContextMenu>
                     </Canvas.ContextMenu>
                     <Canvas.LayoutTransform>
@@ -605,14 +623,14 @@
                 <Popup.Style>
                     <Style TargetType="Popup">
                         <Setter Property="IsOpen" Value="False" />
- 
+
                         <Style.Triggers>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding Settings.HideMapClickHint}" Value="True" />
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </MultiDataTrigger>
+                            <!-- <MultiDataTrigger> -->
+                            <!--     <MultiDataTrigger.Conditions> -->
+                            <!--         <Condition Binding="{Binding Settings.HideMapClickHint}" Value="True" /> -->
+                            <!--     </MultiDataTrigger.Conditions> -->
+                            <!--     <Setter Property="Visibility" Value="Collapsed" /> -->
+                            <!-- </MultiDataTrigger> -->
                             
                             <DataTrigger Value="True">
                                 <DataTrigger.Binding>
@@ -648,6 +666,10 @@
                                 </MultiDataTrigger.Conditions>
                                 <Setter Property="IsOpen" Value="True" />
                             </MultiDataTrigger>
+                            
+                            <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Minimized">
+                                <Setter Property="IsOpen" Value="False" />
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Popup.Style>

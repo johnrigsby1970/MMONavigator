@@ -164,12 +164,16 @@ public partial class MapWindow : ChildWindow {
     private void HoverTimer_Tick(object sender, EventArgs e) {
         if (DataContext is MapViewModel vm) {
             if (IsDialogActive) return;
+            if (_isAddingPin) return;
+            if (_isSettingDestination) return;
+
             // If it's already off, we don't need to do coordinate math to turn it on!
             if (!vm.IsHovered) {
                 // OPTIONAL: Stop the timer to save CPU cycles
                 // _hoverTimer.Stop(); 
                 return;
             }
+            
 
             //if opacity is 1, it doesn't matter what the mouse is doing, it will stay on
             if (Math.Abs(vm.Opacity - 1) < MapViewModel.TOLERANCE) {
@@ -508,7 +512,22 @@ public partial class MapWindow : ChildWindow {
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Minimized;
     }
+    private void ShowControls_Click(object sender, RoutedEventArgs e) {
+        if (DataContext is MapViewModel vm) {
+            // 1. Wake the UI
+            bool wasHidden = !vm.IsHovered;
+            vm.IsHovered = true;
 
+            // 2. Edge Case: Should we drop a marker?
+            // If the UI was hidden, maybe the user just wanted to see the map.
+            // You can "eat" the click so a marker isn't accidentally placed 
+            // the moment the UI appears.
+            if (wasHidden) {
+                e.Handled = true;
+            }
+        }
+    }
+    
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Maximized;
     }
@@ -857,7 +876,9 @@ public partial class MapWindow : ChildWindow {
         if (_isAddingPin) {
             var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
             if (coords.HasValue) {
+                IsDialogActive = true;
                 vm.RequestPin(coords.Value);
+                IsDialogActive = false;
                 _isAddingPin = false;
                 AddPinMenuItem.IsChecked = false;
                 StatusTextBlock.Text = "Status: Pin requested";
@@ -865,95 +886,112 @@ public partial class MapWindow : ChildWindow {
 
             return;
         }
-
+        
         if (_calibrationStep == 1) {
             string suggestedCoords = vm.CurrentPosition.HasValue
                 ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                 : "0, 0";
-            var inputDialog =
-                new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords)
-                    { Owner = this };
-            // Set the owner to the MainWindow BEFORE calling ShowDialog()
-            // You can access the MainWindow via Application.Current.MainWindow
-            inputDialog.Owner = System.Windows.Application.Current.MainWindow;
-            inputDialog.ShowDialog();
+            
+            try {
+                
+                var inputDialog =
+                    new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords)
+                        { Owner = this };
+                // Set the owner to the MainWindow BEFORE calling ShowDialog()
+                // You can access the MainWindow via Application.Current.MainWindow
+                inputDialog.Owner = System.Windows.Application.Current.MainWindow;
+                
+                IsDialogActive = true;
+                inputDialog.ShowDialog();
 
-            // Check your manual property instead of the built-in DialogResult
-            if (inputDialog.ManualDialogResult == true) {
-                if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
-                    vm.Settings.Point1.X = coords.X;
-                    vm.Settings.Point1.Y = coords.Y;
-                    vm.Settings.Point1.PixelX = clickPoint.X;
-                    vm.Settings.Point1.PixelY = clickPoint.Y;
+                // Check your manual property instead of the built-in DialogResult
+                if (inputDialog.ManualDialogResult == true) {
+                    if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
+                        vm.Settings.Point1.X = coords.X;
+                        vm.Settings.Point1.Y = coords.Y;
+                        vm.Settings.Point1.PixelX = clickPoint.X;
+                        vm.Settings.Point1.PixelY = clickPoint.Y;
 
-                    Canvas.SetLeft(CalibMarker1, clickPoint.X);
-                    Canvas.SetTop(CalibMarker1, clickPoint.Y);
+                        Canvas.SetLeft(CalibMarker1, clickPoint.X);
+                        Canvas.SetTop(CalibMarker1, clickPoint.Y);
 
-                    _calibrationStep = 2;
-                    StatusTextBlock.Text = "Status: Click Point 2 on map";
+                        _calibrationStep = 2;
+                        StatusTextBlock.Text = "Status: Click Point 2 on map";
+                    }
+                    else {
+                        System.Windows.MessageBox.Show("Invalid coordinates format.");
+                    }
                 }
-                else {
-                    System.Windows.MessageBox.Show("Invalid coordinates format.");
-                }
+            }
+            finally {
+                IsDialogActive = false;
             }
         }
         else if (_calibrationStep == 2) {
             string suggestedCoords = vm.CurrentPosition.HasValue
                 ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                 : "0, 0";
-            var inputDialog =
-                new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", suggestedCoords)
-                    { Owner = this };
-            // Set the owner to the MainWindow BEFORE calling ShowDialog()
-            // You can access the MainWindow via Application.Current.MainWindow
-            inputDialog.Owner = System.Windows.Application.Current.MainWindow;
-            inputDialog.ShowDialog();
 
-            // Check your manual property instead of the built-in DialogResult
-            if (inputDialog.ManualDialogResult == true) {
-                if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
-                    vm.Settings.Point2.X = coords.X;
-                    vm.Settings.Point2.Y = coords.Y;
-                    vm.Settings.Point2.PixelX = clickPoint.X;
-                    vm.Settings.Point2.PixelY = clickPoint.Y;
+            try {
+                var inputDialog =
+                    new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", suggestedCoords)
+                        { Owner = this };
+                // Set the owner to the MainWindow BEFORE calling ShowDialog()
+                // You can access the MainWindow via Application.Current.MainWindow
+                inputDialog.Owner = System.Windows.Application.Current.MainWindow;
 
-                    Canvas.SetLeft(CalibMarker2, clickPoint.X);
-                    Canvas.SetTop(CalibMarker2, clickPoint.Y);
+                IsDialogActive = true;
+                inputDialog.ShowDialog();
 
-                    vm.Settings.IsCalibrated = true;
-                    vm.UpdateMarkers();
+                // Check your manual property instead of the built-in DialogResult
+                if (inputDialog.ManualDialogResult == true) {
+                    if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
+                        vm.Settings.Point2.X = coords.X;
+                        vm.Settings.Point2.Y = coords.Y;
+                        vm.Settings.Point2.PixelX = clickPoint.X;
+                        vm.Settings.Point2.PixelY = clickPoint.Y;
 
-                    if (_savedFogSettings.HasValue) {
-                        vm.ShowFogOfWar = _savedFogSettings.Value;
-                        _savedFogSettings = null;
-                    }
+                        Canvas.SetLeft(CalibMarker2, clickPoint.X);
+                        Canvas.SetTop(CalibMarker2, clickPoint.Y);
 
-                    _isCalibrating = false;
-                    _calibrationStep = 0;
+                        vm.Settings.IsCalibrated = true;
+                        vm.UpdateMarkers();
 
-                    if (vm.MapImage != null && !string.IsNullOrEmpty(vm.MapPath)) {
-                        var mapsDir = Path.Combine(Helpers.NativeMethods.AppFolder(), "maps");
-                        if (!Directory.Exists(mapsDir)) {
-                            Directory.CreateDirectory(mapsDir);
+                        if (_savedFogSettings.HasValue) {
+                            vm.ShowFogOfWar = _savedFogSettings.Value;
+                            _savedFogSettings = null;
                         }
 
-                        var newName = Path.GetFileNameWithoutExtension(vm.MapPath);
+                        _isCalibrating = false;
+                        _calibrationStep = 0;
 
-                        // Remove invalid characters
-                        foreach (char c in Path.GetInvalidFileNameChars()) {
-                            newName = newName.Replace(c, '_');
+                        if (vm.MapImage != null && !string.IsNullOrEmpty(vm.MapPath)) {
+                            var mapsDir = Path.Combine(Helpers.NativeMethods.AppFolder(), "maps");
+                            if (!Directory.Exists(mapsDir)) {
+                                Directory.CreateDirectory(mapsDir);
+                            }
+
+                            var newName = Path.GetFileNameWithoutExtension(vm.MapPath);
+
+                            // Remove invalid characters
+                            foreach (char c in Path.GetInvalidFileNameChars()) {
+                                newName = newName.Replace(c, '_');
+                            }
+
+                            var configPath = Path.Combine(mapsDir, newName + ".json");
+                            var json = JsonSerializer.Serialize(vm.Settings);
+                            File.WriteAllText(configPath, json);
                         }
 
-                        var configPath = Path.Combine(mapsDir, newName + ".json");
-                        var json = JsonSerializer.Serialize(vm.Settings);
-                        File.WriteAllText(configPath, json);
+                        StatusTextBlock.Text = "Status: Calibrated";
                     }
-
-                    StatusTextBlock.Text = "Status: Calibrated";
+                    else {
+                        System.Windows.MessageBox.Show("Invalid coordinates format.");
+                    }
                 }
-                else {
-                    System.Windows.MessageBox.Show("Invalid coordinates format.");
-                }
+            }
+            finally {
+                IsDialogActive = false;
             }
         }
     }
