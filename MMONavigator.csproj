@@ -14,6 +14,7 @@
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+        <ApplicationIcon>Resources\my-location-location.ico</ApplicationIcon>
     </PropertyGroup>
     <PropertyGroup>
         <UseWindowsForms>true</UseWindowsForms>
@@ -26,6 +27,17 @@
         <EmbeddedResource Remove="MMONavigator.Tests\**" />
         <None Remove="MMONavigator.Tests\**" />
         <Page Remove="MMONavigator.Tests\**" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Resources\hot\" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Remove="Resources\my-location-location.ico" />
+      <Resource Include="Resources\my-location-location.ico" />
+      <None Remove="Resources\hot\my-location-location.ico" />
+      <Resource Include="Resources\hot\my-location-location.ico" />
+      <None Remove="Resources\disabled\my-location-location.ico" />
+      <Resource Include="Resources\disabled\my-location-location.ico" />
     </ItemGroup>
 
 </Project>

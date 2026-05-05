@@ -18,6 +18,74 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style TargetType="{x:Type ScrollViewer}">
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                <Grid Background="Transparent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollContentPresenter Grid.Column="0" Grid.Row="0" 
+                                           CanContentScroll="{TemplateBinding CanContentScroll}"/>
+
+                    <ScrollBar x:Name="PART_VerticalScrollBar"
+                               Grid.Column="1" Grid.Row="0"
+                               AutomationProperties.AutomationId="VerticalScrollBar"
+                               Cursor="Arrow"
+                               Maximum="{TemplateBinding ScrollableHeight}"
+                               Minimum="0"
+                               Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                               Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                               ViewportSize="{TemplateBinding ViewportHeight}"/>
+
+                    <ScrollBar x:Name="PART_HorizontalScrollBar"
+                               Grid.Column="0" Grid.Row="1"
+                               AutomationProperties.AutomationId="HorizontalScrollBar"
+                               Cursor="Arrow"
+                               Maximum="{TemplateBinding ScrollableWidth}"
+                               Minimum="0"
+                               Orientation="Horizontal"
+                               Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                               Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                               ViewportSize="{TemplateBinding ViewportWidth}"/>
+
+                    <Rectangle Grid.Row="1" Grid.Column="1" Fill="Transparent"/>
+                </Grid>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+        <Style TargetType="{x:Type ResizeGrip}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ResizeGrip}">
+                        <Grid Background="{Binding EffectiveBackgroundBrush}" SnapsToDevicePixels="True">
+                            <Border x:Name="GripVisual" Opacity="0">
+                                <Path Data="M1,10 L3,10 M5,10 L7,10 M9,10 L11,10 M5,6 L7,6 M9,6 L11,6 M9,2 L11,2"
+                                      Stroke="#FFB0B0B0" 
+                                      StrokeThickness="2" 
+                                      HorizontalAlignment="Right" 
+                                      VerticalAlignment="Bottom" 
+                                      Margin="0,0,2,2"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                <Setter TargetName="GripVisual" Property="Opacity" Value="1"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Grid Name="myMapGrid" Background="Transparent" IsHitTestVisible="True">
         <Grid.RowDefinitions>
@@ -84,7 +152,11 @@
                           Background="{Binding EffectiveTransparentBrush}" HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
                           Focusable="False">
+                
                 <ScrollViewer.Resources>
+                    <Style TargetType="{x:Type RepeatButton}" x:Key="ScrollBarButton">
+                        <Setter Property="Opacity" Value="{Binding EffectiveOpacity}" />
+                    </Style>
                     <Style TargetType="ScrollBar">
                         <Setter Property="Opacity" Value="{Binding EffectiveOpacity}" />
                         <Setter Property="Background" Value="{Binding EffectiveTransparentBrush}" />
@@ -440,6 +512,12 @@
                 </Canvas>
 
             </ScrollViewer>
+            <Rectangle Width="18" Height="18"
+                       Fill="{Binding EffectiveTransparentBrush}"
+                       
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom"
+                       IsHitTestVisible="False"/>
             <!-- Watermark Layer -->
             <TextBlock Text="NOT CALIBRATED"
 
