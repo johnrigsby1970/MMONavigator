@@ -83,6 +83,8 @@ public class AppSettings : INotifyPropertyChanged {
     [JsonPropertyName("CoordinateOrder")]
     public string? LegacyCoordinateOrder { get; set; }
 
+    public WindowPlacement? MapWindowPlacement { get; set; }
+    public WindowPlacement? MainWindowPlacement { get; set; }
     public void MigrateLegacySettings() {
         if (Profiles.Count == 0 && (LegacyWatchMode.HasValue || !string.IsNullOrEmpty(LegacyLogFilePath))) {
             var watchMode = LegacyWatchMode ?? WatchMode.Clipboard;
@@ -103,7 +105,12 @@ public class AppSettings : INotifyPropertyChanged {
             LastSelectedProfileName = "Default";
         }
     }
-
+    
+    private double _opacity = 1.0;
+    public double Opacity {
+        get => _opacity;
+        set { _opacity = value; OnPropertyChanged(); }
+    }
     // Application level settings
     private bool _showSettings = true;
     public bool ShowSettings {
@@ -115,7 +122,18 @@ public class AppSettings : INotifyPropertyChanged {
             }
         }
     }
-
+    
+    private bool _hideMapClickHint;
+    public bool HideMapClickHint {
+        get => _hideMapClickHint;
+        set {
+            if (HideMapClickHint != value) {
+                _hideMapClickHint = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+    
     private bool _showTimers;
     public bool ShowTimers {
         get => _showTimers;

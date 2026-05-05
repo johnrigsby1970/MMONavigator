@@ -27,8 +27,16 @@ public class ChildWindow : Window {
         _hwndSource?.AddHook(HwndHandler);
     }
 
+    protected virtual void OnBeforeCleanup() 
+    {
+        // Default is empty. Child classes can override this.
+    }
+    
     protected override void OnClosing(CancelEventArgs e) {
-        // 1. Clean up hook
+        // 1. Call the "Hook" for child-specific logic
+        OnBeforeCleanup();
+        
+        // 2. Win32 cleanup logic
         _hwndSource?.RemoveHook(HwndHandler);
         _hwndSource?.Dispose();
         _hwndSource = null;

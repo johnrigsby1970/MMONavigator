@@ -952,9 +952,11 @@ public class MainViewModel : INotifyPropertyChanged {
 
     private void OpenMap() {
         if (_mapWindow == null || !System.Windows.Application.Current.Windows.OfType<MapWindow>().Any()) {
-            _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings);
-            _mapViewModel.CoordinateSystem = Settings.SelectedProfile.CoordinateSystem;
-            _mapViewModel.CurrentCoordinatesLabel = CurrentCoordinates;
+            _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings, _settingsService)
+                {
+                    CoordinateSystem = Settings.SelectedProfile.CoordinateSystem,
+                    CurrentCoordinatesLabel = CurrentCoordinates
+                };
             if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var currentPos)) {
                 _mapViewModel.CurrentPosition = currentPos;
             } else {

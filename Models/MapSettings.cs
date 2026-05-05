@@ -58,13 +58,13 @@ public class MapSettings : INotifyPropertyChanged {
         get => _isCalibrated;
         set { _isCalibrated = value; OnPropertyChanged(); }
     }
-
-    private double _zoomLevel = 1.0;
-    public double ZoomLevel {
-        get => _zoomLevel;
-        set { _zoomLevel = value; OnPropertyChanged(); }
+    
+    private WindowPlacement _placement = new();
+    public WindowPlacement Placement {
+        get => _placement;
+        set { _placement = value; OnPropertyChanged(); }
     }
-
+    
     private bool _showLocations;
     public bool ShowLocations {
         get => _showLocations;
@@ -89,12 +89,12 @@ public class MapSettings : INotifyPropertyChanged {
         set { _showFogOfWar = value; OnPropertyChanged(); }
     }
     
-    private double _opacity = 1.0;
-    public double Opacity {
-        get => _opacity;
-        set { _opacity = value; OnPropertyChanged(); }
+    private double _zoomLevel = 1.0;
+    public double ZoomLevel {
+        get => _zoomLevel;
+        set { _zoomLevel = value; OnPropertyChanged(); }
     }
-
+    
     public event PropertyChangedEventHandler? PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

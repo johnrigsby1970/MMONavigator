@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using MMONavigator.Models;
 using System.Text.RegularExpressions;
+using System.Windows;
 
 namespace MMONavigator.Services;
 
@@ -14,7 +15,6 @@ public interface ISettingsService {
 }
 
 public class SettingsService : ISettingsService {
-
     private readonly string _settingsPath = string.Empty;
     private string _locationsPath = string.Empty;
 
@@ -23,7 +23,7 @@ public class SettingsService : ISettingsService {
         _settingsPath = Path.Combine(appFolder, "settings.json");
         _locationsPath = Path.Combine(appFolder, "locations.json");
     }
-    
+
     public AppSettings LoadSettings() {
         try {
             if (File.Exists(_settingsPath)) {
@@ -32,26 +32,40 @@ public class SettingsService : ISettingsService {
                 settings.MigrateLegacySettings();
                 return settings;
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
         }
+
         var newSettings = new AppSettings();
         newSettings.MigrateLegacySettings();
         return newSettings;
     }
 
-    private static string MakeValidFileName(string name)
-    {
+    private static string MakeValidFileName(string name) {
         var invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
         var invalidRegStr = string.Format(@"([{0}]* windfall +$)|([{0}]+)", invalidChars);
         return Regex.Replace(name, invalidRegStr, "_");
     }
-    
+
     public void SaveSettings(AppSettings settings) {
         try {
             var json = JsonSerializer.Serialize(settings);
+            // If they closed while minimized, save it as 'Normal' so it's visible next time
+            //clone it in case its being saved while running
+            var clone = JsonSerializer.Deserialize<AppSettings>(json);
+            if (clone.MainWindowPlacement?.State == WindowState.Minimized) {
+                clone.MainWindowPlacement.State = WindowState.Normal;
+            }
+
+            if (clone.MapWindowPlacement?.State == WindowState.Minimized) {
+                clone.MapWindowPlacement.State = WindowState.Normal;
+            }
+
+            json = JsonSerializer.Serialize(clone, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_settingsPath, json);
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
         }
     }
@@ -75,9 +89,11 @@ public class SettingsService : ISettingsService {
                 var json = File.ReadAllText(_locationsPath);
                 return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error loading locations: {ex.Message}");
         }
+
         return new List<LocationItem>();
     }
 
@@ -100,7 +116,8 @@ public class SettingsService : ISettingsService {
 
             string json = JsonSerializer.Serialize(locations.ToList());
             File.WriteAllText(_locationsPath, json);
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error saving locations: {ex.Message}");
         }
     }

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
 using System.Text.Json;
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 using MMONavigator.Controls;
 using MMONavigator.Helpers;
@@ -12,7 +13,7 @@ using MMONavigator.Models;
 using MMONavigator.Services;
 using MMONavigator.ViewModels;
 using MessageBox = System.Windows.MessageBox;
-using System.Drawing;
+using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 
 namespace MMONavigator.Views;
 
@@ -32,10 +33,10 @@ public partial class MapWindow : ChildWindow {
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
-        
+
         viewModel.PropertyChanged -= ViewModel_PropertyChanged;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        
+
         Loaded += MapWindow_Loaded;
         SourceInitialized += MapWindow_SourceInitialized;
         // Forcefully attach to the main grid
@@ -45,65 +46,193 @@ public partial class MapWindow : ChildWindow {
         _hoverTimer.Tick += HoverTimer_Tick;
         _hoverTimer.Start();
     }
-    
-    private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
-    {
+
+    private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e) {
         if (DataContext is not MapViewModel vm) return;
 
-        if (e.PropertyName == nameof(MapViewModel.IsFollowModeActive))
-        {
-            if (vm.IsFollowModeActive)
-            {
+        if (e.PropertyName == nameof(MapViewModel.IsFollowModeActive)) {
+            if (vm.IsFollowModeActive) {
                 // Turning ON: Save current zoom before jumping to FollowZoom
-               // vm.PreviousZoom = MapScaleTransform.ScaleX;
+                // vm.PreviousZoom = MapScaleTransform.ScaleX;
                 // Entering Follow Mode: Save what we had
                 vm.PreviousZoom = vm.Settings.ZoomLevel;
-                
+
                 CenterMapOnMarker();
             }
-            else
-            {
+            else {
                 // Exiting Follow Mode: Restore the previous zoom
                 vm.Settings.ZoomLevel = vm.PreviousZoom;
-            
+
                 // Optional: If you want to stop the "jump," do NOT call CenterMapOnMarker here.
                 // Just let the map stay where it was at the normal zoom level.
             }
         }
-        else if (vm.IsFollowModeActive && (e.PropertyName == "MarkerX" || e.PropertyName == "MarkerY"))
-        {
+        else if (vm.IsFollowModeActive && (e.PropertyName == "MarkerX" || e.PropertyName == "MarkerY")) {
             CenterMapOnMarker();
         }
     }
 
     private DateTime _lastMouseOutsideTime = DateTime.MinValue;
 
+    //to allow click through I changed this to the one below
+    // private void HoverTimer_Tick(object sender, EventArgs e) {
+    //     if (DataContext is MapViewModel vm) {
+    //         System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
+    //         var topLeft = this.PointToScreen(new System.Windows.Point(0, 0));
+    //         
+    //         var bounds = new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)this.ActualWidth, (int)this.ActualHeight);
+    //         bool isInside = bounds.Contains(cursor.X, cursor.Y);
+    //
+    //         if (isInside) {
+    //             // Mouse is inside, reset the "outside" timer and set hovered
+    //             _lastMouseOutsideTime = DateTime.MinValue;
+    //             if (!vm.IsHovered) vm.IsHovered = true;
+    //         }
+    //         else {
+    //             // Mouse is outside
+    //             if (_lastMouseOutsideTime == DateTime.MinValue)
+    //                 _lastMouseOutsideTime = DateTime.Now;
+    //
+    //             // Only hide if the mouse has been outside for 300ms
+    //             //As you drag around the window, the hover state will be maintained for a short period to avoid flickering
+    //             if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300)) {
+    //                 if (vm.IsHovered) vm.IsHovered = false;
+    //             }
+    //         }
+    //     }
+    // }
+
+
+    //with the reactivation taking place via CTRL + LeftClick this is replaced with better performing version blow
+// private void HoverTimer_Tick(object sender, EventArgs e) {
+//     if (DataContext is MapViewModel vm) {
+//         // 1. Get current mouse position in screen coordinates
+//         System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
+//
+//         // 2. Calculate Window Bounds (for Hiding)
+//         var windowTopLeft = this.PointToScreen(new System.Windows.Point(0, 0));
+//         var windowBounds = new Rectangle((int)windowTopLeft.X, (int)windowTopLeft.Y, (int)this.ActualWidth, (int)this.ActualHeight);
+//         
+//         // 3. Calculate Map Bounds (for Showing)
+//         // 'MapScroller' is the name of your ScrollViewer/Map container
+//         // var mapTopLeft = MapScrollViewer.PointToScreen(new System.Windows.Point(0, 0));
+//         // var mapBounds = new Rectangle((int)mapTopLeft.X, (int)mapTopLeft.Y, (int)MapScrollViewer.ActualWidth, (int)MapScrollViewer.ActualHeight);
+//         
+//         Rect rect = MapImageElement.TransformToAncestor(this)
+//             .TransformBounds(new Rect(0, 0, MapImageElement.ActualWidth, MapImageElement.ActualHeight));
+//
+// // Convert that Window-relative Rect to Screen Coordinates
+//
+//         var mapBounds = new Rectangle(
+//             (int)(windowTopLeft.X + rect.X), 
+//             (int)(windowTopLeft.Y + rect.Y), 
+//             (int)rect.Width, 
+//             (int)rect.Height);
+//         
+//         bool isInsideWindow = windowBounds.Contains(cursor.X, cursor.Y);
+//         bool isInsideMap = mapBounds.Contains(cursor.X, cursor.Y);
+//
+//         if (isInsideMap) {
+//             // Mouse is over the MAP: Wake up immediately
+//             _lastMouseOutsideTime = DateTime.MinValue;
+//             if (!vm.IsHovered) vm.IsHovered = true;
+//         }
+//         else if (isInsideWindow) {
+//             // Mouse is in the Window "Dead Zone" (not over map)
+//             if (vm.IsHovered) {
+//                 // If UI is ALREADY on, keep it on (ignore the 'outside' timer)
+//                 _lastMouseOutsideTime = DateTime.MinValue;
+//             }
+//             else {
+//                 // If UI is OFF, staying in the dead zone keeps it OFF
+//                 _lastMouseOutsideTime = DateTime.Now; 
+//             }
+//         }
+//         else {
+//             // Mouse is completely outside the Window
+//             if (_lastMouseOutsideTime == DateTime.MinValue)
+//                 _lastMouseOutsideTime = DateTime.Now;
+//
+//             // Grace period to prevent flickering during fast movements/drags
+//             if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300)) {
+//                 if (vm.IsHovered) vm.IsHovered = false;
+//             }
+//         }
+//     }
+// }
+
     private void HoverTimer_Tick(object sender, EventArgs e) {
         if (DataContext is MapViewModel vm) {
+            if (IsDialogActive) return;
+            // If it's already off, we don't need to do coordinate math to turn it on!
+            if (!vm.IsHovered) {
+                // OPTIONAL: Stop the timer to save CPU cycles
+                // _hoverTimer.Stop(); 
+                return;
+            }
+
+            //if opacity is 1, it doesn't matter what the mouse is doing, it will stay on
+            if (Math.Abs(vm.Opacity - 1) < MapViewModel.TOLERANCE) {
+                return;
+            }
+
             System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
-            var topLeft = this.PointToScreen(new System.Windows.Point(0, 0));
-            var bounds = new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)this.ActualWidth, (int)this.ActualHeight);
+            var windowTopLeft = this.PointToScreen(new System.Windows.Point(0, 0));
+            var windowBounds = new Rectangle((int)windowTopLeft.X, (int)windowTopLeft.Y, (int)this.ActualWidth,
+                (int)this.ActualHeight);
 
-            bool isInside = bounds.Contains(cursor.X, cursor.Y);
+            bool isInsideWindow = windowBounds.Contains(cursor.X, cursor.Y);
 
-            if (isInside) {
-                // Mouse is inside, reset the "outside" timer and set hovered
+            if (isInsideWindow) {
+                // Keep it alive
                 _lastMouseOutsideTime = DateTime.MinValue;
-                if (!vm.IsHovered) vm.IsHovered = true;
             }
             else {
-                // Mouse is outside
+                // Start the exit countdown
                 if (_lastMouseOutsideTime == DateTime.MinValue)
                     _lastMouseOutsideTime = DateTime.Now;
 
-                // Only hide if the mouse has been outside for 300ms
-                //As you drag around the window, the hover state will be maintained for a short period to avoid flickering
                 if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300)) {
-                    if (vm.IsHovered) vm.IsHovered = false;
+                    vm.IsHovered = false;
+
+                    // UI is now hidden; the timer will hit the 'if (!vm.IsHovered)' block next time
                 }
             }
         }
     }
+
+
+    private void MapImageElement_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+        if (Keyboard.Modifiers == ModifierKeys.Control) {
+            if (DataContext is MapViewModel vm) {
+                // 1. Wake the UI
+                bool wasHidden = !vm.IsHovered;
+                vm.IsHovered = true;
+
+                // 2. Edge Case: Should we drop a marker?
+                // If the UI was hidden, maybe the user just wanted to see the map.
+                // You can "eat" the click so a marker isn't accidentally placed 
+                // the moment the UI appears.
+                if (wasHidden) {
+                    e.Handled = true;
+                }
+            }
+        }
+    }
+// private void Map_MouseEnter(object sender, MouseEventArgs mouseEventArgs)
+// {
+//     // The "On" switch: Only the map can turn the UI back on
+//     if (DataContext is MapViewModel vm) {
+//         vm.IsHovered = true;
+//     }
+// }
+
+// private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
+//     if (DataContext is MapViewModel vm) {
+//         vm.IsHovered = false;
+//     }
+// }
+
 
     // private void HoverTimer_Tick(object sender, EventArgs e)
     // {
@@ -137,16 +266,20 @@ public partial class MapWindow : ChildWindow {
         UpdateKeyboardClickThrough();
 
         if (DataContext is MapViewModel vm) {
-            vm.Settings.PropertyChanged += (s, ev) => {
-                if (ev.PropertyName == nameof(MapSettings.Opacity)) {
-                    // Update opacity if needed (already bound in XAML)
-                }
-            };
+            // vm.Settings.PropertyChanged += (s, ev) => {
+            //     if (ev.PropertyName == nameof(Settings.Opacity)) {
+            //         // Update opacity if needed (already bound in XAML)
+            //     }
+            // };
 
             // We need to listen to the global KeyboardClickThrough setting
             vm.AppSettings.PropertyChanged += (s, ev) => {
                 if (ev.PropertyName == nameof(AppSettings.KeyboardClickThrough)) {
                     UpdateKeyboardClickThrough();
+                }
+
+                if (ev.PropertyName == nameof(AppSettings.Opacity)) {
+                    // Update opacity if needed (already bound in XAML)
                 }
             };
         }
@@ -238,11 +371,6 @@ public partial class MapWindow : ChildWindow {
     //     }
     // }
     //
-    // private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
-    //     if (DataContext is MapViewModel vm) {
-    //         vm.IsHovered = false;
-    //     }
-    // }
 
     // private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     // {
@@ -380,22 +508,66 @@ public partial class MapWindow : ChildWindow {
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Minimized;
     }
+
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Maximized;
     }
+
     private void NormalButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Normal;
     }
+
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
-        _hoverTimer.Stop();
+        Close();
+    }
+
+    protected override void OnBeforeCleanup() {
+        Cleanup();
+    }
+
+    public void Cleanup() {
+        try {
+            _hoverTimer?.Stop();
+            _dragTimer?.Stop();
+        }
+        catch {
+            //ignore
+        }
+
+        try {
+            SaveCurrentMap();
+        }
+        catch  {
+            //ignore
+        }
+    }
+
+
+    private void SaveCurrentMap() {
         if (DataContext is MapViewModel vm) {
             if (vm.FogImage != null && !string.IsNullOrEmpty(vm.FogOfWarFilePath)) {
                 ImageHelpers.SaveWriteableBitMap(vm.FogOfWarFilePath, vm.FogImage.Clone());
             }
-            vm.StopFading();
-        }
 
-        Close();
+            vm.StopFading();
+
+            var mapsDir = Path.Combine(Helpers.NativeMethods.AppFolder(), "maps");
+            if (!Directory.Exists(mapsDir)) {
+                Directory.CreateDirectory(mapsDir);
+            }
+
+            try {
+                if (!string.IsNullOrEmpty(vm.MapPath) && vm.Settings.IsCalibrated && File.Exists(vm.MapPath)) {
+                    var configPath = Path.Combine(mapsDir, Path.GetFileNameWithoutExtension(vm.MapPath) + ".json");
+                    var x = vm.Settings.ImagePath;
+                    var json = JsonSerializer.Serialize(vm.Settings);
+                    File.WriteAllText(configPath, json);
+                }
+            }
+            catch (Exception ex) {
+                System.Windows.MessageBox.Show($"Error saving map: {ex.Message}");
+            }
+        }
     }
 
     private void PickImage_Click(object sender, RoutedEventArgs e) {
@@ -514,6 +686,13 @@ public partial class MapWindow : ChildWindow {
             Directory.CreateDirectory(mapsDir);
         }
 
+        try {
+            SaveCurrentMap();
+        }
+        catch  {
+            //ignore
+        }
+        
         IsDialogActive = true;
         Window helperWindow = null;
         var vm = (MapViewModel)DataContext;
@@ -538,7 +717,7 @@ public partial class MapWindow : ChildWindow {
                 if (File.Exists(configPath)) {
                     try {
                         var calibrated = vm.LoadImageConfig(imagePath);
-                        
+
                         if (calibrated) {
                             Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
                             Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
@@ -578,6 +757,7 @@ public partial class MapWindow : ChildWindow {
             CancelCalibration();
             return;
         }
+
         StartCalibration();
     }
 
@@ -588,6 +768,7 @@ public partial class MapWindow : ChildWindow {
                 vm.ShowFogOfWar = _savedFogSettings.Value;
                 _savedFogSettings = null;
             }
+
             _isCalibrating = false;
             _isSettingDestination = false;
             SetDestinationMenuItem.IsChecked = false;
@@ -597,7 +778,7 @@ public partial class MapWindow : ChildWindow {
             StatusTextBlock.Text = "Status: Calibration Cancelled";
         }
     }
-    
+
     private void StartCalibration() {
         var vm = (MapViewModel)DataContext;
         _savedFogSettings = vm.ShowFogOfWar;
@@ -746,6 +927,7 @@ public partial class MapWindow : ChildWindow {
                         vm.ShowFogOfWar = _savedFogSettings.Value;
                         _savedFogSettings = null;
                     }
+
                     _isCalibrating = false;
                     _calibrationStep = 0;
 
@@ -822,7 +1004,7 @@ public partial class MapWindow : ChildWindow {
 
     private void MapScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
         var vm = (MapViewModel)DataContext;
-    
+
         // 1. Calculate the new scale
         double zoomFactor = e.Delta > 0 ? 1.1 : 0.9;
         double newScale = vm.Settings.ZoomLevel * zoomFactor;
@@ -833,12 +1015,12 @@ public partial class MapWindow : ChildWindow {
 
         // 2. Apply the new scale to the ViewModel/Settings
         vm.Settings.ZoomLevel = newScale;
-
+        RefreshPopup();
         // 3. Handle Viewport Positioning
         if (vm.IsFollowModeActive) {
             // If following, ignore mouse position and force center on the marker
             CenterMapOnMarker();
-        } 
+        }
         else {
             // Standard "Zoom to Mouse" logic
             System.Windows.Point mousePos = e.GetPosition(MapScrollViewer);
@@ -852,9 +1034,48 @@ public partial class MapWindow : ChildWindow {
 
         e.Handled = true;
     }
-    
-    private void CenterMapOnMarker()
-    {
+
+    private void WakeHintPopup_Opened(object sender, EventArgs e) {
+        // Get the handle for the Popup's window
+        var popup = (sender as Popup);
+        double offset = popup.VerticalOffset;
+        popup.VerticalOffset = offset + 0.01;
+        popup.VerticalOffset = offset;
+
+        // var source = (HwndSource)PresentationSource.FromVisual(popup.Child);
+        //
+        // if (source != null) {
+        //     NativeMethods.SetWindowExTransparent(source.Handle);
+        // }
+    }
+
+    private void HideHint_Click(object sender, RoutedEventArgs e) {
+        if (DataContext is MapViewModel vm) {
+            vm.AppSettings.HideMapClickHint = true;
+            // This will trigger the MultiDataTrigger and flip IsOpen to False immediately
+        }
+    }
+
+    // Call this whenever the Zoom property changes
+    private void RefreshPopup() {
+        if (WakeHintPopup.IsOpen) {
+            // This 'nudge' forces WPF to re-calculate the placement target's screen position
+            var offset = WakeHintPopup.HorizontalOffset;
+            WakeHintPopup.HorizontalOffset = offset + 0.01;
+            WakeHintPopup.HorizontalOffset = offset;
+        }
+    }
+
+    protected override void OnClosing(CancelEventArgs e) {
+        //save the map settings here, main program will save the rest
+        // if (DataContext is MapViewModel vm)
+        // {
+        //     vm.SaveSettings(); 
+        // }
+        base.OnClosing(e);
+    }
+
+    private void CenterMapOnMarker() {
         if (DataContext is not MapViewModel vm) return;
 
         // Use the current scale of the transform

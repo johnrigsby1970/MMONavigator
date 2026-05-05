@@ -221,12 +221,12 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     protected override void OnClosed(EventArgs e) {
-        try {
-            _viewModel.SaveSettings();
-        }
-        catch {
-            // ignored
-        }
+        // try {
+        //     _viewModel.SaveSettings();
+        // }
+        // catch {
+        //     // ignored
+        // }
         try {
             _viewModel.StopWatcher();
         }
@@ -245,6 +245,13 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         catch {
             // ignored
         }
+    }
+    
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        _viewModel.SaveSettings(); 
+        
+        base.OnClosing(e);
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {

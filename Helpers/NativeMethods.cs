@@ -48,6 +48,14 @@ public static class NativeMethods {
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
     
+    public const int WS_EX_LAYERED = 0x00080000;
+    
+    public static void SetWindowExTransparent(IntPtr hwnd)
+    {
+        var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+    }
+    
     public const int WM_NCLBUTTONDOWN = 0xA1;
     public const int HTCAPTION = 0x2;
 

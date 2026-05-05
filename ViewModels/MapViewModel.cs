@@ -14,6 +14,7 @@ using MMONavigator.Helpers;
 namespace MMONavigator.ViewModels;
 
 public class MapViewModel : INotifyPropertyChanged {
+    private readonly ISettingsService _settingsService;
     private MapSettings _settings;
     private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
     private CoordinateData? _currentPosition;
@@ -47,13 +48,6 @@ public class MapViewModel : INotifyPropertyChanged {
         set { _previousZoom = value; OnPropertyChanged(); }
     }
     
-    private bool _isFollowModeActive;
-    public bool IsFollowModeActive 
-    { 
-        get => _isFollowModeActive;
-        set { _isFollowModeActive = value; OnPropertyChanged(); }
-    }
-    
     public ObservableCollection<MapLocation> Locations {
         get => _locations;
         set {
@@ -85,6 +79,13 @@ public class MapViewModel : INotifyPropertyChanged {
                 OnPropertyChanged();
             }
         }
+    }
+    
+    private bool _isFollowModeActive;
+    public bool IsFollowModeActive 
+    { 
+        get => _isFollowModeActive;
+        set { _isFollowModeActive = value; OnPropertyChanged(); }
     }
 
     public bool ShowCalibrationMarkers {
@@ -125,7 +126,12 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
-    private bool _isHovered;
+    private bool _isHovered = true;//default to hovered, let other code deal with setting it to not hovered.
+    //The issue is if opacity = 1 and user decides to set it down even a notch, then the portion
+    //of the window with the opacity slider will collapse, thinking it was previously not hovered. 
+    //Until opacity is less than 1 and the user afterwards switched to not being hovered, then hide. 
+    //There will be a slight 300ms delay on first load, blinking the overall window.
+    public const double TOLERANCE = 0.0001;
 
     public bool IsHovered {
         get => _isHovered;
@@ -141,7 +147,7 @@ public class MapViewModel : INotifyPropertyChanged {
             }
         }
     }
-
+    
     private string? _mapPath;
 
     public string? MapPath {
@@ -200,14 +206,14 @@ public class MapViewModel : INotifyPropertyChanged {
     public double EffectiveTransparent => IsHovered ? 1.0 : 0;
 
     public double EffectiveOpacity => IsHovered ? 1.0 : Opacity;
-
+    
     public Visibility UIVisibility => (IsHovered || Opacity >= 1.0) ? Visibility.Visible : Visibility.Collapsed;
 
     public double Opacity {
-        get => _settings.Opacity;
+        get => AppSettings.Opacity;
         set {
-            if (_settings.Opacity != value) {
-                _settings.Opacity = value;
+            if (AppSettings.Opacity != value) {
+                AppSettings.Opacity = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(EffectiveOpacity));
                 OnPropertyChanged(nameof(UIVisibility));
@@ -232,8 +238,12 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
-    public MapViewModel(MapSettings settings, AppSettings appSettings) {
+    public MapViewModel(MapSettings settings, AppSettings appSettings, ISettingsService settingsService) {
+        _settingsService = settingsService;
         _settings = settings;
+        if (appSettings.MapWindowPlacement == null) {
+            appSettings.MapWindowPlacement = new WindowPlacement();
+        }
         _appSettings = appSettings;
         _settings.PropertyChanged += Settings_PropertyChanged;
         _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
@@ -280,7 +290,7 @@ public class MapViewModel : INotifyPropertyChanged {
         else if (e.PropertyName == nameof(MapSettings.ShowCalibrationMarkers)) {
             OnPropertyChanged(nameof(ShowCalibrationMarkers));
         }
-        else if (e.PropertyName == nameof(MapSettings.Opacity)) {
+        else if (e.PropertyName == nameof(AppSettings.Opacity)) {
             OnPropertyChanged(nameof(Opacity));
             OnPropertyChanged(nameof(EffectiveOpacity));
             OnPropertyChanged(nameof(UIVisibility));
@@ -319,6 +329,11 @@ public class MapViewModel : INotifyPropertyChanged {
         UpdateMarkers();
     }
 
+    public void SaveSettings() {
+        _settingsService.SaveSettings(AppSettings);
+    }
+    
+        
     public CoordinateSystem CoordinateSystem {
         get => _coordinateSystem;
         set {
@@ -601,7 +616,13 @@ public class MapViewModel : INotifyPropertyChanged {
                     Settings.ZoomLevel = savedSettings.ZoomLevel;
                     Settings.ShowLocations = savedSettings.ShowLocations;
                     Settings.ShowCalibrationMarkers = savedSettings.ShowCalibrationMarkers;
+                    Settings.ShowFogOfWar = savedSettings.ShowFogOfWar;
+                    Settings.ShowBreadcrumb = savedSettings.ShowBreadcrumb;
                     
+                    OnPropertyChanged(nameof(ShowFogOfWar));
+                    OnPropertyChanged(nameof(ShowBreadcrumb));
+                    OnPropertyChanged(nameof(ShowCalibrationMarkers));
+                    OnPropertyChanged(nameof(ShowLocations));
                     calibrated = true;
                 }
             }
@@ -1145,6 +1166,22 @@ public class MapViewModel : INotifyPropertyChanged {
         TargetPosition = coords;
         UpdateMarkers();
         DestinationSelected?.Invoke(coords);
+    }
+    
+    public void ValidateWindowBounds()
+    {
+        var s = Settings.Placement;
+    
+        // Check if the saved Top/Left is within the bounds of the current desktop
+        if (s.Left < SystemParameters.VirtualScreenLeft || 
+            s.Left > (SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 50) ||
+            s.Top < SystemParameters.VirtualScreenTop ||
+            s.Top > (SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 50))
+        {
+            // Reset to default if it's out of bounds
+            s.Left = 100;
+            s.Top = 100;
+        }
     }
     
     public event PropertyChangedEventHandler? PropertyChanged;
