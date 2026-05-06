@@ -22,6 +22,7 @@ public class MapViewModel : INotifyPropertyChanged {
     private string? _currentCoordinatesLabel;
     private string? _hoverCoordinatesLabel;
     private BitmapImage? _mapImage;
+    private BitmapImage? _defaultImage;
     private WriteableBitmap? _breadcrumbImage;
     private WriteableBitmap? _fogImage;
     private double _markerX;
@@ -205,7 +206,7 @@ public class MapViewModel : INotifyPropertyChanged {
 
     public double EffectiveTransparent => IsHovered ? 1.0 : 0;
 
-    public double EffectiveOpacity => IsHovered ? 1.0 : Opacity;
+    public double EffectiveOpacity => IsHovered ? 1.0 : string.IsNullOrEmpty(_settings.ImagePath) ? 1 : Opacity;
     
     public Visibility UIVisibility => (IsHovered || Opacity >= 1.0) ? Visibility.Visible : Visibility.Collapsed;
 
@@ -245,6 +246,15 @@ public class MapViewModel : INotifyPropertyChanged {
             appSettings.MapWindowPlacement = new WindowPlacement();
         }
         _appSettings = appSettings;
+
+        //was it saved minimized?
+        if (appSettings.MapWindowPlacement.Height <= 50 ||
+            appSettings.MapWindowPlacement.State == WindowState.Minimized) {
+            appSettings.MapWindowPlacement.State = WindowState.Minimized;
+            appSettings.MapWindowPlacement.Height = 800;
+            appSettings.MapWindowPlacement.Width = 600;
+        }
+
         _settings.PropertyChanged += Settings_PropertyChanged;
         _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
         _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
@@ -409,6 +419,15 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
+
+    public BitmapImage? DefaultImage {
+        get => _defaultImage;
+        private set {
+            _defaultImage = value;
+            OnPropertyChanged();
+        }
+    }
+    
     public BitmapImage? MapImage {
         get => _mapImage;
         private set {

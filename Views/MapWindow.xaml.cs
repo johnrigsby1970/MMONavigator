@@ -33,7 +33,7 @@ public partial class MapWindow : ChildWindow {
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
-
+        
         viewModel.PropertyChanged -= ViewModel_PropertyChanged;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
 
@@ -166,7 +166,11 @@ public partial class MapWindow : ChildWindow {
             if (IsDialogActive) return;
             if (_isAddingPin) return;
             if (_isSettingDestination) return;
-
+            if(Height <= 28 || WindowState == WindowState.Minimized) {
+                vm.Opacity = 1;
+                vm.IsHovered = true;
+                return;
+            }
             // If it's already off, we don't need to do coordinate math to turn it on!
             if (!vm.IsHovered) {
                 // OPTIONAL: Stop the timer to save CPU cycles
@@ -632,7 +636,7 @@ public partial class MapWindow : ChildWindow {
             IsDialogActive = false;
         }
     }
-
+    
     private void ClearCalibration(MapSettings settings) {
         settings.IsCalibrated = false;
         settings.Point1.X = 0;

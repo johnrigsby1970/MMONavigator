@@ -27,6 +27,8 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <helpers:HalfValueConverter x:Key="HalfValueConverter" />
         <helpers:ComparisonConverter x:Key="ComparisonConverter" />
+        <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <helpers:CenterConverter x:Key="CenterConverter" />
 
         <Style TargetType="{x:Type ScrollViewer}">
             <Setter Property="Template">
@@ -174,7 +176,8 @@
                           Panel.ZIndex="-1"
                           Background="{Binding EffectiveTransparentBrush}"
                           HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Auto" PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
+                          VerticalScrollBarVisibility="Auto" 
+                          PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
                           Focusable="False">
 
                 <ScrollViewer.Resources>
@@ -346,9 +349,28 @@
                                         ScaleY="{Binding Settings.ZoomLevel}" />
                     </Canvas.LayoutTransform>
                     <Grid Opacity="{Binding EffectiveOpacity}">
+                        
+                        <!-- <Grid Width="800" Height="600"> -->
+                        <!--     <Image Canvas.ZIndex="0" x:Name="MapImageElement" -->
+                        <!--     PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown" -->
+                        <!--     Source="{Binding MapImage}" Stretch="None" Focusable="False" /> -->
+                        <!--     <Border Background="#3E3E42"  -->
+                        <!--             HorizontalAlignment="Center"  -->
+                        <!--             VerticalAlignment="Center" -->
+                        <!--             x:Name="PlaceholderBorder" -->
+                        <!--             Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"> -->
+                        <!--         <TextBlock Text="Load Map or Pick Image"  -->
+                        <!--                    Foreground="White"  -->
+                        <!--                    FontSize="24" -->
+                        <!--                    HorizontalAlignment="Center"  -->
+                        <!--                    VerticalAlignment="Center"  -->
+                        <!--                    FontWeight="Bold"/> -->
+                        <!--     </Border> -->
+                        <!-- </Grid> -->
                         <Image Canvas.ZIndex="0" x:Name="MapImageElement"
                                PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown"
                                Source="{Binding MapImage}" Stretch="None" Focusable="False" />
+                        
                         <Image Canvas.ZIndex="10"
                                Source="{Binding FogImage}" Stretch="None" Focusable="False"
                                IsHitTestVisible="False">
@@ -735,17 +757,50 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
+            
+            <Rectangle Width="18" Height="18"
+                       Fill="{Binding EffectiveTransparentBrush}"
+                       Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Bottom"
+                       IsHitTestVisible="False" />
+            <!-- Watermark Layer -->
+            <TextBlock Text="LOAD MAP"
+                       FontSize="40"
+                       Foreground="LightGray"
+                       Opacity="1"
+                       Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       IsHitTestVisible="False">
+                
+            </TextBlock>
         </Grid>
         <!-- Opacity Slider -->
         <Border Grid.Row="3"
                 Style="{StaticResource MainBorderStyle}"
                 Padding="10,5,10,5"
                 Visibility="{Binding UIVisibility}" Focusable="False">
+            
             <StackPanel Orientation="Horizontal" Focusable="False">
                 <TextBlock Text="Opacity" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"
                            Focusable="False" />
                 <Slider Width="100" Minimum="0.1" Maximum="1.0" Value="{Binding Opacity}" VerticalAlignment="Center"
-                        TickFrequency="0.05" IsSnapToTickEnabled="True" Focusable="False" />
+                        TickFrequency="0.05" IsSnapToTickEnabled="True" Focusable="False">
+                    <Slider.Style>
+                        <Style TargetType="Slider">
+                            <Setter Property="IsEnabled" Value="True" />
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Visible" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="IsEnabled" Value="False" />
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Slider.Style>
+                </Slider>
             </StackPanel>
         </Border>
     </Grid>
