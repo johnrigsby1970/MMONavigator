@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
@@ -33,9 +34,15 @@ public partial class MapWindow : ChildWindow {
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel;
-        
+
         viewModel.PropertyChanged -= ViewModel_PropertyChanged;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+        // Replace these with your actual saved values from your DB/Config
+        double lastX = viewModel.AppSettings.MapWindowPlacement.Left;
+        double lastY = viewModel.AppSettings.MapWindowPlacement.Top;
+
+        ValidateAndSetWindowPosition(this, lastX, lastY);
 
         Loaded += MapWindow_Loaded;
         SourceInitialized += MapWindow_SourceInitialized;
@@ -45,6 +52,28 @@ public partial class MapWindow : ChildWindow {
         _hoverTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _hoverTimer.Tick += HoverTimer_Tick;
         _hoverTimer.Start();
+    }
+
+    public void ValidateAndSetWindowPosition(Window window, double savedLeft, double savedTop) {
+        // 1. Get the total bounds of all monitors combined
+        double virtualLeft = SystemParameters.VirtualScreenLeft;
+        double virtualTop = SystemParameters.VirtualScreenTop;
+        double virtualWidth = SystemParameters.VirtualScreenWidth;
+        double virtualHeight = SystemParameters.VirtualScreenHeight;
+
+        // 2. Check if the saved position is completely outside the virtual screen
+        // We add a small buffer (like 50px) so the title bar is always reachable
+        bool isVisible = (savedLeft >= virtualLeft && savedLeft < (virtualLeft + virtualWidth - 50)) &&
+                         (savedTop >= virtualTop && savedTop < (virtualTop + virtualHeight - 50));
+        
+        if (isVisible) {
+            window.Left = savedLeft;
+            window.Top = savedTop;
+        }
+        else {
+            // Fallback: Center on the Primary Monitor
+            window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        }
     }
 
     private void ViewModel_PropertyChanged(object sender, PropertyChangedEventArgs e) {
@@ -166,18 +195,19 @@ public partial class MapWindow : ChildWindow {
             if (IsDialogActive) return;
             if (_isAddingPin) return;
             if (_isSettingDestination) return;
-            if(Height <= 28 || WindowState == WindowState.Minimized) {
+            if (Height <= 28 || WindowState == WindowState.Minimized) {
                 vm.Opacity = 1;
                 vm.IsHovered = true;
                 return;
             }
+
             // If it's already off, we don't need to do coordinate math to turn it on!
             if (!vm.IsHovered) {
                 // OPTIONAL: Stop the timer to save CPU cycles
                 // _hoverTimer.Stop(); 
                 return;
             }
-            
+
 
             //if opacity is 1, it doesn't matter what the mouse is doing, it will stay on
             if (Math.Abs(vm.Opacity - 1) < MapViewModel.TOLERANCE) {
@@ -516,6 +546,7 @@ public partial class MapWindow : ChildWindow {
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Minimized;
     }
+
     private void ShowControls_Click(object sender, RoutedEventArgs e) {
         if (DataContext is MapViewModel vm) {
             // 1. Wake the UI
@@ -531,7 +562,7 @@ public partial class MapWindow : ChildWindow {
             }
         }
     }
-    
+
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         WindowState = WindowState.Maximized;
     }
@@ -549,6 +580,19 @@ public partial class MapWindow : ChildWindow {
     }
 
     public void Cleanup() {
+        // Top="{Binding AppSettings.MapWindowPlacement.Top, Mode=TwoWay}"
+        // Left="{Binding AppSettings.MapWindowPlacement.Left, Mode=TwoWay}"
+        // Width="{Binding AppSettings.MapWindowPlacement.Width, Mode=TwoWay}"
+        // Height="{Binding AppSettings.MapWindowPlacement.Height, Mode=TwoWay}"
+        // WindowState="{Binding AppSettings.MapWindowPlacement.State, Mode=TwoWay}"
+
+        try {
+            SaveWindowPlacement();
+        }
+        catch {
+            //ignore
+        }
+
         try {
             _hoverTimer?.Stop();
             _dragTimer?.Stop();
@@ -560,8 +604,86 @@ public partial class MapWindow : ChildWindow {
         try {
             SaveCurrentMap();
         }
-        catch  {
+        catch {
             //ignore
+        }
+    }
+
+    // protected override void OnLocationChanged(EventArgs e)
+    // {
+    //     base.OnLocationChanged(e);
+    //     UpdateSavedPlacement();
+    // }
+    //
+    // protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    // {
+    //     base.OnRenderSizeChanged(sizeInfo);
+    //     UpdateSavedPlacement();
+    // }
+    
+    private void UpdateSavedPlacement()
+    {
+        // CRITICAL: Only update the settings if the window is in a "Normal" state.
+        // This ignores the 28px height that happens during minimization.
+        if (DataContext is MapViewModel vm) {
+            if (this.WindowState == WindowState.Normal) {
+                // Use .Width and .Height to match the coordinate system of your Bindings
+                // Use .ActualWidth only if .Width is 'NaN' (not set)
+                vm.AppSettings.MapWindowPlacement.Top = this.Top;
+                vm.AppSettings.MapWindowPlacement.Left = this.Left;
+                if (!double.IsNaN(this.Width)) {
+                    vm.AppSettings.MapWindowPlacement.Width = this.Width; 
+                }
+                if (!double.IsNaN(this.Height)) {
+                    vm.AppSettings.MapWindowPlacement.Height = this.Height; 
+                }
+                vm.AppSettings.MapWindowPlacement.State = this.WindowState;
+            }
+            else if (this.WindowState == WindowState.Maximized) {
+                // If maximized, only update the State, don't overwrite the Width/Height
+                // so that when they "Restore" later, it goes back to the old size.
+                vm.AppSettings.MapWindowPlacement.State = this.WindowState;
+            }
+        }
+    }
+    
+    public void SaveWindowPlacement() {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        NativeMethods.WINDOWPLACEMENT placement = new NativeMethods.WINDOWPLACEMENT();
+        placement.length = Marshal.SizeOf(placement);
+
+        if (NativeMethods.GetWindowPlacement(hwnd, ref placement)) {
+            var rect = placement.rcNormalPosition;
+
+            // --- DPI ADJUSTMENT START ---
+            // Get the scaling factor (e.g., 1.5 for 150%)
+            PresentationSource source = PresentationSource.FromVisual(this);
+            double dpiX = 1.0;
+            double dpiY = 1.0;
+
+            if (source?.CompositionTarget != null) {
+                dpiX = source.CompositionTarget.TransformToDevice.M11;
+                dpiY = source.CompositionTarget.TransformToDevice.M22;
+            }
+            // --- DPI ADJUSTMENT END ---
+
+            if (DataContext is MapViewModel vm) {
+                // Convert Physical Pixels back to WPF DIPs
+                if (vm.AppSettings.MapWindowPlacement == null) {
+                    vm.AppSettings.MapWindowPlacement = new WindowPlacement();
+                    vm.AppSettings.MapWindowPlacement.Width = 800;
+                    vm.AppSettings.MapWindowPlacement.Height = 600;
+                }
+                if (vm.AppSettings.MapWindowPlacement.State == WindowState.Minimized) {
+                    vm.AppSettings.MapWindowPlacement.Top = rect.Top / dpiY;
+                    vm.AppSettings.MapWindowPlacement.Left = rect.Left / dpiX;
+                    vm.AppSettings.MapWindowPlacement.Width = (rect.Right - rect.Left) / dpiX;
+                    vm.AppSettings.MapWindowPlacement.Height = (rect.Bottom - rect.Top) / dpiY;
+                    vm.AppSettings.MapWindowPlacement.State = WindowState.Normal;
+                }
+            
+                vm.SaveSettings();
+            }
         }
     }
 
@@ -636,7 +758,7 @@ public partial class MapWindow : ChildWindow {
             IsDialogActive = false;
         }
     }
-    
+
     private void ClearCalibration(MapSettings settings) {
         settings.IsCalibrated = false;
         settings.Point1.X = 0;
@@ -712,10 +834,10 @@ public partial class MapWindow : ChildWindow {
         try {
             SaveCurrentMap();
         }
-        catch  {
+        catch {
             //ignore
         }
-        
+
         IsDialogActive = true;
         Window helperWindow = null;
         var vm = (MapViewModel)DataContext;
@@ -890,21 +1012,20 @@ public partial class MapWindow : ChildWindow {
 
             return;
         }
-        
+
         if (_calibrationStep == 1) {
             string suggestedCoords = vm.CurrentPosition.HasValue
                 ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                 : "0, 0";
-            
+
             try {
-                
                 var inputDialog =
                     new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords)
                         { Owner = this };
                 // Set the owner to the MainWindow BEFORE calling ShowDialog()
                 // You can access the MainWindow via Application.Current.MainWindow
                 inputDialog.Owner = System.Windows.Application.Current.MainWindow;
-                
+
                 IsDialogActive = true;
                 inputDialog.ShowDialog();
 

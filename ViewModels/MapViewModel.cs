@@ -245,16 +245,16 @@ public class MapViewModel : INotifyPropertyChanged {
         if (appSettings.MapWindowPlacement == null) {
             appSettings.MapWindowPlacement = new WindowPlacement();
         }
-        _appSettings = appSettings;
+        
 
         //was it saved minimized?
-        if (appSettings.MapWindowPlacement.Height <= 50 ||
-            appSettings.MapWindowPlacement.State == WindowState.Minimized) {
-            appSettings.MapWindowPlacement.State = WindowState.Minimized;
+        if (appSettings.MapWindowPlacement.Height<=50 || appSettings.MapWindowPlacement.State == WindowState.Minimized) {
+            appSettings.MapWindowPlacement.State = WindowState.Normal;
             appSettings.MapWindowPlacement.Height = 600;
             appSettings.MapWindowPlacement.Width = 800;
         }
-
+        
+        AppSettings = appSettings;
         _settings.PropertyChanged += Settings_PropertyChanged;
         _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
         _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
