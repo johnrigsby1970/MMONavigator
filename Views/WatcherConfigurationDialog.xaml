@@ -4,7 +4,7 @@
              xmlns:local="clr-namespace:MMONavigator"
              xmlns:helpers="clr-namespace:MMONavigator.Helpers"
              xmlns:controls="clr-namespace:MMONavigator.Controls"
-             Title="Configure Watcher" Height="500" Width="450"
+             Title="Configure Watcher" Height="500" Width="500"
              WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
              Background="#2D2D30" Foreground="White">
     <Window.Resources>
@@ -49,21 +49,23 @@
                         <LineBreak />
                         Some games, like Pantheon - Rise of the Fallen, write to the system clipboard. This program can monitor
                         changes to the clipboard and update the direction you need to travel to get to your destination. 
-                        The coordinate system is RightHanded and log entries are made
-                        in "x z y d" format, where d is direction of facing.
+                        The coordinate system is a "Standard Map" coordinate system, or Right Handed, where as you head East the 
+                        x coordinate gets more positive. Log entries are made in "x z y f" format, where f is the direction you are facing.
                         <LineBreak />
                         <LineBreak />
-                        While others, like Everquest,
+                        While others, like EverQuest,
                         log to a file by character name. In this case, you may need to turn on logging and each
-                        character will need its own game profile. The coordinate system is LeftHanded and log entries are made in "y x z" format.
+                        character will need its own game profile. The coordinate system is an "Inverted Map", or LeftHanded, 
+                        where as you head West the x coordinate gets more positive. Log entries are made in "y x z" format.
                         <LineBreak />
                         <LineBreak />
-                        In both Pantheon and Everquest, the program updates when the user executes /loc command in the game.
+                        In both Pantheon and EverQuest, the program updates when the user executes the /loc command in the game.
                         <LineBreak />
                         <LineBreak />
                         It should be noted, this program does not packet sniff. There are three ways the character's 
                         location is updated in this program, watching changes to the clipboard, watching for changes to 
-                        designated log file, or manually.
+                        a designated log file, or manually. This program just takes away the tedium or looking at a coordinate set 
+                        and trying to figure out which way to go.
                     </TextBlock>
 
                     <Button Style="{StaticResource MainButtonStyle}"
@@ -143,7 +145,7 @@
                 <StackPanel Grid.Row="9" Orientation="Horizontal" Margin="0,0,0,15">
                     <TextBlock Text="System:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold" />
                     <ComboBox x:Name="SystemComboBox" 
-                              Width="200" 
+                              Width="180" 
                               Margin="0,0,20,0" 
                               Style="{StaticResource MainComboBoxStyle}"
                               VerticalAlignment="Center"
@@ -160,7 +162,8 @@
                     
                     <TextBlock Text="Order:" VerticalAlignment="Center" Margin="0,0,10,0" 
                                FontWeight="Bold" />
-                    <ComboBox x:Name="OrderComboBox" Width="100" VerticalAlignment="Center"
+                    <ComboBox x:Name="OrderComboBox" Width="90" VerticalAlignment="Center"
+                              helpers:ClickThroughBehavior.IsEnabled="True"
                               Style="{StaticResource MainComboBoxStyle}"
                               />
                 </StackPanel>

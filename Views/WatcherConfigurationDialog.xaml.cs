@@ -65,15 +65,6 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
 
         LoadProfile(selectedProfile);
         UpdateProfileButtons();
-        
-        // Inside your Window/UserControl constructor or ViewModel
-        
-        // Items = Enum.GetValues(typeof(CoordinateSystem))
-        //     .Cast<CoordinateSystem>()
-        //     .Select(e => (Value: e, Label: Methods.GetDisplayName(e)))
-        //     .ToList();
-        
-
     }
 
     private bool _readMore;

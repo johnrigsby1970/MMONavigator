@@ -20,7 +20,7 @@ a user executes a command, /loc. This program will monitor the clipboard and use
 along with an entered destination location, to determine the compass heading necessary to go from the current location
 to the destination location. It will update every time the current location is changed. 
 
-The current location changes every time the user enters a command. Some games, Everquest or Project 1999, write to a log file. 
+The current location changes every time the user enters a command. Some games, EverQuest or Project 1999, write to a log file. 
 You can configure this app to monitor a log file and create game profiles to handle different characters.
 
 ### Use cases
@@ -54,7 +54,7 @@ If you know the destination and current location, you can figure all of this out
 * Windows will warn you "Don't Run!" (explained below) the first time you execute the program. Choose the "More info" link to show the "Run anyway" button.
 * Click this "Run anyway" button.
 * The program is set up to run using a default game profile for Pantheon - Rise of the Fallen. You may set it up to run for any game 
-  that has a coordinate system. It readily works with Everquest.
+  that has a coordinate system. It readily works with EverQuest.
 
 
 ### Executing program
@@ -91,15 +91,18 @@ repository if you do not want to trust the compiled program. 100% of the code is
 
 If you can create a macro, make one that repeats /loc at regular intervals as many times as it will allow.
 
-### Use with Everquest or Project 1999.
+### Use with EverQuest or Project 1999.
 
-* Since the program is defaulted to the Pantheon style coordinate system, you will need to edit the watcher configuration to use the Everquest. Go to the gear icon and click the right most button next to the location text box. This is the watcher configuration dialog.
+* Since the program is defaulted to the Pantheon style coordinate system, you will need to edit the watcher configuration to use with EverQuest. Go to the gear icon and click the right most button next to the location text box. This is the watcher configuration dialog.
 * Select or create the game profile you want to use.
-* In Everquest the location is written to a log file. It only writes to the log file once you turn logging on in your game.
+* In EverQuest the location is written to a log file. It only writes to the log file once you turn logging on in your game.
 * The program will watch the log file for location updates. Type /loc to set the location in this program.
-* Set the coordinate system used by your game. In the case of Everquest, the coordinate system is LeftHanded.
-* Set the format of the coordinates so that the program can parse them. In the case of Everquest this is [Y-Axis], [X-Axis], [Z-Axis]. (Ex. 123.4, -567.8, 17)
+* Set the coordinate system used by your game. In the case of EverQuest, the coordinate system is an "Inverted Map" coordinate system, Left-Handed. The more West you go, the more positive the x-axis gets.
+* Set the format of the coordinates so that the program can parse them. In the case of EverQuest, this is [Y-Axis], [X-Axis], [Z-Axis]. (Ex. 123.4, -567.8, 17)
 * Enter a destination, or if you have a corpse, copy the location to destination, revive yourself and start pressing /loc as it guides you to your corpse.
+* The program will update the directions every time the location is changed. This can be done by typing it into the location box or by using a macro.
+* The program will update the directions every time you press /loc, and you have logging turned on in your game. It is not automatic.
+* The program will determine your facing based on the direction you are moving. If you are moving West, it assumes you must be facing in that direction, but to know this, you first have to move.
 
 ### Additional features
 
@@ -121,7 +124,7 @@ will be lighter green, and then yellow, and then white.
 * You can enter the destination and current location manually, and the direction will update on each change. You do not
 need to run a game to run this program. It can be used with any system that has x, y coordinates.
 
-* When entering locations manually, if you do not have z (elevation) you can put in any number or leave it blank and only enter 2 numbers for x,y. The 
+* When entering locations manually, if you do not have z, elevation, you can put in any number or leave it blank and only enter 2 numbers for x,y. The 
 program does not use z and d directly and supports a set of two, three, or four numbers. You can find coordinates for a location by using https://shalazam.info/maps/1?.
 
 ### Controls
@@ -136,7 +139,7 @@ Next to the location you will find a button to copy the current location to the 
 
 The button at the far right of the location text box lets you set up game profiles, which are how you configure the program to watch for changes in location. This is called the watcher configuration dialog.
 
-You can have a game profile for Pantheon, which reads the location from the system clipboard, and a game profile for Everquest, which reads it from the log file associated to each of your characters. You would need a profile for each character in Everquest. In Pantheon, you only need the one game profile. 
+You can have a game profile for Pantheon, which reads the location from the system clipboard, and a game profile for EverQuest, which reads it from the log file associated to each of your characters. You would need a profile for each character in Everquest. In Pantheon, you only need the one game profile. 
 
 You can switch between game profiles on the watcher configuration dialog.
 
@@ -152,18 +155,18 @@ The toolbar has a timer icon button that will toggle showing you four timer butt
 
 ## Coordinate systems
 
-### LeftHanded
+### Inverted Map or Left-Handed
 
-Used by EverQuest and Project 1999.
+Used by EverQuest and Project 1999. The more you move West, the more positive the x-axis gets.
 
 * North is -Y
 * South is +Y
 * East is -X
 * West is +X
 
-### RightHanded 
+### Standard Map or Right-Handed 
 
-Used by Pantheon - Rise of the Fallen.
+Used by Pantheon - Rise of the Fallen.  The more you move East, the more positive the x-axis gets.
 
 * North is +Y
 * South is -Y
@@ -174,7 +177,7 @@ Used by Pantheon - Rise of the Fallen.
 
 Locations have [Y-Axis], [X-Axis], [Z-Axis] components. 
 
-In the case of Pantheon, they have one more, which is facing. Pantheon has the following order [X-Axis], [Z-Axis], [Y-Axis], [F-Facing]. For direction, you care about X and Y. So in this example, the first and third numbers.
+In the case of Pantheon, they have one more, which is facing. Pantheon has the following order [X-Axis], [Z-Axis], [Y-Axis], [F-Facing]. For a direction, you care about X and Y. So in this example, the first and third numbers.
 
 In EverQuest, the coordinates are given as  [Y-Axis], [X-Axis], [Z-Axis]. 
 
@@ -182,7 +185,7 @@ In EverQuest, the coordinates are given as  [Y-Axis], [X-Axis], [Z-Axis].
 
 In Pantheon, location gives the facing as part of location, it's the fourth number and represents a degree from North.
 
-While Everquest does not give facing, this program will try to derive facing as it compares changes in the locations as you move. If you are moving North, it will assume you are facing North.
+While EverQuest does not give facing, this program will try to derive facing as it compares changes in the locations as you move. If you are moving North, it will assume you are facing North.
 
 ## Authors
 
