@@ -208,7 +208,7 @@ public class MapViewModel : INotifyPropertyChanged {
 
     public double EffectiveOpacity => IsHovered ? 1.0 : string.IsNullOrEmpty(_settings.ImagePath) ? 1 : Opacity;
     
-    public Visibility UIVisibility => (IsHovered || Opacity >= 1.0) ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility UIVisibility => (IsHovered || Opacity >= 1.0 || string.IsNullOrEmpty(_settings.ImagePath)) ? Visibility.Visible : Visibility.Collapsed;
 
     public double Opacity {
         get => AppSettings.Opacity;
@@ -251,8 +251,8 @@ public class MapViewModel : INotifyPropertyChanged {
         if (appSettings.MapWindowPlacement.Height <= 50 ||
             appSettings.MapWindowPlacement.State == WindowState.Minimized) {
             appSettings.MapWindowPlacement.State = WindowState.Minimized;
-            appSettings.MapWindowPlacement.Height = 800;
-            appSettings.MapWindowPlacement.Width = 600;
+            appSettings.MapWindowPlacement.Height = 600;
+            appSettings.MapWindowPlacement.Width = 800;
         }
 
         _settings.PropertyChanged += Settings_PropertyChanged;
@@ -593,6 +593,7 @@ public class MapViewModel : INotifyPropertyChanged {
             BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(MapImage);
             MapPath = _settings.ImagePath;
             MapName = _settings.ImagePath;
+            OnPropertyChanged(nameof(UIVisibility));
             LoadImageConfig(_settings.ImagePath);
             _loadingFile = false;
             UpdateMarkers();
@@ -604,6 +605,7 @@ public class MapViewModel : INotifyPropertyChanged {
             MapImage = null;
             BreadcrumbImage = null;
             Settings.ImagePath = string.Empty;
+            OnPropertyChanged(nameof(UIVisibility));
             _loadingFile = false;
             UpdateMarkers();
         }

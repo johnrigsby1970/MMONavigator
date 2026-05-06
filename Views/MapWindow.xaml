@@ -758,12 +758,6 @@
                 </TextBlock.Style>
             </TextBlock>
             
-            <Rectangle Width="18" Height="18"
-                       Fill="{Binding EffectiveTransparentBrush}"
-                       Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Bottom"
-                       IsHitTestVisible="False" />
             <!-- Watermark Layer -->
             <TextBlock Text="LOAD MAP"
                        FontSize="40"
