@@ -130,6 +130,7 @@
                 Focusable="False" />
         <StackPanel Background="{Binding EffectiveBackgroundBrush}" Grid.Row="0" Orientation="Horizontal"
                     HorizontalAlignment="Left" Margin="5,0,0,0" Visibility="{Binding UIVisibility}" Focusable="False">
+
             <TextBlock Text="{Binding AppTitle}" VerticalAlignment="Center" Foreground="White" FontWeight="Bold"
                        Focusable="False" />
         </StackPanel>
@@ -145,38 +146,59 @@
                     Foreground="White" BorderThickness="0" Focusable="False" />
         </StackPanel>
 
-        <Grid Grid.Row="1" Style="{StaticResource MainGridStyle}" Visibility="{Binding UIVisibility}" Focusable="False">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Focusable="False">
-                <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click"
-                        Margin="5,2,5,2" Padding="5,2" Focusable="False"
-                        ToolTip="Select a new map image to use in the game." />
-                <Button Style="{StaticResource CalibrationButtonStyle}"
-                        Content="Calibrate" Click="Calibrate_Click" Margin="0,2,5,2" Padding="5,2" Focusable="False"
-                        ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates." />
-                <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click"
-                        Margin="0,2,5,2" Padding="5,2"
-                        ToolTip="Save a calibrated map so that you can select it again in the future."
-                        IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-                <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click"
-                        Margin="0,2,5,2" Padding="5,2" Focusable="False"
-                        ToolTip="Load a saved calibrated map. To create a new map, use the 'Pick Image' button." />
-                <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0"
-                           Text="Status: Ready" Focusable="False" />
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Focusable="False">
-                <TextBlock Text="{Binding HoverCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center"
-                           FontSize="11" Margin="0,0,15,0" Focusable="False" />
-                <TextBlock Text="{Binding CurrentCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center"
-                           FontSize="11" Focusable="False" />
-            </StackPanel>
+        <Grid Grid.Row="1"
+              Style="{StaticResource MainGridStyle}"
+              Visibility="{Binding UIVisibility}"
+              Focusable="False">
+
+            <Menu Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Center">
+                <MenuItem Header="_File" Foreground="White">
+                    <MenuItem Header="_Pick Image" Click="PickImage_Click" Foreground="Black" />
+                    <MenuItem Header="_Load Map" Click="LoadMap_Click" Foreground="Black" />
+                    <Separator />
+                    <MenuItem Header="_Save Map" Click="SaveMap_Click"
+                              IsEnabled="{Binding Settings.IsCalibrated}" Foreground="Black" />
+                </MenuItem>
+            </Menu>
+
+            <Button Style="{StaticResource CalibrationButtonStyle}"
+                    Content="Calibrate" Click="Calibrate_Click"
+                    Margin="0,2,5,2"
+                    Padding="5,2"
+                    HorizontalAlignment="Right"
+                    Width="70"
+                    Focusable="False"
+                    ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates." />
+
+            <!-- <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click" -->
+            <!--         Margin="5,2,5,2" Padding="5,2" Focusable="False" -->
+            <!--         ToolTip="Select a new map image to use in the game." /> -->
+
+            <!-- <Button Style="{StaticResource MainButtonStyle}" Content="Save Map" Click="SaveMap_Click" -->
+            <!--         Margin="0,2,5,2" Padding="5,2" -->
+            <!--         ToolTip="Save a calibrated map so that you can select it again in the future." -->
+            <!--         IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" /> -->
+            <!-- <Button Style="{StaticResource MainButtonStyle}" Content="Load Map" Click="LoadMap_Click" -->
+            <!--         Margin="0,2,5,2" Padding="5,2" Focusable="False" -->
+            <!--         ToolTip="Load a saved calibrated map. To create a new map, use the 'Pick Image' button." /> -->
+            <!-- <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" -->
+            <!--            Text="Status: Ready" Focusable="False" /> -->
+
+            <!-- <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Focusable="False"> -->
+            <!--     <TextBlock Text="{Binding HoverCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center" -->
+            <!--                FontSize="11" Margin="0,0,15,0" Focusable="False" /> -->
+            <!--     <TextBlock Text="{Binding CurrentCoordinatesLabel}" Foreground="#AAAAAA" VerticalAlignment="Center" -->
+            <!--                FontSize="11" Focusable="False" /> -->
+            <!-- </StackPanel> -->
         </Grid>
         <Grid Grid.Row="2">
             <!-- Map Area -->
             <ScrollViewer x:Name="MapScrollViewer"
                           Panel.ZIndex="-1"
+                          ScrollChanged="MapScroll_ScrollChanged"
                           Background="{Binding EffectiveTransparentBrush}"
                           HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Auto" 
+                          VerticalScrollBarVisibility="Auto"
                           PreviewMouseWheel="MapScrollViewer_PreviewMouseWheel"
                           Focusable="False">
 
@@ -299,7 +321,7 @@
                             <!-- <Separator Focusable="False" /> -->
                             <!-- <MenuItem Header="Create Challenge" IsCheckable="False" IsEnabled="{Binding Settings.IsCalibrated}" -->
                             <!--           Click="CreateChallenge_Click"></MenuItem> -->
-                            
+
                             <Separator Focusable="False">
                                 <Separator.Style>
                                     <Style TargetType="Separator">
@@ -340,7 +362,7 @@
                                     </Style>
                                 </MenuItem.Style>
                             </MenuItem>
-                            
+
 
                         </ContextMenu>
                     </Canvas.ContextMenu>
@@ -349,7 +371,7 @@
                                         ScaleY="{Binding Settings.ZoomLevel}" />
                     </Canvas.LayoutTransform>
                     <Grid Opacity="{Binding EffectiveOpacity}">
-                        
+
                         <!-- <Grid Width="800" Height="600"> -->
                         <!--     <Image Canvas.ZIndex="0" x:Name="MapImageElement" -->
                         <!--     PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown" -->
@@ -367,10 +389,13 @@
                         <!--                    FontWeight="Bold"/> -->
                         <!--     </Border> -->
                         <!-- </Grid> -->
-                        <Image Canvas.ZIndex="0" x:Name="MapImageElement"
-                               PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown"
-                               Source="{Binding MapImage}" Stretch="None" Focusable="False" />
-                        
+
+                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Image Canvas.ZIndex="0" x:Name="MapImageElement"
+                                   PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown"
+                                   Source="{Binding MapImage}" Stretch="None" Focusable="False" />
+                        </Grid>
+
                         <Image Canvas.ZIndex="10"
                                Source="{Binding FogImage}" Stretch="None" Focusable="False"
                                IsHitTestVisible="False">
@@ -633,6 +658,45 @@
                     </ItemsControl>
                 </Canvas>
             </ScrollViewer>
+
+            <Canvas IsHitTestVisible="False">
+                <Canvas.Style>
+                    <Style TargetType="Canvas">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                    <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Collapsed" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Canvas.Style>
+                
+                <Border Background="#80000000"
+                        CornerRadius="3"
+                        Padding="5,2"
+                        Margin="0,5,0,0"
+
+                        Canvas.Left="{Binding StickyLeftPosition}"
+                        Canvas.Top="{Binding StickyTopPosition}"
+                        IsHitTestVisible="False">
+                    
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Margin="0,0,0,0"
+                        Focusable="False">
+                        <TextBlock Text="{Binding HoverCoordinatesLabel}"
+                                   Foreground="#AAAAAA" VerticalAlignment="Center"
+                                   FontSize="11"
+                                   Margin="0,0,0,0" Focusable="False">
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </Canvas>
+
             <Popup x:Name="WakeHintPopup"
                    Opened="WakeHintPopup_Opened"
                    Placement="Bottom"
@@ -640,8 +704,7 @@
                    PopupAnimation="Fade"
                    VerticalOffset="5"
                    Width="450"
-                   IsHitTestVisible="False"
-                   >
+                   IsHitTestVisible="False">
                 <Popup.Style>
                     <Style TargetType="Popup">
                         <Setter Property="IsOpen" Value="False" />
@@ -653,7 +716,7 @@
                             <!--     </MultiDataTrigger.Conditions> -->
                             <!--     <Setter Property="Visibility" Value="Collapsed" /> -->
                             <!-- </MultiDataTrigger> -->
-                            
+
                             <DataTrigger Value="True">
                                 <DataTrigger.Binding>
                                     <MultiBinding Converter="{StaticResource ComparisonConverter}">
@@ -663,7 +726,7 @@
                                     </MultiBinding>
                                 </DataTrigger.Binding>
                                 <Setter Property="PlacementTarget" Value="{Binding ElementName=MapCanvas}" />
-                                <Setter Property="VerticalOffset" 
+                                <Setter Property="VerticalOffset"
                                         Value="{Binding PlacementTarget.ActualHeight, RelativeSource={RelativeSource Self}, 
                                     Converter={StaticResource HalfValueConverter}, ConverterParameter=15}" />
                             </DataTrigger>
@@ -676,7 +739,7 @@
                                     </MultiBinding>
                                 </DataTrigger.Binding>
                                 <Setter Property="PlacementTarget" Value="{Binding ElementName=MapScrollViewer}" />
-                                <Setter Property="VerticalOffset" 
+                                <Setter Property="VerticalOffset"
                                         Value="{Binding PlacementTarget.ActualHeight, RelativeSource={RelativeSource Self}, 
                                     Converter={StaticResource HalfValueConverter}, ConverterParameter=-40}" />
                             </DataTrigger>
@@ -688,8 +751,10 @@
                                 </MultiDataTrigger.Conditions>
                                 <Setter Property="IsOpen" Value="True" />
                             </MultiDataTrigger>
-                            
-                            <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Minimized">
+
+                            <DataTrigger
+                                Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                Value="Minimized">
                                 <Setter Property="IsOpen" Value="False" />
                             </DataTrigger>
                         </Style.Triggers>
@@ -697,38 +762,39 @@
                 </Popup.Style>
 
                 <Grid x:Name="PopupRoot" HorizontalAlignment="Center">
-                <Border Background="#CC2F3B2F" 
-                        Padding="10,5"
-                        CornerRadius="5"
-                        BorderBrush="Gold" 
-                        IsHitTestVisible="True"
-                        HorizontalAlignment="Left"
-                        BorderThickness="1"
-                        Margin="10,0,0,0"
-                        >
+                    <Border Background="#CC2F3B2F"
+                            Padding="10,5"
+                            CornerRadius="5"
+                            BorderBrush="Gold"
+                            IsHitTestVisible="True"
+                            HorizontalAlignment="Left"
+                            BorderThickness="1"
+                            Margin="10,0,0,0">
 
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="CTRL + LEFT-CLICK MAP TO RESTORE CONTROLS" 
-                                   Foreground="White" 
-                                   FontSize="10" 
-                                   FontWeight="Bold" 
-                                   VerticalAlignment="Center"
-                                   IsHitTestVisible="False" /> <Button Click="HideHint_Click"
-                                                                       Margin="10,0,0,3"
-                                                                       Padding="2,0"
-                                                                       Background="Transparent"
-                                                                       Foreground="Gold"
-                                                                       BorderThickness="0"
-                                                                       Content="×"
-                                                                       FontSize="14"
-                                                                       FontWeight="Bold"
-                                                                       VerticalAlignment="Center"
-                                                                       Cursor="Hand"
-                                                                       ToolTip="Hide this hint permanently (Settings to restore)"/>
-                    </StackPanel>
-                </Border>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="DOUBLE-CLICK MAP TO RESTORE CONTROLS"
+                                       Foreground="White"
+                                       FontSize="10"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"
+                                       IsHitTestVisible="False" />
+                            <Button Click="HideHint_Click"
+                                    Margin="10,0,0,3"
+                                    Padding="2,0"
+                                    Background="Transparent"
+                                    Foreground="Gold"
+                                    BorderThickness="0"
+                                    Content="×"
+                                    FontSize="14"
+                                    FontWeight="Bold"
+                                    VerticalAlignment="Center"
+                                    Cursor="Hand"
+                                    ToolTip="Hide this hint permanently" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Popup>
+
             <Rectangle Width="18" Height="18"
                        Fill="{Binding EffectiveTransparentBrush}"
                        Visibility="{Binding UIVisibility}"
@@ -738,18 +804,23 @@
             <!-- Watermark Layer -->
             <TextBlock Text="NOT CALIBRATED"
                        FontSize="40"
-                       Foreground="LightGray"
+                       Foreground="Gold"
                        Opacity="0.3"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        IsHitTestVisible="False">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
-                        <Setter Property="Visibility" Value="Visible" />
+                        <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
+                            <DataTrigger
+                                Binding="{Binding Settings.IsCalibrated}" Value="False">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
+                                    <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Visible" />
                                 </MultiDataTrigger.Conditions>
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </MultiDataTrigger>
@@ -757,7 +828,7 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            
+
             <!-- Watermark Layer -->
             <TextBlock Text="LOAD MAP"
                        FontSize="40"
@@ -767,7 +838,7 @@
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center"
                        IsHitTestVisible="False">
-                
+
             </TextBlock>
         </Grid>
         <!-- Opacity Slider -->
@@ -775,7 +846,7 @@
                 Style="{StaticResource MainBorderStyle}"
                 Padding="10,5,10,5"
                 Visibility="{Binding UIVisibility}" Focusable="False">
-            
+
             <StackPanel Orientation="Horizontal" Focusable="False">
                 <TextBlock Text="Opacity" Foreground="White" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="11"
                            Focusable="False" />
@@ -787,7 +858,9 @@
                             <Style.Triggers>
                                 <MultiDataTrigger>
                                     <MultiDataTrigger.Conditions>
-                                        <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Visible" />
+                                        <Condition
+                                            Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                                            Value="Visible" />
                                     </MultiDataTrigger.Conditions>
                                     <Setter Property="IsEnabled" Value="False" />
                                 </MultiDataTrigger>
@@ -795,6 +868,9 @@
                         </Style>
                     </Slider.Style>
                 </Slider>
+
+                <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="20,0,10,0"
+                           Text="Status: Ready" Focusable="False" />
             </StackPanel>
         </Border>
     </Grid>

@@ -91,6 +91,10 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         _viewModel.StopWatcher();
     }
 
+    //control how the window reacts to being clicked, specifically preventing the window from
+    //taking "focus" (becoming the active foreground window) in certain scenarios.
+    //I want activity in this window to not steal focus from say another program like my gaming application.
+    //So I can click but keep typing elsewhere.
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         // 1. Handle the specific message you need to monitor
         if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {

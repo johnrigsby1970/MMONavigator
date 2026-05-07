@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -10,19 +11,19 @@ using System.Windows.Threading;
 using MMONavigator.Models;
 using MMONavigator.Services;
 using MMONavigator.Helpers;
+// ReSharper disable RedundantNameQualifier
 
 namespace MMONavigator.ViewModels;
 
 public class MapViewModel : INotifyPropertyChanged {
     private readonly ISettingsService _settingsService;
-    private MapSettings _settings;
+    private MapSettings? _settings;
     private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
     private CoordinateData? _currentPosition;
     private CoordinateData? _targetPosition;
     private string? _currentCoordinatesLabel;
     private string? _hoverCoordinatesLabel;
     private BitmapImage? _mapImage;
-    private BitmapImage? _defaultImage;
     private WriteableBitmap? _breadcrumbImage;
     private WriteableBitmap? _fogImage;
     private double _markerX;
@@ -36,8 +37,12 @@ public class MapViewModel : INotifyPropertyChanged {
     private ObservableCollection<MapLocation> _locations = new();
     private bool _loadingFile;
     private bool _staticMarkersDirty = true;
-    private bool _locationMarkersShowing = false;
+    private bool _locationMarkersShowing;
     private DispatcherTimer? _fadeTimer;
+
+    private const double CursorPositionTopMargin = 5;
+
+    private const double HowFarCanAPersonSee = 30;
     
     // Higher value for the "zoomed in" look
     public double FollowZoomLevel => 2.5;
@@ -48,7 +53,98 @@ public class MapViewModel : INotifyPropertyChanged {
         get => _previousZoom;
         set { _previousZoom = value; OnPropertyChanged(); }
     }
+
+    private double _currentScrollY;
     
+    public double CurrentScrollY 
+    { 
+        get => _currentScrollY;
+        set { _currentScrollY = value; OnPropertyChanged(); }
+    }
+    
+    public double CoordinateYPosition
+    {
+        get 
+        {
+            // 10 is a small buffer from the top of the screen
+            // CurrentScrollY is how far down you've scrolled/panned into the map
+            return Math.Max(CursorPositionTopMargin, CurrentScrollY + CursorPositionTopMargin);
+        }
+    }
+    
+    
+    
+// This is the property your Canvas.Top will bind to
+    public double StickyTopPosition
+    {
+        get {
+            if (MapImage == null) return CursorPositionTopMargin;
+            // 1) Calculate how much empty space is at the top if the image is small
+            // (ImageHeight * Zoom) is the actual visual height of the map
+            double visualImageHeight = MapImage.Height * (Settings?.ZoomLevel??1);
+        
+            // If the image is smaller than the window, it's likely centered.
+            // The 'top' of the image is at (ViewportHeight - visualImageHeight) / 2
+            double imageTopInViewport = (ViewportHeight - visualImageHeight) / 2;
+
+            // 2) If the image is larger than the window, imageTopInViewport will be negative.
+            // We want to use the actual top of the image UNLESS it's off-screen.
+        
+            if (visualImageHeight > ViewportHeight)
+            {
+                // The image is larger than the window. 
+                // We want it to stay at the top (10px padding),
+                // but we must account for the fact that the Canvas doesn't scroll.
+                return CursorPositionTopMargin;
+            }
+            else
+            {
+                // The image is smaller than the window.
+                // Move the text to sit exactly at the top of the centered image.
+                return Math.Max(CursorPositionTopMargin, imageTopInViewport);
+            }
+        }
+    }
+    
+    public double StickyLeftPosition
+    {
+        get
+        {
+            // This keeps the coordinate box centered horizontally in the viewer
+            // (Assuming your coordinate box is roughly 150px wide)
+            return (ViewportWidth / 2) - 40;
+        }
+    }
+    // StickyTopPosition, all about that cursor position
+
+    private double _viewportHeight;
+    public double ViewportHeight 
+    { 
+        get => _viewportHeight; 
+        set { _viewportHeight = value; OnPropertyChanged(); OnPropertyChanged(nameof(StickyTopPosition)); } 
+    }
+    
+    private double _viewportWidth;
+    public double ViewportWidth 
+    { 
+        get => _viewportWidth; 
+        set { _viewportWidth = value; OnPropertyChanged(); OnPropertyChanged(nameof(StickyLeftPosition)); } 
+    }
+    
+    private double _horizontalScrollOffset;
+    public double HorizontalScrollOffset 
+    { 
+        get => _horizontalScrollOffset; 
+        set { _horizontalScrollOffset = value; OnPropertyChanged(); } 
+    }
+    
+    private double _verticalScrollOffset;
+    public double VerticalScrollOffset 
+    { 
+        get => _verticalScrollOffset; 
+        set { _verticalScrollOffset = value; OnPropertyChanged(); } 
+    }
+
     public ObservableCollection<MapLocation> Locations {
         get => _locations;
         set {
@@ -70,12 +166,12 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public bool ShowLocations {
-        get => _settings.IsCalibrated && _settings.ShowLocations;
+        get => _settings is { IsCalibrated: true, ShowLocations: true };
         set {
-            if(_settings.ShowLocations != value && value){
+            if(_settings != null && _settings.ShowLocations != value && value){
                 _staticMarkersDirty = true;
             }
-            if (_settings.ShowLocations != value) {
+            if (_settings != null && _settings.ShowLocations != value) {
                 _settings.ShowLocations = value;
                 OnPropertyChanged();
             }
@@ -90,9 +186,9 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public bool ShowCalibrationMarkers {
-        get => _settings.IsCalibrated && _settings.ShowCalibrationMarkers;
+        get => _settings is { IsCalibrated: true, ShowCalibrationMarkers: true };
         set {
-            if (_settings.ShowCalibrationMarkers != value) {
+            if (_settings != null && _settings.ShowCalibrationMarkers != value) {
                 _settings.ShowCalibrationMarkers = value;
                 OnPropertyChanged();
             }
@@ -100,9 +196,9 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public bool ShowBreadcrumb {
-        get =>  _settings.IsCalibrated && _settings.ShowBreadcrumb && BreadcrumbImage!=null;
+        get =>  _settings is { IsCalibrated: true, ShowBreadcrumb: true } && BreadcrumbImage!=null;
         set {
-            if (_settings.ShowBreadcrumb != value) {
+            if (_settings != null && _settings.ShowBreadcrumb != value) {
                 _settings.ShowBreadcrumb = value;
                 
                 if (value) {
@@ -118,9 +214,9 @@ public class MapViewModel : INotifyPropertyChanged {
     }
     
     public bool ShowFogOfWar {
-        get => _settings.ShowFogOfWar;
+        get => _settings is { ShowFogOfWar: true };
         set {
-            if (_settings.ShowFogOfWar != value) {
+            if (_settings != null && _settings.ShowFogOfWar != value) {
                 _settings.ShowFogOfWar = value;
                 OnPropertyChanged();
             }
@@ -128,11 +224,11 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     private bool _isHovered = true;//default to hovered, let other code deal with setting it to not hovered.
-    //The issue is if opacity = 1 and user decides to set it down even a notch, then the portion
+    //The issue is if opacity = 1 and the user decides to set it down even a notch, then the portion
     //of the window with the opacity slider will collapse, thinking it was previously not hovered. 
-    //Until opacity is less than 1 and the user afterwards switched to not being hovered, then hide. 
-    //There will be a slight 300ms delay on first load, blinking the overall window.
-    public const double TOLERANCE = 0.0001;
+    //Until opacity is less than 1 and the user afterward switched to not being hovered, then hide. 
+    //There will be a slight 300ms delay on the first load, blinking the overall window.
+    public const double Tolerance = 0.0001;
 
     public bool IsHovered {
         get => _isHovered;
@@ -180,7 +276,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
-    public string? AppTitle =>
+    public string AppTitle =>
         string.IsNullOrWhiteSpace(_mapName) ? "Map Overlay" : "Map Overlay" + " [" + _mapName + "]";
 
     // In your ViewModel
@@ -196,7 +292,7 @@ public class MapViewModel : INotifyPropertyChanged {
     public SolidColorBrush EffectiveTransparentBrush {
         get {
             // Assume _opacityLevel is your 0.0 - 1.0 double
-            byte alpha = (byte)(1 * 255);
+            byte alpha = 1 * 255;
             return !IsHovered && Opacity < 1
                 ? System.Windows.Media.Brushes.Transparent
                 : new SolidColorBrush(
@@ -206,14 +302,15 @@ public class MapViewModel : INotifyPropertyChanged {
 
     public double EffectiveTransparent => IsHovered ? 1.0 : 0;
 
-    public double EffectiveOpacity => IsHovered ? 1.0 : string.IsNullOrEmpty(_settings.ImagePath) ? 1 : Opacity;
+    public double EffectiveOpacity => IsHovered ? 1.0 : string.IsNullOrEmpty(_settings?.ImagePath) ? 1 : Opacity;
     
-    public Visibility UIVisibility => (IsHovered || Opacity >= 1.0 || string.IsNullOrEmpty(_settings.ImagePath)) ? Visibility.Visible : Visibility.Collapsed;
+    // ReSharper disable once InconsistentNaming
+    public Visibility UIVisibility => (IsHovered || Opacity >= 1.0 || string.IsNullOrEmpty(_settings?.ImagePath)) ? Visibility.Visible : Visibility.Collapsed;
 
     public double Opacity {
         get => AppSettings.Opacity;
         set {
-            if (AppSettings.Opacity != value) {
+            if (Math.Abs(AppSettings.Opacity - value) > Tolerance) {
                 AppSettings.Opacity = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(EffectiveOpacity));
@@ -229,7 +326,7 @@ public class MapViewModel : INotifyPropertyChanged {
         PinRequested?.Invoke(coords);
     }
 
-    private AppSettings _appSettings;
+    private AppSettings _appSettings = null!;
 
     public AppSettings AppSettings {
         get => _appSettings;
@@ -263,7 +360,8 @@ public class MapViewModel : INotifyPropertyChanged {
             _fadeTimer = new DispatcherTimer(DispatcherPriority.Background) {
                 Interval = TimeSpan.FromSeconds(2)
             };
-            _fadeTimer.Tick += (s, e) => FadeTrail(0.92);
+            // ReSharper disable once UnusedParameter.Local
+            _fadeTimer.Tick += (_, __) => FadeTrail(0.92);
             _fadeTimer.Start();
         }
     }
@@ -278,6 +376,7 @@ public class MapViewModel : INotifyPropertyChanged {
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.Point1) || e.PropertyName == nameof(MapSettings.Point2)) {
+            if(_settings==null) return;
             if (e.PropertyName == nameof(MapSettings.Point1)) {
                 _settings.Point1.PropertyChanged -= MapPoint_PropertyChanged;
                 _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
@@ -307,7 +406,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
 
-    public MapSettings Settings {
+    public MapSettings? Settings {
         get => _settings;
         set {
             if (_settings != null) {
@@ -418,15 +517,6 @@ public class MapViewModel : INotifyPropertyChanged {
             OnPropertyChanged();
         }
     }
-
-
-    public BitmapImage? DefaultImage {
-        get => _defaultImage;
-        private set {
-            _defaultImage = value;
-            OnPropertyChanged();
-        }
-    }
     
     public BitmapImage? MapImage {
         get => _mapImage;
@@ -512,8 +602,9 @@ public class MapViewModel : INotifyPropertyChanged {
 
     private void StartFading() 
     {
-        _fadeTimer = new DispatcherTimer(DispatcherPriority.Background);
-        _fadeTimer.Interval = TimeSpan.FromSeconds(2);
+        _fadeTimer = new DispatcherTimer(DispatcherPriority.Background) {
+            Interval = TimeSpan.FromSeconds(2)
+        };
         _fadeTimer.Tick += FadeTrail_Tick;
         _fadeTimer.Start();
     }
@@ -534,7 +625,7 @@ public class MapViewModel : INotifyPropertyChanged {
     
     public void LoadImage() {
         _loadingFile = true;
-        if (string.IsNullOrEmpty(_settings.ImagePath)) {
+        if (string.IsNullOrEmpty(_settings?.ImagePath)) {
             MapName = string.Empty;
             MapPath = string.Empty;
             MapImage = null;
@@ -604,6 +695,7 @@ public class MapViewModel : INotifyPropertyChanged {
             MapPath = string.Empty;
             MapImage = null;
             BreadcrumbImage = null;
+            Settings ??= new MapSettings();
             Settings.ImagePath = string.Empty;
             OnPropertyChanged(nameof(UIVisibility));
             _loadingFile = false;
@@ -619,6 +711,7 @@ public class MapViewModel : INotifyPropertyChanged {
         if (imagePath == null) return calibrated;
         var configPath = Path.ChangeExtension(imagePath, ".json");
 
+        Settings ??= new MapSettings();
         if (File.Exists(configPath)) {
             try {
                 var json = File.ReadAllText(configPath);
@@ -648,6 +741,7 @@ public class MapViewModel : INotifyPropertyChanged {
                 }
             }
             catch (Exception ex) {
+                Debug.WriteLine($"Error loading map image config: {ex.Message}");
                 Settings.ImagePath = imagePath;
                 Settings.IsCalibrated = false;
                 calibrated = false;
@@ -662,6 +756,9 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     private double GetPixelsPerFoot() {
+        if(_settings == null)
+            return 5;
+        
         double dx = _settings.Point2.X - _settings.Point1.X;
         double dy = _settings.Point2.Y - _settings.Point1.Y;
         double dpx = _settings.Point2.PixelX - _settings.Point1.PixelX;
@@ -753,15 +850,15 @@ public class MapViewModel : INotifyPropertyChanged {
 
                         if (distanceSq <= radiusSq) {
                             // 1. Calculate how far we are from the center (0.0 to 1.0)
-                            double distance = Math.Sqrt(distanceSq);
-                            double ratio = distance / rawRadius; // 0.0 is center, 1.0 is edge
+                            //double distance = Math.Sqrt(distanceSq);
+                            //double ratio = distance / rawRadius; // 0.0 is center, 1.0 is edge
 
-                            // 2. Use a "Ease Out" function for the fade (e.g., squared or cubic)
-                            // 1.0 means opaque at center, 0.0 means transparent at edge
-                            double softAlpha = Math.Pow(1.0 - ratio, 1);
-
-                            // 3. Apply the Alpha (scaled to your target intensity, e.g., 128)
-                            byte finalAlpha = (byte)(softAlpha * 128);
+                            // // 2. Use an "Ease Out" function for the fade (e.g., squared or cubic)
+                            // // 1.0 means opaque at the center, 0.0 means transparent at edge
+                            // double softAlpha = Math.Pow(1.0 - ratio, 1);
+                            //
+                            // // 3. Apply the Alpha (scaled to your target intensity, e.g., 128)
+                            // byte finalAlpha = (byte)(softAlpha * 128);
 
                             unsafe {
                                 byte* pPixel = (byte*)pBackBuffer + (y * stride) + (x * 4);
@@ -845,6 +942,7 @@ public class MapViewModel : INotifyPropertyChanged {
     
     public void UpdateMarkers() {
         if (_loadingFile) return;
+        if (_settings==null) return;
         if (!_settings.IsCalibrated || MapImage == null) {
             CurrentPositionMarkerVisibility = Visibility.Collapsed;
             TargetMarkerVisibility = Visibility.Collapsed;
@@ -860,21 +958,19 @@ public class MapViewModel : INotifyPropertyChanged {
         }
 
         if (CurrentPosition.HasValue) {
-            var x = FogOfWarFilePath;
-            var y = MapPath;
             (MarkerX, MarkerY, CurrentPositionMarkerVisibility) = CalculatePixelPosition(CurrentPosition.Value);
 
             if (CurrentPositionMarkerVisibility == Visibility.Visible) {
                 double pixelsPerFoot = GetPixelsPerFoot();
-                //2.0 for a persons width when doing cartography and wanting to know 
-                //for fog of war and how far a person can see in a game lets go with a radius of 15 feet
-                double radius = 15; //2.0;
+                //2.0 for a person's width, when doing cartography and wanting to know 
+                //for fog of war and how far a person can see in a game, let's go with a radius of 15 feet
+                double radius = HowFarCanAPersonSee; //2.0;
                 double radiusInPixels = radius * pixelsPerFoot; // "2 feet" converted to pixels
                 double actualRadius =
                     Math.Max(5.0, radiusInPixels); //scale of map may not allow for a 2 foot diameter draw
                 PunchTransparentCircle(MarkerX, MarkerY, actualRadius);
                 
-                var currentScale = Settings.ZoomLevel;
+                var currentScale = Settings?.ZoomLevel ?? 1;
                 var effectiveMarkerDiameter = 6 * currentScale;//should end up the same size as the marker
                 
                 //Should be same size as position marker regardless of zoom
@@ -932,6 +1028,14 @@ public class MapViewModel : INotifyPropertyChanged {
     //X-axis across the Y-axis. See: double dpy = py1 - py2;
     private (double x, double y, Visibility vis) CalculatePixelPosition(CoordinateData pos) {
         try {
+            //Is the coordinate on the map?
+            //If it is, what is the translated position in terms of the image's pixel coordinates.
+            
+            if(MapImage==null) 
+                return (0, 0, Visibility.Collapsed);
+            if(_settings==null) 
+                return (0, 0, Visibility.Collapsed);
+            
             double x1 = _settings.Point1.X;
             double y1 = _settings.Point1.Y;
             double px1 = _settings.Point1.PixelX;
@@ -986,9 +1090,9 @@ public class MapViewModel : INotifyPropertyChanged {
             // else {
             //     return (0, 0, Visibility.Collapsed);
             // }
-            //Due to DPI of 72 the PizelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
-            //Maybe if we were writing to the image file itself it would be different. This clears a bug where it was
-            //getting the right coordinates but deciding that the coordinates didnt fit on the image.
+            //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
+            //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
+            //getting the right coordinates but deciding that the coordinates didn't fit on the image.
             if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
                 return (px, py, Visibility.Visible);
             }
@@ -1004,6 +1108,8 @@ public class MapViewModel : INotifyPropertyChanged {
 
     private double CalculatePixelHeading(double gameHeading) {
         try {
+            if(_settings==null) return 0;
+            
             double x1 = _settings.Point1.X;
             double y1 = _settings.Point1.Y;
             double px1 = _settings.Point1.PixelX;
@@ -1034,7 +1140,7 @@ public class MapViewModel : INotifyPropertyChanged {
             double cartesianAngle = (Math.PI / 2.0) - gameHeadingRad;
 
             if (CoordinateSystem == CoordinateSystem.LeftHanded) {
-                // In left-handed, +X is West. gameHeading 90 is still East (+X in game)
+                // In left-handed, +X is West. gameHeading 90 is still East (+X, in the game),
                 // but our dx was negated in GetDirection? No, NavigationCalculator says:
                 // if (coordinateSystem == CoordinateSystem.LeftHanded) dx = -dx;
                 // This means "game +X" is actually "-X in Cartesian".
@@ -1058,6 +1164,11 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public void UpdateHoverCoordinates(double px, double py) {
+        if (_settings == null) {
+            HoverCoordinatesLabel = string.Empty;
+            return;
+        }
+        
         if (!_settings.IsCalibrated || MapImage == null) {
             HoverCoordinatesLabel = string.Empty;
             return;
@@ -1114,7 +1225,7 @@ public class MapViewModel : INotifyPropertyChanged {
             }
 
             //HoverCoordinatesLabel = $"Cursor: {x:F1} [{px:F1}], {y:F1} [{py:F1}] for {MapImage?.PixelWidth}x{MapImage?.PixelHeight}";
-            HoverCoordinatesLabel = $"Cursor: {x:F1}, {y:F1}";
+            HoverCoordinatesLabel = $"{x:F1}, {y:F1}";
         }
         catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error calculating hover coordinates: {ex.Message}");
@@ -1123,6 +1234,7 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public CoordinateData? GetCoordinatesFromPixels(double px, double py) {
+        if(_settings == null) return null;
         if (!_settings.IsCalibrated || MapImage == null) {
             return null;
         }
@@ -1191,6 +1303,8 @@ public class MapViewModel : INotifyPropertyChanged {
     
     public void ValidateWindowBounds()
     {
+        if(Settings==null) return;
+        
         var s = Settings.Placement;
     
         // Check if the saved Top/Left is within the bounds of the current desktop

@@ -85,16 +85,22 @@ public class MapSettings : INotifyPropertyChanged {
         set { _showBreadcrumb = value; OnPropertyChanged(); }
     }
     
-    private bool _showFogOfWar = false;
+    private bool _showFogOfWar;
     public bool ShowFogOfWar {
         get => _showFogOfWar;
         set { _showFogOfWar = value; OnPropertyChanged(); }
     }
     
+    // The "Counter-Scale" Property
+    public double InverseZoom => 1.0 / ZoomLevel;
+    
     private double _zoomLevel = 1.0;
     public double ZoomLevel {
         get => _zoomLevel;
-        set { _zoomLevel = value; OnPropertyChanged(); }
+        set { 
+            _zoomLevel = value; OnPropertyChanged();
+            OnPropertyChanged(nameof(InverseZoom)); // Notify the UI to update
+        }
     }
     
     public event PropertyChangedEventHandler? PropertyChanged;

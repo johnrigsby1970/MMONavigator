@@ -74,7 +74,7 @@ public class MainViewModel : INotifyPropertyChanged {
             if (value != null) {
                 if (value.Items == null) {
                     if (SetField(ref _selectedLocation, value)) {
-                        TargetCoordinates = value?.DisplayName;
+                        TargetCoordinates = value.DisplayName;
                         SyncLocationAndCoordinates(true);
                     }
                 }
