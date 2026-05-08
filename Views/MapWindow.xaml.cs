@@ -305,26 +305,53 @@ public partial class MapWindow : ChildWindow {
                 return;
             }
 
-            System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
-            var windowTopLeft = this.PointToScreen(new System.Windows.Point(0, 0));
-            var windowBounds = new Rectangle((int)windowTopLeft.X, (int)windowTopLeft.Y, (int)this.ActualWidth,
-                (int)this.ActualHeight);
+            //code works on slower or lower res machines
+            // System.Drawing.Point cursor = System.Windows.Forms.Cursor.Position;
+            // var windowTopLeft = this.PointToScreen(new System.Windows.Point(0, 0));
+            // var windowBounds = new Rectangle((int)windowTopLeft.X, (int)windowTopLeft.Y, (int)this.ActualWidth,
+            //     (int)this.ActualHeight);
+            //
+            // bool isInsideWindow = windowBounds.Contains(cursor.X, cursor.Y);
 
-            bool isInsideWindow = windowBounds.Contains(cursor.X, cursor.Y);
+            //code does not work on higher res machines
+            // Get the mouse position relative to the current Window
+            // System.Windows.Point relativeMousePos = Mouse.GetPosition(this);
+            //
+            // // In WPF units, if the mouse is inside the window, 
+            // // X will be between 0 and ActualWidth, Y between 0 and ActualHeight.
+            // bool isInsideWindow = (relativeMousePos.X >= 0 && 
+            //                        relativeMousePos.X <= this.ActualWidth &&
+            //                        relativeMousePos.Y >= 0 && 
+            //                        relativeMousePos.Y <= this.ActualHeight);
+            
+            //This method works on higher resolution / faster machines as well as slower
+            if (NativeMethods.GetCursorPos(out NativeMethods.Win32Point p)) {
 
-            if (isInsideWindow) {
-                // Keep it alive
-                _lastMouseOutsideTime = DateTime.MinValue;
-            }
-            else {
-                // Start the exit countdown
-                if (_lastMouseOutsideTime == DateTime.MinValue)
-                    _lastMouseOutsideTime = DateTime.Now;
+                // 1. Convert the physical screen point (Win32) to a WPF Logical Point
+                System.Windows.Point mousePoint = this.PointFromScreen(new System.Windows.Point(p.X, p.Y));
 
-                if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300)) {
-                    vm.IsHovered = false;
+                // 2. Check bounds against ActualWidth/Height
+                // Note: PointFromScreen handles the DPI scaling math for you.
+                bool isInsideWindow = (mousePoint.X >= 0 && 
+                                       mousePoint.X <= this.ActualWidth &&
+                                       mousePoint.Y >= 0 && 
+                                       mousePoint.Y <= this.ActualHeight);
+                
+                if (isInsideWindow) {
+                    // Keep it alive
+                    _lastMouseOutsideTime = DateTime.MinValue;
+                    //vm.IsHovered = true; only clicking restores so dont set to true here
+                }
+                else {
+                    // Start the exit countdown
+                    if (_lastMouseOutsideTime == DateTime.MinValue)
+                        _lastMouseOutsideTime = DateTime.Now;
 
-                    // UI is now hidden; the timer will hit the 'if (!vm.IsHovered)' block next time
+                    if (DateTime.Now - _lastMouseOutsideTime > TimeSpan.FromMilliseconds(300)) {
+                        vm.IsHovered = false;
+
+                        // UI is now hidden; the timer will hit the 'if (!vm.IsHovered)' block next time
+                    }
                 }
             }
         }
@@ -334,6 +361,12 @@ public partial class MapWindow : ChildWindow {
         // Handle Double Click
         if (e.ClickCount == 2) {
             if (DataContext is MapViewModel vm) {
+                if (sender is IInputElement element) {
+                    // Force the window to keep focus even if the 4K scaling 
+                    // makes it think the mouse moved slightly off-element
+                    Mouse.Capture(element); 
+                }
+                PauseHoverTracking();
                 // 1. Wake the UI
                 bool wasHidden = !vm.IsHovered;
                 vm.IsHovered = true;
@@ -350,6 +383,12 @@ public partial class MapWindow : ChildWindow {
         //Handle CTRL+Left click
         if (Keyboard.Modifiers == ModifierKeys.Control) {
             if (DataContext is MapViewModel vm) {
+                if (sender is IInputElement element) {
+                    // Force the window to keep focus even if the 4K scaling 
+                    // makes it think the mouse moved slightly off-element
+                    Mouse.Capture(element); 
+                }
+                PauseHoverTracking();
                 // 1. Wake the UI
                 bool wasHidden = !vm.IsHovered;
                 vm.IsHovered = true;
@@ -364,7 +403,11 @@ public partial class MapWindow : ChildWindow {
             }
         }
     }
-
+    
+    private void MapImageElement_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
+        Mouse.Capture(null);
+    }
+    
     private void MapWindow_SourceInitialized(object? sender, EventArgs e) {
         _hwnd = new WindowInteropHelper(this).Handle;
         var source = HwndSource.FromHwnd(_hwnd);
@@ -1045,6 +1088,7 @@ public partial class MapWindow : ChildWindow {
 
     private void ShowControls_Click(object sender, RoutedEventArgs e) {
         if (DataContext is MapViewModel vm) {
+            PauseHoverTracking();
             // 1. Wake the UI
             bool wasHidden = !vm.IsHovered;
             vm.IsHovered = true;

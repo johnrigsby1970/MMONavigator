@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -25,9 +26,7 @@ public class ChildWindow : Window, INotifyPropertyChanged {
         set {
             if (_isDialogActive != value) {
                 if (!value) {
-                    HoverTrackDisabled = true;
-                    _gracePeriodTimer?.Stop();
-                    _gracePeriodTimer?.Start();
+                    PauseHoverTracking();
                 }
                 
                 _isDialogActive = value;
@@ -40,7 +39,13 @@ public class ChildWindow : Window, INotifyPropertyChanged {
 
     public bool HoverTrackDisabled {
         get => _hoverTrackDisabled;
-        set { _hoverTrackDisabled = value;  
+        set { _hoverTrackDisabled = value;
+            if (_hoverTrackDisabled) {
+                Debug.WriteLine("Hover tracking disabled");
+            }
+            if (!_hoverTrackDisabled) {
+                Debug.WriteLine("Hover tracking enabled");
+            }
             OnPropertyChanged();
         }
     }
@@ -58,6 +63,14 @@ public class ChildWindow : Window, INotifyPropertyChanged {
             _gracePeriodTimer.Stop();
             HoverTrackDisabled = false;
         };
+    }
+
+    public void PauseHoverTracking() {
+        if (!HoverTrackDisabled) {
+            HoverTrackDisabled = true;
+            _gracePeriodTimer?.Stop();
+            _gracePeriodTimer?.Start();
+        }
     }
     
     protected override void OnSourceInitialized(EventArgs e) {

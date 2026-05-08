@@ -121,4 +121,13 @@ public static class NativeMethods {
     [DllImport("user32.dll")]
     public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
     
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    internal static extern bool GetCursorPos(out Win32Point lpPoint);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    internal struct Win32Point {
+        public int X;
+        public int Y;
+    }
 }
