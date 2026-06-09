@@ -504,6 +504,12 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void LoadMap_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        if (vm.IsDrawModeActive) {
+            vm.StopDrawMode();
+            StatusTextBlock.Text = "Status: Drawing stopped.";
+        }
+
         var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
         if (!Directory.Exists(mapsDir)) {
             Directory.CreateDirectory(mapsDir);
@@ -518,12 +524,7 @@ public partial class MapWindow : ChildWindow {
 
         IsDialogActive = true;
         Window? helperWindow = null;
-        var vm = (MapViewModel)DataContext;
         vm.Settings ??= new MapSettings();
-        
-        //Note: We are dealing with focus issues, preventing the app from stealing
-        //focus from the underlying game for as long as possible.
-        //IF they press cancel, they never have to leave their keyboard.
 
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
@@ -543,11 +544,6 @@ public partial class MapWindow : ChildWindow {
                         var calibrated = vm.LoadImageConfig(imagePath);
 
                         if (calibrated) {
-                            Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
-                            Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
-
-                            Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
-                            Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
                             vm.IsLoadingFile = false;
                             vm.LoadImage();
                             vm.UpdateMarkers();
@@ -647,9 +643,6 @@ public partial class MapWindow : ChildWindow {
                         vm.Settings.Point1.PixelX = clickPoint.X;
                         vm.Settings.Point1.PixelY = clickPoint.Y;
 
-                        Canvas.SetLeft(CalibMarker1, clickPoint.X);
-                        Canvas.SetTop(CalibMarker1, clickPoint.Y);
-
                         _calibrationStep = 2;
                         StatusTextBlock.Text = "Status: Click Point 2 on map";
                     }
@@ -685,9 +678,6 @@ public partial class MapWindow : ChildWindow {
                         vm.Settings.Point2.Y = coords.Y;
                         vm.Settings.Point2.PixelX = clickPoint.X;
                         vm.Settings.Point2.PixelY = clickPoint.Y;
-
-                        Canvas.SetLeft(CalibMarker2, clickPoint.X);
-                        Canvas.SetTop(CalibMarker2, clickPoint.Y);
 
                         vm.Settings.IsCalibrated = true;
                         vm.UpdateMarkers();
@@ -824,17 +814,7 @@ public partial class MapWindow : ChildWindow {
 
     private void MapWindow_Loaded(object sender, RoutedEventArgs e) {
         Deactivated += HandleWindowDeactivated;
-
-        // Ensure we clean up when the window is destroyed
         Closed += (s, e) => Deactivated -= HandleWindowDeactivated;
-
-        if (DataContext is MapViewModel vm) {
-            vm.Settings ??= new MapSettings();
-            Canvas.SetLeft(CalibMarker1, vm.Settings.Point1.PixelX);
-            Canvas.SetTop(CalibMarker1, vm.Settings.Point1.PixelY);
-            Canvas.SetLeft(CalibMarker2, vm.Settings.Point2.PixelX);
-            Canvas.SetTop(CalibMarker2, vm.Settings.Point2.PixelY);
-        }
     }
 
     private void HandleWindowDeactivated(object? sender, EventArgs e) {
@@ -897,6 +877,12 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void PickImage_Click(object sender, RoutedEventArgs e) {
+        var pickVm = (MapViewModel)DataContext;
+        if (pickVm.IsDrawModeActive) {
+            pickVm.StopDrawMode();
+            StatusTextBlock.Text = "Status: Drawing stopped.";
+        }
+
         IsDialogActive = true;
         Window? helperWindow = null;
 
@@ -948,6 +934,36 @@ public partial class MapWindow : ChildWindow {
             WakeHintPopup.HorizontalOffset = offset + 0.01;
             WakeHintPopup.HorizontalOffset = offset;
         }
+    }
+
+    private void StartDrawMode_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        IsDialogActive = true;
+        try {
+            var inputDialog = new InputDialog("Enter a name for the draw map:", "Start Drawing", "") {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            inputDialog.ShowDialog();
+            if (inputDialog.ManualDialogResult != true) return;
+
+            var mapName = inputDialog.Answer.Trim();
+            if (string.IsNullOrEmpty(mapName)) return;
+
+            foreach (char c in Path.GetInvalidFileNameChars())
+                mapName = mapName.Replace(c, '_');
+
+            vm.StartDrawMode(mapName);
+            StatusTextBlock.Text = $"Status: Drawing mode active — {mapName}";
+        }
+        finally {
+            IsDialogActive = false;
+        }
+    }
+
+    private void StopDrawMode_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        vm.StopDrawMode();
+        StatusTextBlock.Text = "Status: Drawing stopped. Map saved.";
     }
 
     private void SaveMap_Click(object sender, RoutedEventArgs e) {

@@ -73,6 +73,20 @@ public static class ImageHelpers {
         return blackBitmap;
     }
     
+    public static WriteableBitmap CreateBlackBitmapSize(int width, int height, double dpiX, double dpiY)
+    {
+        WriteableBitmap bitmap = new WriteableBitmap(width, height, dpiX, dpiY, PixelFormats.Bgra32, null);
+        int stride = bitmap.BackBufferStride;
+        byte[] pixels = new byte[stride * height];
+        Parallel.For(0, height, y => {
+            int rowStart = y * stride;
+            for (int x = 3; x < stride; x += 4)
+                pixels[rowStart + x] = 255;
+        });
+        bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, stride, 0);
+        return bitmap;
+    }
+
     public static void SaveWriteableBitMap(string filename, BitmapSource image5)
     {
         if (filename != string.Empty)

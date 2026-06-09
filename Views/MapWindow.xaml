@@ -158,6 +158,31 @@
                     <Separator />
                     <MenuItem Header="_Save Map" Click="SaveMap_Click"
                               IsEnabled="{Binding Settings.IsCalibrated}" Foreground="Black" />
+                    <Separator />
+                    <MenuItem Header="Start _Drawing..." Click="StartDrawMode_Click" Foreground="Black">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDrawModeActive}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.Style>
+                    </MenuItem>
+                    <MenuItem Header="Stop Drawing" Click="StopDrawMode_Click" Foreground="Black">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDrawModeActive}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.Style>
+                    </MenuItem>
                 </MenuItem>
             </Menu>
 
@@ -543,8 +568,9 @@
 
                     <!-- Calibration Markers -->
                     <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker1" Background="Transparent"
-                          Width="30"
-                          Height="30" Margin="-15,-15" Focusable="False">
+                          Width="30" Height="30" Margin="-15,-15" Focusable="False"
+                          Canvas.Left="{Binding Settings.Point1.PixelX}"
+                          Canvas.Top="{Binding Settings.Point1.PixelY}">
                         <Grid.Style>
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -578,8 +604,9 @@
                         </Grid.ToolTip>
                     </Grid>
                     <Grid Opacity="{Binding EffectiveOpacity}" x:Name="CalibMarker2" Background="Transparent"
-                          Width="30"
-                          Height="30" Margin="-15,-15" Focusable="False">
+                          Width="30" Height="30" Margin="-15,-15" Focusable="False"
+                          Canvas.Left="{Binding Settings.Point2.PixelX}"
+                          Canvas.Top="{Binding Settings.Point2.PixelY}">
                         <Grid.Style>
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed" />

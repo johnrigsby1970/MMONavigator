@@ -23,7 +23,7 @@ public class MapViewModel : INotifyPropertyChanged {
     private CoordinateData? _targetPosition;
     private string? _currentCoordinatesLabel;
     private string? _hoverCoordinatesLabel;
-    private BitmapImage? _mapImage;
+    private BitmapSource? _mapImage;
     private WriteableBitmap? _breadcrumbImage;
     private WriteableBitmap? _fogImage;
     private double _markerX;
@@ -39,7 +39,14 @@ public class MapViewModel : INotifyPropertyChanged {
     private bool _staticMarkersDirty = true;
     private bool _locationMarkersShowing;
     private DispatcherTimer? _fadeTimer;
-
+    private bool _isDrawModeActive;
+    private bool _drawModeNeedsCalibration;
+    private bool _priorFogState;
+    private bool _priorBreadcrumbState;
+    private DispatcherTimer? _drawSaveTimer;
+    private bool _expandingMap;
+    private bool _calibratingNewDrawMap;
+    private double? _drawingRadius;
     private const double CursorPositionTopMargin = 5;
 
     private const double HowFarCanAPersonSee = 30;
@@ -179,10 +186,21 @@ public class MapViewModel : INotifyPropertyChanged {
     }
     
     private bool _isFollowModeActive;
-    public bool IsFollowModeActive 
-    { 
+    public bool IsFollowModeActive
+    {
         get => _isFollowModeActive;
         set { _isFollowModeActive = value; OnPropertyChanged(); }
+    }
+
+    public bool IsDrawModeActive {
+        get => _isDrawModeActive;
+        private set {
+            if (_isDrawModeActive != value) {
+                _isDrawModeActive = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(AppTitle));
+            }
+        }
     }
 
     public bool ShowCalibrationMarkers {
@@ -277,7 +295,9 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     public string AppTitle =>
-        string.IsNullOrWhiteSpace(_mapName) ? "Map Overlay" : "Map Overlay" + " [" + _mapName + "]";
+        string.IsNullOrWhiteSpace(_mapName) ? "Map Overlay" :
+        IsDrawModeActive ? $"Map Overlay [{_mapName}] [DRAWING]" :
+        $"Map Overlay [{_mapName}]";
 
     // In your ViewModel
     public SolidColorBrush EffectiveBackgroundBrush {
@@ -367,6 +387,7 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     private void Settings_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (_calibratingNewDrawMap) return;
         if (e.PropertyName == nameof(MapSettings.ImagePath)) {
             //LoadImage();
         }
@@ -518,7 +539,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
     
-    public BitmapImage? MapImage {
+    public BitmapSource? MapImage {
         get => _mapImage;
         private set {
             _mapImage = value;
@@ -624,6 +645,7 @@ public class MapViewModel : INotifyPropertyChanged {
     }
     
     public void LoadImage() {
+        if (IsDrawModeActive) return;
         _loadingFile = true;
         if (string.IsNullOrEmpty(_settings?.ImagePath)) {
             MapName = string.Empty;
@@ -755,19 +777,35 @@ public class MapViewModel : INotifyPropertyChanged {
         return calibrated;
     }
 
-    private double GetPixelsPerFoot() {
-        if(_settings == null)
-            return 5;
-        
+    // private double GetPixelsPerGameUnit() {
+    //     if(_settings == null)
+    //         return 5;
+    //     
+    //     double dx = _settings.Point2.X - _settings.Point1.X;
+    //     double dy = _settings.Point2.Y - _settings.Point1.Y;
+    //     double dpx = _settings.Point2.PixelX - _settings.Point1.PixelX;
+    //     double dpy = _settings.Point1.PixelY - _settings.Point2.PixelY; // Account for inverted Y
+    //
+    //     double dReal = Math.Sqrt(dx * dx + dy * dy);
+    //     double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
+    //
+    //     return dPixel / dReal; // This is your pixels-per-foot scale
+    // }
+    
+    private double GetPixelsPerGameUnit() {
+        // Fallback default: If 1 pixel = 0.1 game units, then 1 game unit = 10 pixels
+        if (_settings == null)
+            return 10.0; 
+    
         double dx = _settings.Point2.X - _settings.Point1.X;
         double dy = _settings.Point2.Y - _settings.Point1.Y;
         double dpx = _settings.Point2.PixelX - _settings.Point1.PixelX;
-        double dpy = _settings.Point1.PixelY - _settings.Point2.PixelY; // Account for inverted Y
+        double dpy = _settings.Point1.PixelY - _settings.Point2.PixelY;
 
-        double dReal = Math.Sqrt(dx * dx + dy * dy);
-        double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
+        double dReal = Math.Sqrt(dx * dx + dy * dy); // Distance in game units
+        double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy); // Distance in pixels
 
-        return dPixel / dReal; // This is your pixels-per-foot scale
+        return dPixel / dReal; // Returns exactly how many pixels represent 1 game unit
     }
 
     private void PunchTransparentCircle(double centerX, double centerY, double radiusInPixels) {
@@ -941,8 +979,17 @@ public class MapViewModel : INotifyPropertyChanged {
     }
     
     public void UpdateMarkers() {
-        if (_loadingFile) return;
+        if (_loadingFile || _expandingMap || _calibratingNewDrawMap) return;
         if (_settings==null) return;
+
+        if (CurrentPosition.HasValue) {
+            // Auto-calibrate a newly created draw map on the first coordinate read
+            if (IsDrawModeActive && _drawModeNeedsCalibration) {
+                CalibrateNewDrawMap(CurrentPosition.Value);
+                _drawModeNeedsCalibration = false;
+            }
+        }
+
         if (!_settings.IsCalibrated || MapImage == null) {
             CurrentPositionMarkerVisibility = Visibility.Collapsed;
             TargetMarkerVisibility = Visibility.Collapsed;
@@ -958,23 +1005,34 @@ public class MapViewModel : INotifyPropertyChanged {
         }
 
         if (CurrentPosition.HasValue) {
+            // Auto-calibrate a newly created draw map on the first coordinate read
+            // if (IsDrawModeActive && _drawModeNeedsCalibration) {
+            //     CalibrateNewDrawMap(CurrentPosition.Value);
+            //     _drawModeNeedsCalibration = false;
+            // }
+
             (MarkerX, MarkerY, CurrentPositionMarkerVisibility) = CalculatePixelPosition(CurrentPosition.Value);
 
             if (CurrentPositionMarkerVisibility == Visibility.Visible) {
-                double pixelsPerFoot = GetPixelsPerFoot();
-                //2.0 for a person's width, when doing cartography and wanting to know 
-                //for fog of war and how far a person can see in a game, let's go with a radius of 15 feet
-                double radius = HowFarCanAPersonSee; //2.0;
-                double radiusInPixels = radius * pixelsPerFoot; // "2 feet" converted to pixels
-                double actualRadius =
-                    Math.Max(5.0, radiusInPixels); //scale of map may not allow for a 2 foot diameter draw
-                PunchTransparentCircle(MarkerX, MarkerY, actualRadius);
-                
-                var currentScale = Settings?.ZoomLevel ?? 1;
-                var effectiveMarkerDiameter = 6 * currentScale;//should end up the same size as the marker
-                
-                //Should be same size as position marker regardless of zoom
-                PunchBreadcrumbCircle(MarkerX, MarkerY,Math.Max(2.0, effectiveMarkerDiameter / 2.0));
+                if (IsDrawModeActive) {
+                    if (ExpandDrawMapIfNeeded(MarkerX, MarkerY)) {
+                        (MarkerX, MarkerY, CurrentPositionMarkerVisibility) = CalculatePixelPosition(CurrentPosition.Value);
+                    }
+                    if (CurrentPositionMarkerVisibility == Visibility.Visible) {
+                        if(!_drawingRadius.HasValue) _drawingRadius = GetDrawBrushRadius();
+                        PaintDrawPixels(MarkerX, MarkerY, _drawingRadius.Value);
+                    }
+                } else {
+                    double pixelsPerFoot = GetPixelsPerGameUnit();
+                    double radius = HowFarCanAPersonSee;
+                    double radiusInPixels = radius * pixelsPerFoot;
+                    double actualRadius = Math.Max(5.0, radiusInPixels);
+                    PunchTransparentCircle(MarkerX, MarkerY, actualRadius);
+
+                    var currentScale = Settings?.ZoomLevel ?? 1;
+                    var effectiveMarkerDiameter = 6 * currentScale;
+                    PunchBreadcrumbCircle(MarkerX, MarkerY, Math.Max(2.0, effectiveMarkerDiameter / 2.0));
+                }
             }
 
             if (CurrentPosition.Value.Heading.HasValue) {
@@ -1319,6 +1377,351 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
     
+    // ──────────────────────────────────────────────────────────
+    // Draw Mode
+    // ──────────────────────────────────────────────────────────
+
+    public void StartDrawMode(string mapName) {
+        if (IsDrawModeActive) StopDrawMode();
+
+        var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
+        if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
+
+        var imagePath = Path.Combine(mapsDir, mapName + ".png");
+
+        // Save and clear existing fog so a stale file doesn't conflict after expansion
+        if (!string.IsNullOrEmpty(FogOfWarFilePath) && FogImage != null)
+            ImageHelpers.SaveWriteableBitMap(FogOfWarFilePath, FogImage.Clone());
+        FogImage = null;
+        FogOfWarFilePath = "";
+
+        _priorFogState = ShowFogOfWar;
+        _priorBreadcrumbState = ShowBreadcrumb;
+        ShowFogOfWar = false;
+        ShowBreadcrumb = false;
+
+        Settings ??= new MapSettings();
+        _drawingRadius = null;
+        if (File.Exists(imagePath)) {
+            Settings.ImagePath = imagePath;
+            LoadDrawModeMap(imagePath);
+            LoadImageConfig(imagePath);
+            if (Settings.IsCalibrated) {
+                _drawModeNeedsCalibration = false;
+                _drawingRadius = GetDrawBrushRadius();
+            }
+            else {
+                _drawModeNeedsCalibration = true;
+            }
+        } else {
+            Settings.ImagePath = imagePath;
+            _drawingRadius = null;
+            CreateNewDrawMap(imagePath);
+            _drawModeNeedsCalibration = true;
+        }
+
+        IsDrawModeActive = true;
+        StartDrawAutoSave();
+        SaveDrawMap();
+    }
+
+    public void StopDrawMode() {
+        if (!IsDrawModeActive) return;
+
+        SaveDrawMap();
+
+        _drawSaveTimer?.Stop();
+        _drawSaveTimer = null;
+
+        IsDrawModeActive = false;
+        _drawModeNeedsCalibration = false;
+
+        ShowFogOfWar = _priorFogState;
+        ShowBreadcrumb = _priorBreadcrumbState;
+        if (_priorBreadcrumbState) StartFading();
+
+        LoadImage(); // Reload PNG as normal BitmapImage, recreate fog/breadcrumb
+    }
+
+    public void SaveDrawMap() {
+        if (!IsDrawModeActive || MapImage is not WriteableBitmap bitmap || _settings == null) return;
+        if (string.IsNullOrEmpty(_settings.ImagePath)) return;
+        try {
+            ImageHelpers.SaveWriteableBitMap(_settings.ImagePath, bitmap.Clone());
+
+            var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
+            if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
+            var configPath = Path.Combine(mapsDir,
+                Path.GetFileNameWithoutExtension(_settings.ImagePath) + ".json");
+            File.WriteAllText(configPath, JsonSerializer.Serialize(_settings));
+        }
+        catch (Exception ex) {
+            Logger.LogError("Error saving draw map", ex);
+        }
+    }
+
+    private void StartDrawAutoSave() {
+        _drawSaveTimer = new DispatcherTimer(DispatcherPriority.Background) {
+            Interval = TimeSpan.FromSeconds(30)
+        };
+        _drawSaveTimer.Tick += (_, _) => SaveDrawMap();
+        _drawSaveTimer.Start();
+    }
+
+    private void CreateNewDrawMap(string imagePath) {
+        const int initialSize = 500;
+        var bitmap = ImageHelpers.CreateBlackBitmapSize(initialSize, initialSize, 96, 96);
+        ImageHelpers.SaveWriteableBitMap(imagePath, bitmap);
+
+        MapImage = bitmap;
+        MapPath = imagePath;
+        MapName = imagePath;
+        BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(bitmap);
+        if (_settings != null) _settings.IsCalibrated = false;
+
+        OnPropertyChanged(nameof(UIVisibility));
+        UpdateMarkers();
+    }
+
+    private void LoadDrawModeMap(string imagePath) {
+        var bitmap = LoadAsBgra32WriteableBitmap(imagePath);
+        _drawingRadius = null;
+        MapImage = bitmap;
+        MapPath = imagePath;
+        MapName = imagePath;
+        BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(bitmap);
+
+        LoadImageConfig(imagePath);
+        OnPropertyChanged(nameof(UIVisibility));
+        UpdateMarkers();
+    }
+
+    private void CalibrateNewDrawMap(CoordinateData initialPos) {
+        if (_settings == null || MapImage == null) return;
+        _calibratingNewDrawMap = true;
+        const double pixelsPerUnit = 3.0;
+        double centerX = MapImage.Width / 2.0;
+        double centerY = MapImage.Height / 2.0;
+        double gameUnitOffset = centerY / pixelsPerUnit;
+
+        _settings.Point1.PixelX = centerX;
+        _settings.Point1.PixelY = centerY;
+        _settings.Point1.X = initialPos.X;
+        _settings.Point1.Y = initialPos.Y;
+
+        // Point2 is directly above center: game +Y = north = up on image
+        _settings.Point2.PixelX = centerX;
+        _settings.Point2.PixelY = 0;
+        _settings.Point2.X = initialPos.X;
+        _settings.Point2.Y = initialPos.Y + gameUnitOffset;
+
+        _settings.IsCalibrated = true;
+        _calibratingNewDrawMap = false;        
+        _drawingRadius = GetDrawBrushRadius();
+        SaveDrawMap();
+    }
+
+    private bool ExpandDrawMapIfNeeded(double markerX, double markerY) {
+        if (_expandingMap || MapImage is not WriteableBitmap bitmap || _settings == null) return false;
+
+        const int threshold = 50;
+        const int amount = 50;
+
+        int padLeft = 0, padTop = 0, padRight = 0, padBottom = 0;
+        if (markerX < threshold) padLeft = amount;
+        if (markerY < threshold) padTop = amount;
+        if (markerX > bitmap.Width - threshold) padRight = amount;
+        if (markerY > bitmap.Height - threshold) padBottom = amount;
+
+        if (padLeft == 0 && padTop == 0 && padRight == 0 && padBottom == 0) return false;
+
+        _expandingMap = true;
+        try {
+            double dpiScaleX = bitmap.PixelWidth / bitmap.Width;
+            double dpiScaleY = bitmap.PixelHeight / bitmap.Height;
+
+            int padLeftPx  = (int)Math.Round(padLeft   * dpiScaleX);
+            int padTopPx   = (int)Math.Round(padTop    * dpiScaleY);
+            int padRightPx = (int)Math.Round(padRight  * dpiScaleX);
+            int padBotPx   = (int)Math.Round(padBottom * dpiScaleY);
+
+            int newW = bitmap.PixelWidth  + padLeftPx + padRightPx;
+            int newH = bitmap.PixelHeight + padTopPx  + padBotPx;
+
+            var newBitmap = ImageHelpers.CreateBlackBitmapSize(newW, newH, bitmap.DpiX, bitmap.DpiY);
+            CopyBitmapToOffset(bitmap, newBitmap, padLeftPx, padTopPx);
+
+            // Shift calibration pixel coords (logical pixels) to match new origin
+            _settings.Point1.PixelX += padLeft;
+            _settings.Point1.PixelY += padTop;
+            _settings.Point2.PixelX += padLeft;
+            _settings.Point2.PixelY += padTop;
+
+            BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(newBitmap);
+            MapImage = newBitmap;
+            _staticMarkersDirty = true;
+        }
+        finally {
+            _expandingMap = false;
+        }
+        return true;
+    }
+
+    private static void CopyBitmapToOffset(WriteableBitmap source, WriteableBitmap dest, int destX, int destY) {
+        int w = source.PixelWidth;
+        int h = source.PixelHeight;
+        int stride = w * 4; // Bgra32
+        byte[] pixels = new byte[stride * h];
+        source.CopyPixels(new Int32Rect(0, 0, w, h), pixels, stride, 0);
+        dest.WritePixels(new Int32Rect(destX, destY, w, h), pixels, stride, 0);
+    }
+
+    // private void PaintDrawPixels(double centerX, double centerY, double radiusInPixels) {
+    //     if (MapImage is not WriteableBitmap drawBitmap) return;
+    //
+    //     double dpiScaleX = drawBitmap.PixelWidth / drawBitmap.Width;
+    //     double dpiScaleY = drawBitmap.PixelHeight / drawBitmap.Height;
+    //     double rawCx = centerX * dpiScaleX;
+    //     double rawCy = centerY * dpiScaleY;
+    //     double rawR  = Math.Max(1.0, radiusInPixels * dpiScaleX);
+    //
+    //     drawBitmap.Lock();
+    //     try {
+    //         int rSq = (int)(rawR * rawR) + 1;
+    //         int stride = drawBitmap.BackBufferStride;
+    //         IntPtr buf = drawBitmap.BackBuffer;
+    //
+    //         int xMin = Math.Max(0, (int)(rawCx - rawR));
+    //         int yMin = Math.Max(0, (int)(rawCy - rawR));
+    //         int xMax = Math.Min(drawBitmap.PixelWidth  - 1, (int)(rawCx + rawR));
+    //         int yMax = Math.Min(drawBitmap.PixelHeight - 1, (int)(rawCy + rawR));
+    //
+    //         for (int py = yMin; py <= yMax; py++) {
+    //             for (int px = xMin; px <= xMax; px++) {
+    //                 double dx = px - rawCx, dy = py - rawCy;
+    //                 if (dx * dx + dy * dy <= rSq) {
+    //                     unsafe {
+    //                         byte* p = (byte*)buf + py * stride + px * 4;
+    //                         p[0] = p[1] = p[2] = p[3] = 255;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //
+    //         int dirtyW = Math.Min((int)(rawR * 2) + 2, drawBitmap.PixelWidth  - xMin);
+    //         int dirtyH = Math.Min((int)(rawR * 2) + 2, drawBitmap.PixelHeight - yMin);
+    //         if (dirtyW > 0 && dirtyH > 0) {
+    //             try { drawBitmap.AddDirtyRect(new Int32Rect(xMin, yMin, dirtyW, dirtyH)); }
+    //             catch (Exception ex) { Logger.LogError("Error in PaintDrawPixels.AddDirtyRect", ex); }
+    //         }
+    //     }
+    //     finally {
+    //         drawBitmap.Unlock();
+    //     }
+    // }
+    
+    private void PaintDrawPixels(double centerX, double centerY, double radiusInPixels) {
+    if (MapImage is not WriteableBitmap drawBitmap) return;
+
+    // Accounts for any layout DPI scaling to ensure our math matches raw back-buffer pixels
+    double dpiScaleX = drawBitmap.PixelWidth / drawBitmap.Width;
+    double dpiScaleY = drawBitmap.PixelHeight / drawBitmap.Height;
+    double rawCx = centerX * dpiScaleX;
+    double rawCy = centerY * dpiScaleY;
+    double rawR  = Math.Max(1.0, radiusInPixels * dpiScaleX);
+
+    drawBitmap.Lock();
+    try {
+        double rawRSq = rawR * rawR;
+        int stride = drawBitmap.BackBufferStride;
+        IntPtr buf = drawBitmap.BackBuffer;
+
+        int xMin = Math.Max(0, (int)(rawCx - rawR));
+        int yMin = Math.Max(0, (int)(rawCy - rawR));
+        int xMax = Math.Min(drawBitmap.PixelWidth  - 1, (int)(rawCx + rawR));
+        int yMax = Math.Min(drawBitmap.PixelHeight - 1, (int)(rawCy + rawR));
+
+        for (int py = yMin; py <= yMax; py++) {
+            for (int px = xMin; px <= xMax; px++) {
+                double dx = px - rawCx;
+                double dy = py - rawCy;
+                double distSq = dx * dx + dy * dy;
+
+                if (distSq <= rawRSq) {
+                    // 1. Calculate distance and map it to a 0.0 -> 1.0 falloff intensity
+                    double dist = Math.Sqrt(distSq);
+                    double intensity = 1.0 - (dist / rawR); 
+                    
+                    // Optional: Square the intensity for a steeper, more dramatic drop-off
+                    // intensity = intensity * intensity; 
+
+                    unsafe {
+                        byte* p = (byte*)buf + (py * stride) + (px * 4);
+
+                        // 2. Perform additive blending for BGRA channels so overlapping areas build up
+                        // p[0] = Blue, p[1] = Green, p[2] = Red, p[3] = Alpha
+                        int newB = p[0] + (int)(255 * intensity);
+                        int newG = p[1] + (int)(255 * intensity);
+                        int newR = p[2] + (int)(255 * intensity);
+
+                        p[0] = (byte)Math.Min(255, newB);
+                        p[1] = (byte)Math.Min(255, newG);
+                        p[2] = (byte)Math.Min(255, newR);
+                        p[3] = 255; // Keep alpha fully opaque so the background color doesn't show through
+                    }
+                }
+            }
+        }
+
+        // Correctly calculate the dirty rectangle width/height bounds
+        int dirtyW = xMax - xMin + 1;
+        int dirtyH = yMax - yMin + 1;
+        if (dirtyW > 0 && dirtyH > 0) {
+            try { drawBitmap.AddDirtyRect(new Int32Rect(xMin, yMin, dirtyW, dirtyH)); }
+            catch (Exception ex) { Logger.LogError("Error in PaintDrawPixels.AddDirtyRect", ex); }
+        }
+    }
+    finally {
+        drawBitmap.Unlock();
+    }
+}
+
+    // private double GetDrawBrushRadius() {
+    //     // 1 game unit ≈ 1 person width; radius = half a unit in pixels
+    //     return Math.Max(1.5, GetPixelsPerGameUnit() / 2.0);
+    // }
+    
+    private double GetDrawBrushRadius() {
+        // Player width is 1.0 game unit, so radius is 0.5 game units.
+        double playerRadiusInGameUnits = 0.5;
+    
+        // Multiply game units by our pixel scale factor
+        double calculatedRadius = playerRadiusInGameUnits * GetPixelsPerGameUnit();
+    
+        // Enforce a minimum floor of 1.5 pixels so it never disappears
+        return Math.Max(1.5, calculatedRadius);
+    }
+    
+    private static WriteableBitmap LoadAsBgra32WriteableBitmap(string imagePath) {
+        var bmp = new BitmapImage();
+        bmp.BeginInit();
+        bmp.UriSource = new Uri(imagePath);
+        bmp.CacheOption = BitmapCacheOption.OnLoad;
+        bmp.EndInit();
+        bmp.Freeze();
+
+        if (bmp.Format == PixelFormats.Bgra32)
+            return new WriteableBitmap(bmp);
+
+        var converted = new FormatConvertedBitmap();
+        converted.BeginInit();
+        converted.Source = bmp;
+        converted.DestinationFormat = PixelFormats.Bgra32;
+        converted.EndInit();
+        converted.Freeze();
+        return new WriteableBitmap(converted);
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
