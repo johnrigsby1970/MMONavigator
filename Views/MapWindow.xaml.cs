@@ -959,6 +959,24 @@ public partial class MapWindow : ChildWindow {
             IsDialogActive = false;
         }
     }
+    
+    private void ToggleDrawMode_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        try {
+            if (string.IsNullOrWhiteSpace(vm.MapName)) return;
+            if (!vm.IsDrawModeActive) {
+                var mapName = vm.MapName;
+                mapName = Path.GetFileNameWithoutExtension(mapName);
+                vm.StartDrawMode(mapName);
+                StatusTextBlock.Text = $"Status: Drawing mode active — {mapName}";  
+            }
+            else {
+                vm.StopDrawMode();
+            }
+        }
+        finally {
+        }
+    }
 
     private void StopDrawMode_Click(object sender, RoutedEventArgs e) {
         var vm = (MapViewModel)DataContext;
@@ -1217,10 +1235,72 @@ public partial class MapWindow : ChildWindow {
         }
     }
 
+    private void DrawColor_Click(object sender, MouseButtonEventArgs e) {
+        if (sender is not Border border || !int.TryParse(border.Tag?.ToString(), out int index)) return;
+        var vm = (MapViewModel)DataContext;
+        vm.SetDrawColor(index);
+        UpdateDrawColorBoxes(index);
+    }
+
+    private void UpdateDrawColorBoxes(int selectedIndex) {
+        Border[] boxes = [
+            DrawColorBox0, DrawColorBox1, DrawColorBox2, DrawColorBox3,
+            DrawColorBox4, DrawColorBox5, DrawColorBox6, DrawColorBox7,
+            DrawColorBox8, DrawColorBox9, DrawColorBox10, DrawColorBox11,
+            DrawColorBox12
+        ];
+        foreach (var box in boxes) {
+            if (int.TryParse(box.Tag?.ToString(), out int idx))
+                box.BorderBrush = idx == selectedIndex
+                    ? System.Windows.Media.Brushes.White
+                    : System.Windows.Media.Brushes.Transparent;
+        }
+    }
+
+    private void DrawSize_Click(object sender, MouseButtonEventArgs e) {
+        if (sender is not Border border || !int.TryParse(border.Tag?.ToString(), out int mode)) return;
+        var vm = (MapViewModel)DataContext;
+        vm.DrawSizeMode = mode;
+        UpdateDrawSizeBoxes(mode);
+    }
+
+    private void UpdateDrawSizeBoxes(int selectedMode) {
+        Border[] boxes = [DrawSizeBoxSmall, DrawSizeBoxDefault, DrawSizeBoxPlus3, DrawSizeBoxPlus5, DrawSizeBoxPlus10];
+        foreach (var box in boxes) {
+            if (int.TryParse(box.Tag?.ToString(), out int mode))
+                box.BorderBrush = mode == selectedMode
+                    ? System.Windows.Media.Brushes.White
+                    : System.Windows.Media.Brushes.Transparent;
+        }
+    }
+
+    private void DrawAntiAlias_Click(object sender, MouseButtonEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        vm.DrawAntiAlias = !vm.DrawAntiAlias;
+        DrawAntiAliasBox.BorderBrush = vm.DrawAntiAlias
+            ? System.Windows.Media.Brushes.White
+            : System.Windows.Media.Brushes.Transparent;
+    }
+
+    private void DrawLineMode_Click(object sender, MouseButtonEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        vm.DrawLineMode = !vm.DrawLineMode;
+        DrawLineModeBox.BorderBrush = vm.DrawLineMode
+            ? System.Windows.Media.Brushes.White
+            : System.Windows.Media.Brushes.Transparent;
+    }
+
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (DataContext is not MapViewModel vm) return;
         vm.Settings ??= new MapSettings();
-        
+
+        if (e.PropertyName == nameof(MapViewModel.IsDrawModeActive) && vm.IsDrawModeActive) {
+            UpdateDrawColorBoxes(0);
+            UpdateDrawSizeBoxes(0);
+            DrawLineModeBox.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            DrawAntiAliasBox.BorderBrush = System.Windows.Media.Brushes.White; // anti-alias on by default
+        }
+
         if (e.PropertyName == nameof(MapViewModel.IsFollowModeActive)) {
             if (vm.IsFollowModeActive) {
                 // Turning ON: Save current zoom before jumping to FollowZoom

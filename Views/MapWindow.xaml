@@ -116,6 +116,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -216,7 +217,159 @@
             <!--                FontSize="11" Focusable="False" /> -->
             <!-- </StackPanel> -->
         </Grid>
-        <Grid Grid.Row="2">
+
+        <!-- Draw Mode Toolbar (Row 2) -->
+        <Border Grid.Row="2" Padding="5,3" Focusable="False">
+            <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource MainBorderStyle}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsDrawModeActive}" Value="True" />
+                                <Condition Binding="{Binding UIVisibility}" Value="Visible" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Focusable="False">
+
+                <!-- Color Label -->
+                <TextBlock Text="Color:" Foreground="White" VerticalAlignment="Center"
+                           Margin="0,0,4,0" FontSize="11" FontWeight="Bold" Focusable="False" />
+
+                <!-- 0: White (default) -->
+                <Border x:Name="DrawColorBox0" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="0" Focusable="False">
+                    <Rectangle Fill="White" Focusable="False" />
+                </Border>
+                <!-- 1: Dodger Blue -->
+                <Border x:Name="DrawColorBox1" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="1" Focusable="False">
+                    <Rectangle Fill="DodgerBlue" Focusable="False" />
+                </Border>
+                <!-- 2: Green -->
+                <Border x:Name="DrawColorBox2" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="2" Focusable="False">
+                    <Rectangle Fill="Green" Focusable="False" />
+                </Border>
+                <!-- 3: Cyan -->
+                <Border x:Name="DrawColorBox3" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="3" Focusable="False">
+                    <Rectangle Fill="Cyan" Focusable="False" />
+                </Border>
+                <!-- 4: Brown -->
+                <Border x:Name="DrawColorBox4" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="4" Focusable="False">
+                    <Rectangle Fill="#A52A2A" Focusable="False" />
+                </Border>
+                <!-- 5: Tan -->
+                <Border x:Name="DrawColorBox5" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="5" Focusable="False">
+                    <Rectangle Fill="Tan" Focusable="False" />
+                </Border>
+                <!-- 6: Yellow -->
+                <Border x:Name="DrawColorBox6" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="6" Focusable="False">
+                    <Rectangle Fill="Yellow" Focusable="False" />
+                </Border>
+                <!-- 7: Orange -->
+                <Border x:Name="DrawColorBox7" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="7" Focusable="False">
+                    <Rectangle Fill="Orange" Focusable="False" />
+                </Border>
+                <!-- 8: Purple -->
+                <Border x:Name="DrawColorBox8" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="8" Focusable="False">
+                    <Rectangle Fill="Purple" Focusable="False" />
+                </Border>
+                <!-- 9: Red -->
+                <Border x:Name="DrawColorBox9" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="9" Focusable="False">
+                    <Rectangle Fill="Red" Focusable="False" />
+                </Border>
+                <!-- 10: Black -->
+                <Border x:Name="DrawColorBox10" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="10" Focusable="False">
+                    <Rectangle Fill="Black" Focusable="False" />
+                </Border>
+                <!-- 11: Gray -->
+                <Border x:Name="DrawColorBox11" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="11" Focusable="False">
+                    <Rectangle Fill="Gray" Focusable="False" />
+                </Border>
+                <!-- 12: Transparent -->
+                <Border x:Name="DrawColorBox12" Width="18" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="12"
+                        Background="#404040" Focusable="False">
+                    <TextBlock Text="∅" FontSize="11" Foreground="#AAAAAA" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+
+                <!-- Divider -->
+                <Rectangle Width="1" Height="16" Fill="#666666" Margin="6,0" VerticalAlignment="Center" />
+
+                <!-- Size Label -->
+                <TextBlock Text="Size:" Foreground="White" VerticalAlignment="Center"
+                           Margin="0,0,4,0" FontSize="11" FontWeight="Bold" Focusable="False" />
+
+                <!-- Size: 2px (only shown when default radius >= 5) -->
+                <Border x:Name="DrawSizeBoxSmall" Width="28" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="-1" Focusable="False"
+                        Visibility="{Binding DrawShowSmallBrush, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <TextBlock Text="2px" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+                <!-- Size: Default -->
+                <Border x:Name="DrawSizeBoxDefault" Width="40" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="0" Focusable="False">
+                    <TextBlock Text="Default" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+                <!-- Size: +3 -->
+                <Border x:Name="DrawSizeBoxPlus3" Width="28" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="1" Focusable="False">
+                    <TextBlock Text="+3" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+                <!-- Size: +5 -->
+                <Border x:Name="DrawSizeBoxPlus5" Width="28" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="2" Focusable="False">
+                    <TextBlock Text="+5" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+                <!-- Size: +10 -->
+                <Border x:Name="DrawSizeBoxPlus10" Width="28" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="3" Focusable="False">
+                    <TextBlock Text="+10" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+
+                <!-- Line mode toggle -->
+                <Border x:Name="DrawLineModeBox" Width="34" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawLineMode_Click"
+                        Focusable="False">
+                    <TextBlock Text="Line" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+
+                <!-- Divider -->
+                <Rectangle Width="1" Height="16" Fill="#666666" Margin="6,0" VerticalAlignment="Center" />
+
+                <!-- Anti-alias toggle -->
+                <Border x:Name="DrawAntiAliasBox" Width="50" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawAntiAlias_Click"
+                        Focusable="False">
+                    <TextBlock Text="Anti-Alias" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="3">
             <!-- Map Area -->
             <ScrollViewer x:Name="MapScrollViewer"
                           Panel.ZIndex="-1"
@@ -387,6 +540,10 @@
                                     </Style>
                                 </MenuItem.Style>
                             </MenuItem>
+                            <MenuItem Header="Draw Mode" IsCheckable="True"
+                                      Click="ToggleDrawMode_Click"
+                                      IsChecked="{Binding IsDrawModeActive, Mode=OneWay}"
+                                      IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
 
 
                         </ContextMenu>
@@ -869,7 +1026,7 @@
             </TextBlock>
         </Grid>
         <!-- Opacity Slider -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Style="{StaticResource MainBorderStyle}"
                 Padding="10,5,10,5"
                 Visibility="{Binding UIVisibility}" Focusable="False">

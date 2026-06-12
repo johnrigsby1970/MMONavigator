@@ -47,6 +47,12 @@ public class MapViewModel : INotifyPropertyChanged {
     private bool _expandingMap;
     private bool _calibratingNewDrawMap;
     private double? _drawingRadius;
+    private int _drawColorIndex;           // 0=white, 1=dodger blue, ..., 12=transparent
+    private int _drawSizeMode;             // 0=default, 1=+3, 2=+5, 3=+10, -1=2px fixed
+    private bool _drawAntiAlias = true;
+    private byte _drawBrushB = 255, _drawBrushG = 255, _drawBrushR = 255;
+    private bool _drawLineMode;
+    private readonly List<(double X, double Y)> _drawLastPoints = new();
     private const double CursorPositionTopMargin = 5;
 
     private const double HowFarCanAPersonSee = 30;
@@ -194,13 +200,78 @@ public class MapViewModel : INotifyPropertyChanged {
 
     public bool IsDrawModeActive {
         get => _isDrawModeActive;
-        private set {
+        set {
             if (_isDrawModeActive != value) {
                 _isDrawModeActive = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(AppTitle));
+                OnPropertyChanged(nameof(DrawShowSmallBrush));
             }
         }
+    }
+
+    public int DrawColorIndex {
+        get => _drawColorIndex;
+        set { _drawColorIndex = value; OnPropertyChanged(); }
+    }
+
+    public int DrawSizeMode {
+        get => _drawSizeMode;
+        set { _drawSizeMode = value; _drawingRadius = null; OnPropertyChanged(); }
+    }
+
+    public bool DrawAntiAlias {
+        get => _drawAntiAlias;
+        set { _drawAntiAlias = value; OnPropertyChanged(); }
+    }
+
+    public bool DrawShowSmallBrush {
+        get {
+            try { return GetBaseDrawRadius() >= 5.0; }
+            catch { return false; }
+        }
+    }
+
+    public bool DrawLineMode {
+        get => _drawLineMode;
+        set { _drawLineMode = value; OnPropertyChanged(); }
+    }
+
+    private void PushDrawPoint(double x, double y) {
+        _drawLastPoints.Add((x, y));
+        if (_drawLastPoints.Count > 5) _drawLastPoints.RemoveAt(0);
+    }
+
+    public void SetDrawColor(int index) {
+        DrawColorIndex = index;
+        (_drawBrushB, _drawBrushG, _drawBrushR) = index switch {
+            1  => ((byte)255, (byte)144, (byte)30),   // Dodger Blue  #1E90FF
+            2  => ((byte)0,   (byte)128, (byte)0),    // Green        #008000
+            3  => ((byte)255, (byte)255, (byte)0),    // Cyan         #00FFFF
+            4  => ((byte)42,  (byte)42,  (byte)165),  // Brown        #A52A2A
+            5  => ((byte)140, (byte)180, (byte)210),  // Tan          #D2B48C
+            6  => ((byte)0,   (byte)255, (byte)255),  // Yellow       #FFFF00
+            7  => ((byte)0,   (byte)165, (byte)255),  // Orange       #FFA500
+            8  => ((byte)128, (byte)0,   (byte)128),  // Purple       #800080
+            9  => ((byte)0,   (byte)0,   (byte)255),  // Red          #FF0000
+            10 => ((byte)0,   (byte)0,   (byte)0),    // Black        #000000
+            11 => ((byte)128, (byte)128, (byte)128),  // Gray         #808080
+            _  => ((byte)255, (byte)255, (byte)255),  // White (default / transparent ignored)
+        };
+    }
+
+    private void ResetDrawSettings() {
+        _drawBrushB = 255; _drawBrushG = 255; _drawBrushR = 255;
+        _drawColorIndex = 0;
+        _drawSizeMode = 0;
+        _drawAntiAlias = true;
+        _drawLineMode = false;
+        _drawLastPoints.Clear();
+        OnPropertyChanged(nameof(DrawColorIndex));
+        OnPropertyChanged(nameof(DrawSizeMode));
+        OnPropertyChanged(nameof(DrawAntiAlias));
+        OnPropertyChanged(nameof(DrawLineMode));
+        OnPropertyChanged(nameof(DrawShowSmallBrush));
     }
 
     public bool ShowCalibrationMarkers {
@@ -795,8 +866,8 @@ public class MapViewModel : INotifyPropertyChanged {
     private double GetPixelsPerGameUnit() {
         // Fallback default: If 1 pixel = 0.1 game units, then 1 game unit = 10 pixels
         if (_settings == null)
-            return 10.0; 
-    
+            return 2.0; 
+
         double dx = _settings.Point2.X - _settings.Point1.X;
         double dy = _settings.Point2.Y - _settings.Point1.Y;
         double dpx = _settings.Point2.PixelX - _settings.Point1.PixelX;
@@ -1019,8 +1090,13 @@ public class MapViewModel : INotifyPropertyChanged {
                         (MarkerX, MarkerY, CurrentPositionMarkerVisibility) = CalculatePixelPosition(CurrentPosition.Value);
                     }
                     if (CurrentPositionMarkerVisibility == Visibility.Visible) {
-                        if(!_drawingRadius.HasValue) _drawingRadius = GetDrawBrushRadius();
-                        PaintDrawPixels(MarkerX, MarkerY, _drawingRadius.Value);
+                        if (!_drawingRadius.HasValue) _drawingRadius = GetDrawBrushRadius();
+                        double radius = _drawingRadius.Value;
+                        if (_drawLineMode && _drawLastPoints.Count > 0)
+                            PaintDrawLine(_drawLastPoints[^1].X, _drawLastPoints[^1].Y, MarkerX, MarkerY, radius);
+                        else
+                            PaintDrawPixels(MarkerX, MarkerY, radius);
+                        PushDrawPoint(MarkerX, MarkerY);
                     }
                 } else {
                     double pixelsPerFoot = GetPixelsPerGameUnit();
@@ -1383,6 +1459,7 @@ public class MapViewModel : INotifyPropertyChanged {
 
     public void StartDrawMode(string mapName) {
         if (IsDrawModeActive) StopDrawMode();
+        ResetDrawSettings();
 
         var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
         if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
@@ -1620,86 +1697,122 @@ public class MapViewModel : INotifyPropertyChanged {
     //     }
     // }
     
-    private void PaintDrawPixels(double centerX, double centerY, double radiusInPixels) {
-    if (MapImage is not WriteableBitmap drawBitmap) return;
-
-    // Accounts for any layout DPI scaling to ensure our math matches raw back-buffer pixels
-    double dpiScaleX = drawBitmap.PixelWidth / drawBitmap.Width;
-    double dpiScaleY = drawBitmap.PixelHeight / drawBitmap.Height;
-    double rawCx = centerX * dpiScaleX;
-    double rawCy = centerY * dpiScaleY;
-    double rawR  = Math.Max(1.0, radiusInPixels * dpiScaleX);
-
-    drawBitmap.Lock();
-    try {
+    // Inner loop — must be called while the bitmap is locked. No lock/unlock here.
+    private unsafe void PaintCircleCore(byte* buf, int stride, int bitmapW, int bitmapH,
+        double rawCx, double rawCy, double rawR) {
         double rawRSq = rawR * rawR;
-        int stride = drawBitmap.BackBufferStride;
-        IntPtr buf = drawBitmap.BackBuffer;
+        int xMin = Math.Max(0, (int)(rawCx - rawR));
+        int yMin = Math.Max(0, (int)(rawCy - rawR));
+        int xMax = Math.Min(bitmapW - 1, (int)(rawCx + rawR));
+        int yMax = Math.Min(bitmapH - 1, (int)(rawCy + rawR));
+        for (int py = yMin; py <= yMax; py++) {
+            for (int px = xMin; px <= xMax; px++) {
+                double dx = px - rawCx, dy = py - rawCy;
+                double distSq = dx * dx + dy * dy;
+                if (distSq > rawRSq) continue;
+                byte* p = buf + (py * stride) + (px * 4);
+                if (_drawAntiAlias) {
+                    double intensity = 1.0 - Math.Sqrt(distSq) / rawR;
+                    p[0] = (byte)(p[0] * (1.0 - intensity) + _drawBrushB * intensity);
+                    p[1] = (byte)(p[1] * (1.0 - intensity) + _drawBrushG * intensity);
+                    p[2] = (byte)(p[2] * (1.0 - intensity) + _drawBrushR * intensity);
+                } else {
+                    p[0] = _drawBrushB;
+                    p[1] = _drawBrushG;
+                    p[2] = _drawBrushR;
+                }
+                p[3] = 255;
+            }
+        }
+    }
+
+    private void PaintDrawPixels(double centerX, double centerY, double radiusInPixels) {
+        if (MapImage is not WriteableBitmap drawBitmap) return;
+        if (_drawColorIndex == 12) return;
+
+        double dpiScaleX = drawBitmap.PixelWidth / drawBitmap.Width;
+        double rawCx = centerX * dpiScaleX;
+        double rawCy = centerY * (drawBitmap.PixelHeight / drawBitmap.Height);
+        double rawR  = Math.Max(1.0, radiusInPixels * dpiScaleX);
 
         int xMin = Math.Max(0, (int)(rawCx - rawR));
         int yMin = Math.Max(0, (int)(rawCy - rawR));
         int xMax = Math.Min(drawBitmap.PixelWidth  - 1, (int)(rawCx + rawR));
         int yMax = Math.Min(drawBitmap.PixelHeight - 1, (int)(rawCy + rawR));
 
-        for (int py = yMin; py <= yMax; py++) {
-            for (int px = xMin; px <= xMax; px++) {
-                double dx = px - rawCx;
-                double dy = py - rawCy;
-                double distSq = dx * dx + dy * dy;
-
-                if (distSq <= rawRSq) {
-                    // 1. Calculate distance and map it to a 0.0 -> 1.0 falloff intensity
-                    double dist = Math.Sqrt(distSq);
-                    double intensity = 1.0 - (dist / rawR); 
-                    
-                    // Optional: Square the intensity for a steeper, more dramatic drop-off
-                    // intensity = intensity * intensity; 
-
-                    unsafe {
-                        byte* p = (byte*)buf + (py * stride) + (px * 4);
-
-                        // 2. Perform additive blending for BGRA channels so overlapping areas build up
-                        // p[0] = Blue, p[1] = Green, p[2] = Red, p[3] = Alpha
-                        int newB = p[0] + (int)(255 * intensity);
-                        int newG = p[1] + (int)(255 * intensity);
-                        int newR = p[2] + (int)(255 * intensity);
-
-                        p[0] = (byte)Math.Min(255, newB);
-                        p[1] = (byte)Math.Min(255, newG);
-                        p[2] = (byte)Math.Min(255, newR);
-                        p[3] = 255; // Keep alpha fully opaque so the background color doesn't show through
-                    }
-                }
+        drawBitmap.Lock();
+        try {
+            unsafe { PaintCircleCore((byte*)drawBitmap.BackBuffer, drawBitmap.BackBufferStride,
+                drawBitmap.PixelWidth, drawBitmap.PixelHeight, rawCx, rawCy, rawR); }
+            int dirtyW = xMax - xMin + 1;
+            int dirtyH = yMax - yMin + 1;
+            if (dirtyW > 0 && dirtyH > 0) {
+                try { drawBitmap.AddDirtyRect(new Int32Rect(xMin, yMin, dirtyW, dirtyH)); }
+                catch (Exception ex) { Logger.LogError("Error in PaintDrawPixels.AddDirtyRect", ex); }
             }
         }
+        finally { drawBitmap.Unlock(); }
+    }
 
-        // Correctly calculate the dirty rectangle width/height bounds
-        int dirtyW = xMax - xMin + 1;
-        int dirtyH = yMax - yMin + 1;
-        if (dirtyW > 0 && dirtyH > 0) {
-            try { drawBitmap.AddDirtyRect(new Int32Rect(xMin, yMin, dirtyW, dirtyH)); }
-            catch (Exception ex) { Logger.LogError("Error in PaintDrawPixels.AddDirtyRect", ex); }
+    private void PaintDrawLine(double fromX, double fromY, double toX, double toY, double radiusInPixels) {
+        if (MapImage is not WriteableBitmap drawBitmap) return;
+        if (_drawColorIndex == 12) return;
+
+        double dpiScaleX = drawBitmap.PixelWidth / drawBitmap.Width;
+        double dpiScaleY = drawBitmap.PixelHeight / drawBitmap.Height;
+        double rawFx = fromX * dpiScaleX, rawFy = fromY * dpiScaleY;
+        double rawTx = toX   * dpiScaleX, rawTy = toY   * dpiScaleY;
+        double rawR  = Math.Max(1.0, radiusInPixels * dpiScaleX);
+
+        double dx = rawTx - rawFx, dy = rawTy - rawFy;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+
+        int dirtXMin = Math.Max(0, (int)(Math.Min(rawFx, rawTx) - rawR));
+        int dirtYMin = Math.Max(0, (int)(Math.Min(rawFy, rawTy) - rawR));
+        int dirtXMax = Math.Min(drawBitmap.PixelWidth  - 1, (int)(Math.Max(rawFx, rawTx) + rawR) + 1);
+        int dirtYMax = Math.Min(drawBitmap.PixelHeight - 1, (int)(Math.Max(rawFy, rawTy) + rawR) + 1);
+
+        drawBitmap.Lock();
+        try {
+            unsafe {
+                byte* buf  = (byte*)drawBitmap.BackBuffer;
+                int stride = drawBitmap.BackBufferStride;
+                int bmpW   = drawBitmap.PixelWidth, bmpH = drawBitmap.PixelHeight;
+                if (length < 0.5) {
+                    PaintCircleCore(buf, stride, bmpW, bmpH, rawFx, rawFy, rawR);
+                } else {
+                    double nx = dx / length, ny = dy / length;
+                    // Step every 1px — guarantees solid coverage for any brush radius
+                    for (double t = 0.0; t <= length; t += 1.0)
+                        PaintCircleCore(buf, stride, bmpW, bmpH, rawFx + nx * t, rawFy + ny * t, rawR);
+                    // Ensure the endpoint is always painted
+                    PaintCircleCore(buf, stride, bmpW, bmpH, rawTx, rawTy, rawR);
+                }
+            }
+            int dirtyW = dirtXMax - dirtXMin + 1;
+            int dirtyH = dirtYMax - dirtYMin + 1;
+            if (dirtyW > 0 && dirtyH > 0) {
+                try { drawBitmap.AddDirtyRect(new Int32Rect(dirtXMin, dirtYMin, dirtyW, dirtyH)); }
+                catch (Exception ex) { Logger.LogError("Error in PaintDrawLine.AddDirtyRect", ex); }
+            }
         }
+        finally { drawBitmap.Unlock(); }
     }
-    finally {
-        drawBitmap.Unlock();
-    }
-}
 
-    // private double GetDrawBrushRadius() {
-    //     // 1 game unit ≈ 1 person width; radius = half a unit in pixels
-    //     return Math.Max(1.5, GetPixelsPerGameUnit() / 2.0);
-    // }
-    
+    private double GetBaseDrawRadius() {
+        // Player width is 1.0 game unit; radius = half a unit mapped to pixels, minimum 1.5px
+        return Math.Max(1.5, 0.5 * GetPixelsPerGameUnit());
+    }
+
     private double GetDrawBrushRadius() {
-        // Player width is 1.0 game unit, so radius is 0.5 game units.
-        double playerRadiusInGameUnits = 0.5;
-    
-        // Multiply game units by our pixel scale factor
-        double calculatedRadius = playerRadiusInGameUnits * GetPixelsPerGameUnit();
-    
-        // Enforce a minimum floor of 1.5 pixels so it never disappears
-        return Math.Max(1.5, calculatedRadius);
+        double baseR = GetBaseDrawRadius();
+        if (_drawSizeMode == -1) return 2.0;
+        return baseR + _drawSizeMode switch {
+            1 => 3.0,
+            2 => 5.0,
+            3 => 10.0,
+            _ => 0.0
+        };
     }
     
     private static WriteableBitmap LoadAsBgra32WriteableBitmap(string imagePath) {
