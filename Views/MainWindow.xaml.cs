@@ -95,17 +95,53 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     //taking "focus" (becoming the active foreground window) in certain scenarios.
     //I want activity in this window to not steal focus from say another program like my gaming application.
     //So I can click but keep typing elsewhere.
+    // private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
+    //     // 1. Handle the specific message you need to monitor
+    //     if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
+    //         KeepOnTop();
+    //         _viewModel.HandleClipboardUpdate();
+    //     }
+    //     
+    //     // 2. Everything else is ignored by this handler and passed through 
+    //     // to the default WPF window procedure.
+    //     handled = false;
+    //     
+    //     return IntPtr.Zero;
+    // }
+    
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
-        // 1. Handle the specific message you need to monitor
         if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
-            KeepOnTop();
-            _viewModel.HandleClipboardUpdate();
-        }
+            // 1. Kick the heavy lifting and clipboard reading off the UI thread immediately.
+            // We use a fire-and-forget task so this handler returns instantly.
+            _ = ProcessClipboardAsync();
         
-        // 2. Everything else is ignored by this handler and passed through 
-        // to the default WPF window procedure.
+            // If KeepOnTop() absolutely MUST run on clipboard updates, 
+            // let's also defer it slightly so it doesn't fight the game's render cycle.
+            _ = DeferKeepOnTopAsync();
+        }
+    
         handled = false;
         return IntPtr.Zero;
+    }
+    
+    private async Task ProcessClipboardAsync() {
+        // Give the game 50-75ms to finish its macro write and close its clipboard handle
+        await Task.Delay(75);
+
+        try {
+            // Access the ViewModel safely. If HandleClipboardUpdate reads the clipboard,
+            // make sure it is wrapped in a try/catch for COMException just in case!
+            _viewModel.HandleClipboardUpdate();
+        }
+        catch (System.Runtime.InteropServices.COMException) {
+            // If a collision still happens, your app catches it gracefully 
+            // instead of locking up the OS clipboard chain.
+        }
+    }
+    
+    private async Task DeferKeepOnTopAsync() {
+        await Task.Delay(10); // Tiny pause to let the OS breathe
+        KeepOnTop();
     }
 
     private void KeepOnTop() {
