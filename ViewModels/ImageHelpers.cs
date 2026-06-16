@@ -10,67 +10,86 @@ public static class ImageHelpers {
     public static WriteableBitmap CreateBlackBitmap(BitmapSource sourceImage) 
     {
         // 1. Initialize - Buffer is already all zeros (Transparent Black)
+        // Switched to Pbgra32 to match your standardized application pipeline
         WriteableBitmap blackBitmap = new WriteableBitmap(
             sourceImage.PixelWidth,
             sourceImage.PixelHeight,
             sourceImage.DpiX,
             sourceImage.DpiY,
-            PixelFormats.Bgra32, 
+            PixelFormats.Pbgra32, 
             null);
 
-        // 2. If you need Opaque Black:
+        // 2. Clear to Opaque Black
         int stride = blackBitmap.BackBufferStride;
         int height = blackBitmap.PixelHeight;
         int bufferSize = stride * height;
         byte[] pixels = new byte[bufferSize];
 
-        // Faster than a manual for-loop: use Parallel processing for large images
+        // Parallel fill remains correct: in both Bgra32 and Pbgra32, 
+        // the 4th byte of every pixel group is the Alpha channel.
         Parallel.For(0, height, y =>
         {
             int rowStart = y * stride;
             for (int x = 3; x < stride; x += 4)
             {
-                pixels[rowStart + x] = 255; // Set Alpha to Opaque
+                pixels[rowStart + x] = 255; // Set Alpha to Opaque (Fully solid)
             }
         });
 
-        // 3. Apply
+        // 3. Apply the byte array to the back buffer
         blackBitmap.WritePixels(new Int32Rect(0, 0, blackBitmap.PixelWidth, blackBitmap.PixelHeight), pixels, stride, 0);
 
         return blackBitmap;
     }
     
+    // public static WriteableBitmap CreateTransparentBitmap(BitmapSource sourceImage) 
+    // {
+    //     // 1. Initialize - Buffer is already all zeros (Transparent Black)
+    //     WriteableBitmap blackBitmap = new WriteableBitmap(
+    //         sourceImage.PixelWidth,
+    //         sourceImage.PixelHeight,
+    //         sourceImage.DpiX,
+    //         sourceImage.DpiY,
+    //         PixelFormats.Pbgra32, 
+    //         null);
+    //
+    //     // 2. If you need Opaque Black:
+    //     int stride = blackBitmap.BackBufferStride;
+    //     int height = blackBitmap.PixelHeight;
+    //     int bufferSize = stride * height;
+    //     byte[] pixels = new byte[bufferSize];
+    //
+    //     // Faster than a manual for-loop: use Parallel processing for large images
+    //     Parallel.For(0, height, y =>
+    //     {
+    //         int rowStart = y * stride;
+    //         for (int x = 3; x < stride; x += 4)
+    //         {
+    //             pixels[rowStart + x] = 0; // Set Alpha to Opaque
+    //         }
+    //     });
+    //
+    //     // 3. Apply
+    //     blackBitmap.WritePixels(new Int32Rect(0, 0, blackBitmap.PixelWidth, blackBitmap.PixelHeight), pixels, stride, 0);
+    //
+    //     return blackBitmap;
+    // }
+    
     public static WriteableBitmap CreateTransparentBitmap(BitmapSource sourceImage) 
     {
-        // 1. Initialize - Buffer is already all zeros (Transparent Black)
-        WriteableBitmap blackBitmap = new WriteableBitmap(
+        // Instantiating with Pbgra32 naturally allocates a zeroed-out memory buffer.
+        // In Pbgra32, 0,0,0,0 is perfectly valid Transparent Black.
+        WriteableBitmap transparentBitmap = new WriteableBitmap(
             sourceImage.PixelWidth,
             sourceImage.PixelHeight,
             sourceImage.DpiX,
             sourceImage.DpiY,
-            PixelFormats.Bgra32, 
+            PixelFormats.Pbgra32, 
             null);
 
-        // 2. If you need Opaque Black:
-        int stride = blackBitmap.BackBufferStride;
-        int height = blackBitmap.PixelHeight;
-        int bufferSize = stride * height;
-        byte[] pixels = new byte[bufferSize];
-
-        // Faster than a manual for-loop: use Parallel processing for large images
-        Parallel.For(0, height, y =>
-        {
-            int rowStart = y * stride;
-            for (int x = 3; x < stride; x += 4)
-            {
-                pixels[rowStart + x] = 0; // Set Alpha to Opaque
-            }
-        });
-
-        // 3. Apply
-        blackBitmap.WritePixels(new Int32Rect(0, 0, blackBitmap.PixelWidth, blackBitmap.PixelHeight), pixels, stride, 0);
-
-        return blackBitmap;
+        // No array allocations, no Parallel loops, and no WritePixels required.
+        // The framework handles the back-buffer zero-initialization natively.
+        return transparentBitmap;
     }
     
     public static WriteableBitmap CreateBlackBitmapSize(int width, int height, double dpiX, double dpiY)

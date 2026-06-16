@@ -1,12 +1,16 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows.Interop;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using MMONavigator.Controls;
 using MMONavigator.Helpers;
@@ -24,6 +28,7 @@ public partial class MapWindow : ChildWindow {
     private bool _isCalibrating;
     private bool? _savedFogSettings;
     private bool _isSettingDestination;
+    private bool _isPickingTextLocation;
     private bool _isAddingPin;
     private int _calibrationStep;
     private bool _isDragging;
@@ -84,6 +89,34 @@ public partial class MapWindow : ChildWindow {
         }
 
         StartCalibration();
+    }
+
+    private void CancelActiveModes() {
+        if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isCalibrating) {
+            _isSettingDestination = false;
+            _isAddingPin = false;
+            _isPickingTextLocation = false;
+            if (_isCalibrating) {
+                if (_savedFogSettings.HasValue) {
+                    var vm = (MapViewModel)DataContext;
+                    vm.ShowFogOfWar = _savedFogSettings.Value;
+                    _savedFogSettings = null;
+                }
+
+                _isCalibrating = false;
+                _isSettingDestination = false;
+                SetDestinationMenuItem.IsChecked = false;
+                _isAddingPin = false;
+                AddPinMenuItem.IsChecked = false;
+                _calibrationStep = 0;
+            }
+
+            // Reset UI Elements
+            SetDestinationMenuItem.IsChecked = false;
+            AddPinMenuItem.IsChecked = false;
+            MapCanvas.Cursor = System.Windows.Input.Cursors.Arrow;
+            StatusTextBlock.Text = "Status: Action cancelled.";
+        }
     }
 
     private void CancelCalibration() {
@@ -323,20 +356,19 @@ public partial class MapWindow : ChildWindow {
             //                        relativeMousePos.X <= this.ActualWidth &&
             //                        relativeMousePos.Y >= 0 && 
             //                        relativeMousePos.Y <= this.ActualHeight);
-            
+
             //This method works on higher resolution / faster machines as well as slower
             if (NativeMethods.GetCursorPos(out NativeMethods.Win32Point p)) {
-
                 // 1. Convert the physical screen point (Win32) to a WPF Logical Point
                 System.Windows.Point mousePoint = this.PointFromScreen(new System.Windows.Point(p.X, p.Y));
 
                 // 2. Check bounds against ActualWidth/Height
                 // Note: PointFromScreen handles the DPI scaling math for you.
-                bool isInsideWindow = (mousePoint.X >= 0 && 
+                bool isInsideWindow = (mousePoint.X >= 0 &&
                                        mousePoint.X <= this.ActualWidth &&
-                                       mousePoint.Y >= 0 && 
+                                       mousePoint.Y >= 0 &&
                                        mousePoint.Y <= this.ActualHeight);
-                
+
                 if (isInsideWindow) {
                     // Keep it alive
                     _lastMouseOutsideTime = DateTime.MinValue;
@@ -364,8 +396,9 @@ public partial class MapWindow : ChildWindow {
                 if (sender is IInputElement element) {
                     // Force the window to keep focus even if the 4K scaling 
                     // makes it think the mouse moved slightly off-element
-                    Mouse.Capture(element); 
+                    Mouse.Capture(element);
                 }
+
                 PauseHoverTracking();
                 // 1. Wake the UI
                 bool wasHidden = !vm.IsHovered;
@@ -380,14 +413,16 @@ public partial class MapWindow : ChildWindow {
                 }
             }
         }
+
         //Handle CTRL+Left click
         if (Keyboard.Modifiers == ModifierKeys.Control) {
             if (DataContext is MapViewModel vm) {
                 if (sender is IInputElement element) {
                     // Force the window to keep focus even if the 4K scaling 
                     // makes it think the mouse moved slightly off-element
-                    Mouse.Capture(element); 
+                    Mouse.Capture(element);
                 }
+
                 PauseHoverTracking();
                 // 1. Wake the UI
                 bool wasHidden = !vm.IsHovered;
@@ -403,11 +438,22 @@ public partial class MapWindow : ChildWindow {
             }
         }
     }
-    
+
     private void MapImageElement_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
         Mouse.Capture(null);
     }
-    
+
+    private void MapWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
+        if (e.Key == Key.Escape) {
+            // Only mark handled if we actually cancelled something, 
+            // so Esc can still close dialogs or do other native tasks if we're idle.
+            if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isCalibrating) {
+                CancelActiveModes();
+                e.Handled = true;
+            }
+        }
+    }
+
     private void MapWindow_SourceInitialized(object? sender, EventArgs e) {
         _hwnd = new WindowInteropHelper(this).Handle;
         var source = HwndSource.FromHwnd(_hwnd);
@@ -440,40 +486,114 @@ public partial class MapWindow : ChildWindow {
     //taking "focus" (becoming the active foreground window) in certain scenarios.
     //I want activity in this window to not steal focus from, say, another program like my gaming application.
     //So I can click but keep typing elsewhere.
+    // protected override IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
+    //     // 1. Run the base logic first (checks for IsDialogActive)
+    //     IntPtr result = base.HwndHandler(hwnd, msg, wparam, lparam, ref handled);
+    //
+    //     // 2. If the base class already handled the message, return its result
+    //     if (handled) {
+    //         return result;
+    //     }
+    //
+    //     // 3. MapWindow specific logic
+    //     if (msg == NativeMethods.WM_MOUSEACTIVATE) {
+    //         if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
+    //             // CRUCIAL EXCEPTION: If we are actively trying to place text annotations, 
+    //             // allow this window to fully activate so typing inputs can reach the TextBox!
+    //             if (_isPickingTextLocation || Keyboard.FocusedElement is System.Windows.Controls.TextBox) {
+    //                 return IntPtr.Zero; // Let Windows activate our app normally
+    //             }
+    //             //Don't come to the front, don't make this my focussed window.
+    //             // Return MA_NOACTIVATE and set handled = true to prevent stealing focus.
+    //             //MA_NOACTIVATE tells the operating system to not activate (bring to the foreground/focus) a window when a user
+    //             //clicks inside it, but to still process the mouse click (e.g., clicking a button inside that window still works)
+    //             handled = true;
+    //             return NativeMethods.MA_NOACTIVATE;
+    //         }
+    //     }
+    //
+    //     if (msg == NativeMethods.WM_ACTIVATE) {
+    //         //If for some reason I AM brought to the front (activated), immediately find the window that
+    //         //was open before me and force the focus back to it. Conditional
+    //         if ((int)wparam != NativeMethods.WA_INACTIVE) {
+    //             if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
+    //                 // CRUCIAL EXCEPTION: If we are configuring text annotations, don't throw 
+    //                 // focus right back to the game thread; we need to keep focus here to type!
+    //                 if (_isPickingTextLocation || Keyboard.FocusedElement is System.Windows.Controls.TextBox) {
+    //                     return IntPtr.Zero; 
+    //                 }
+    //                 
+    //                 System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] MapWindow activated. wparam: {wparam}");
+    //                 // If we are being activated and click-through is on, push focus back to previous window.
+    //
+    //                 // We try to restore to the window that WAS foreground BEFORE this activation happened.
+    //                 // If we don't have one, we try the window that is currently foreground (if it's not us).
+    //                 var foregroundWindow = NativeMethods.GetForegroundWindow();
+    //
+    //                 nint targetWnd; // = IntPtr.Zero
+    //                 if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+    //                     targetWnd = _preDragForegroundWindow;
+    //                 }
+    //                 else if (foregroundWindow != _hwnd && foregroundWindow != IntPtr.Zero) {
+    //                     targetWnd = foregroundWindow;
+    //                 }
+    //                 else {
+    //                     // Fallback: Try to find the next window in the Z-order to give focus to.
+    //                     targetWnd = NativeMethods.GetWindow(_hwnd, NativeMethods.GW_HWNDNEXT);
+    //                 }
+    //
+    //                 if (targetWnd != IntPtr.Zero && targetWnd != _hwnd) {
+    //                     NativeMethods.SetForegroundWindow(targetWnd);
+    //                 }
+    //
+    //                 handled = true;
+    //             }
+    //         }
+    //     }
+    //
+    //     return IntPtr.Zero;
+    // }
     protected override IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
-        // 1. Run the base logic first (checks for IsDialogActive)
         IntPtr result = base.HwndHandler(hwnd, msg, wparam, lparam, ref handled);
+        if (handled) return result;
 
-        // 2. If the base class already handled the message, return its result
-        if (handled) {
-            return result;
-        }
+        var vm = (MapViewModel)DataContext;
+        
+        // Helper flag: Are we actively interacting with ANY part of the text tool?
+        bool isInteractingWithTextTool = _isPickingTextLocation || vm.IsDrawModeActive ||
+                                         Keyboard.FocusedElement is System.Windows.Controls.TextBox ||
+                                         IsMouseOverTextControl(); // <-- NEW robust check
+Debug.WriteLine($"[DEBUG_LOG] isInteractingWithTextTool: {isInteractingWithTextTool} {msg}");
 
-        // 3. MapWindow specific logic
+if (isInteractingWithTextTool) {
+    Debug.WriteLine($"[DEBUG_LOG] normal");
+    return IntPtr.Zero; // Let Windows activate our app normally
+}
+Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         if (msg == NativeMethods.WM_MOUSEACTIVATE) {
-            if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
-                //Don't come to the front, don't make this my focussed window.
-                // Return MA_NOACTIVATE and set handled = true to prevent stealing focus.
-                //MA_NOACTIVATE tells the operating system to not activate (bring to the foreground/focus) a window when a user
-                //clicks inside it, but to still process the mouse click (e.g., clicking a button inside that window still works)
+            if (vm.AppSettings.KeyboardClickThrough) {
+                // EXCEPTION: If interacting with text or its handles/toolbars, fully activate!
+                if (isInteractingWithTextTool) {
+                    return IntPtr.Zero; // Let Windows activate our app normally
+                }
+
                 handled = true;
                 return NativeMethods.MA_NOACTIVATE;
             }
         }
 
         if (msg == NativeMethods.WM_ACTIVATE) {
-            //If for some reason I AM brought to the front (activated), immediately find the window that
-            //was open before me and force the focus back to it. Conditional
             if ((int)wparam != NativeMethods.WA_INACTIVE) {
-                if (DataContext is MapViewModel vm && vm.AppSettings.KeyboardClickThrough) {
+                if (vm.AppSettings.KeyboardClickThrough) {
+                    // EXCEPTION: Keep focus here if we are editing or transforming text
+                    if (isInteractingWithTextTool) {
+                        return IntPtr.Zero;
+                    }
+
                     System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] MapWindow activated. wparam: {wparam}");
-                    // If we are being activated and click-through is on, push focus back to previous window.
-
-                    // We try to restore to the window that WAS foreground BEFORE this activation happened.
-                    // If we don't have one, we try the window that is currently foreground (if it's not us).
                     var foregroundWindow = NativeMethods.GetForegroundWindow();
+                    nint targetWnd;
 
-                    nint targetWnd; // = IntPtr.Zero
                     if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
                         targetWnd = _preDragForegroundWindow;
                     }
@@ -481,7 +601,6 @@ public partial class MapWindow : ChildWindow {
                         targetWnd = foregroundWindow;
                     }
                     else {
-                        // Fallback: Try to find the next window in the Z-order to give focus to.
                         targetWnd = NativeMethods.GetWindow(_hwnd, NativeMethods.GW_HWNDNEXT);
                     }
 
@@ -497,6 +616,31 @@ public partial class MapWindow : ChildWindow {
         return IntPtr.Zero;
     }
 
+    private bool IsMouseOverTextControl() {
+        bool hitTextControl = false;
+
+        // Get current mouse position relative to the MapCanvas
+        System.Windows.Point mousePos = Mouse.GetPosition(MapCanvas);
+
+        // Run a visual tree hit test at the cursor point
+        VisualTreeHelper.HitTest(MapCanvas, 
+            null, // No filter callback needed
+            new HitTestResultCallback(result => {
+                if (result.VisualHit is DependencyObject hitObj) {
+                    // Check if the hit element belongs to our EditableMapText control
+                    var parent = FindParent<EditableMapText>(hitObj);
+                    if (parent != null) {
+                        hitTextControl = true;
+                        return HitTestResultBehavior.Stop; // Found it, stop searching
+                    }
+                }
+                return HitTestResultBehavior.Continue;
+            }), 
+            new PointHitTestParameters(mousePos));
+
+        return hitTextControl;
+    }
+    
     private void HideHint_Click(object sender, RoutedEventArgs e) {
         if (DataContext is MapViewModel vm) {
             vm.AppSettings.HideMapClickHint = true;
@@ -531,7 +675,7 @@ public partial class MapWindow : ChildWindow {
 
             var openFileDialog = new Microsoft.Win32.OpenFileDialog {
                 InitialDirectory = mapsDir,
-                Filter = "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp|All files (*.*)|*.*"
+                Filter = "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp"
             };
 
             if (openFileDialog.ShowDialog(helperWindow) == true) {
@@ -572,14 +716,53 @@ public partial class MapWindow : ChildWindow {
         }
     }
 
+    private void MapCanvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e) {
+        // Only intercept the right-click if the user is actually in a special mode
+        if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isCalibrating) {
+            CancelActiveModes();
+
+            // CRITICAL: Tell WPF we consumed this click to cancel the tool.
+            // This stops a standard context menu from opening on top of our canvas.
+            e.Handled = true;
+        }
+    }
+
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
-            mainVm.Settings.KeyboardClickThrough) {
-            _preDragForegroundWindow = NativeMethods.GetForegroundWindow();
-            if (_preDragForegroundWindow == _hwnd) _preDragForegroundWindow = IntPtr.Zero;
+        // // If the user is actively clicking inside our formatting toolbar or handles canvas,
+        // // let the event route natively to those buttons and sliders instead of triggering map actions!
+        // if (e.OriginalSource is DependencyObject clickedObj) {
+        //     if (VisualTreeHelper.GetParent(clickedObj) is FrameworkElement parent && 
+        //         (parent.Name == "ToolbarContainer" || parent.Name == "HandleCanvas")) {
+        //         return; // Exit early, do not set e.Handled = true so the buttons can process the click!
+        //     }
+        // }
+        // If the click originated from inside a TextBox or the text toolbar layout, 
+        // immediately mark it handled at the canvas layer so the canvas stops processing it!
+        
+        var vm = (MapViewModel)DataContext;
+        
+        if (e.OriginalSource is DependencyObject clickedObj) {
+            // Check if the click is inside our custom EditableMapText control tree
+            var parentTextControl = FindParent<EditableMapText>(clickedObj);
+            if (parentTextControl != null || e.OriginalSource is System.Windows.Controls.TextBox) {
+                e.Handled = true; // Stop the map window from running click-through or drag rules!
+                return;
+            }
         }
 
-        if (!_isCalibrating && !_isSettingDestination && !_isAddingPin) {
+        if (!_isPickingTextLocation) {
+            if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+                mainVm.Settings.KeyboardClickThrough) {
+                _preDragForegroundWindow = NativeMethods.GetForegroundWindow();
+                if (_preDragForegroundWindow == _hwnd) _preDragForegroundWindow = IntPtr.Zero;
+            }
+        }
+        else {
+            // Force your WPF window handle to explicitly command focus from the OS
+            NativeMethods.SetForegroundWindow(_hwnd);
+        }
+
+        if (!_isCalibrating && !_isSettingDestination && !_isAddingPin && !_isPickingTextLocation) {
             _isDragging = true;
             _lastMousePosition = e.GetPosition(MapScrollViewer);
             MapCanvas.CaptureMouse();
@@ -589,9 +772,48 @@ public partial class MapWindow : ChildWindow {
             return;
         }
 
-        var vm = (MapViewModel)DataContext;
+
         vm.Settings ??= new MapSettings();
         System.Windows.Point clickPoint = e.GetPosition(MapCanvas);
+
+        if (_isPickingTextLocation) {
+            //We aere in draw mode and have selected to add text to the map
+            var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
+            if (coords.HasValue) {
+                // 1. Temporarily flip click-through window properties OFF 
+                // so the OS can safely bind standard keyboard streams
+                var oldClickThroughSetting = vm.AppSettings.KeyboardClickThrough;
+                vm.AppSettings.KeyboardClickThrough = false;
+                UpdateKeyboardClickThrough();
+
+                var label = new EditableMapText {
+                    InitialText = "New Text",
+                    BoxBackgroundColor = Colors.Black,
+                    Foreground = new SolidColorBrush(Colors.White),
+                    FontSize = 14,
+                    Width = 180,
+                    Height = 80
+                };
+
+                // When the user stamps the text, restore original background tracking parameters automatically
+                label.Stamped += (s, args) => {
+                    OnLabelStamped(s, args);
+                    vm.AppSettings.KeyboardClickThrough = oldClickThroughSetting;
+                    UpdateKeyboardClickThrough();
+                };
+
+                Canvas.SetLeft(label, clickPoint.X - (label.Width / 2));
+                Canvas.SetTop(label, clickPoint.Y - (label.Height / 2));
+
+                MapCanvas.Children.Add(label);
+
+                _isPickingTextLocation = false;
+                StatusTextBlock.Text = "Status: When done adding text, save it to the image";
+            }
+
+            e.Handled = true;
+            return;
+        }
 
         if (_isSettingDestination) {
             var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
@@ -602,6 +824,9 @@ public partial class MapWindow : ChildWindow {
                 StatusTextBlock.Text = "Status: Destination set";
             }
 
+            // Mark handled so parent controls ignore the click, 
+            // though native game passthrough is handled via window styles/win32 flags.
+            e.Handled = true;
             return;
         }
 
@@ -616,6 +841,9 @@ public partial class MapWindow : ChildWindow {
                 StatusTextBlock.Text = "Status: Pin requested";
             }
 
+            // Mark handled so parent controls ignore the click, 
+            // though native game passthrough is handled via window styles/win32 flags.
+            e.Handled = true;
             return;
         }
 
@@ -654,6 +882,11 @@ public partial class MapWindow : ChildWindow {
             finally {
                 IsDialogActive = false;
             }
+
+            // Mark handled so parent controls ignore the click, 
+            // though native game passthrough is handled via window styles/win32 flags.
+            e.Handled = true;
+            return;
         }
         else if (_calibrationStep == 2) {
             string suggestedCoords = vm.CurrentPosition.HasValue
@@ -718,32 +951,75 @@ public partial class MapWindow : ChildWindow {
             finally {
                 IsDialogActive = false;
             }
+
+            // Mark handled so parent controls ignore the click, 
+            // though native game passthrough is handled via window styles/win32 flags.
+            e.Handled = true;
+            return;
         }
     }
 
     private void MapCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
-        if (_isDragging) {
+        // If we are actively editing text or just finished dropping a control,
+        // prevent the canvas from running global map focus resets!
+        // If we are actively editing text, we still need to make sure 
+        // we don't accidentally leave a dangling mouse capture on the canvas!
+        if (Keyboard.FocusedElement is System.Windows.Controls.TextBox) {
             _isDragging = false;
-            MapCanvas.ReleaseMouseCapture();
-            MapCanvas.Cursor = System.Windows.Input.Cursors.Arrow;
-
-            if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
-                mainVm.Settings.KeyboardClickThrough) {
-                IntPtr currentForeground = NativeMethods.GetForegroundWindow();
-                if (currentForeground == _hwnd) {
-                    if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
-                        NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
-                    }
-                    else {
-                        IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, NativeMethods.GW_HWNDNEXT);
-                        if (nextWnd != IntPtr.Zero) NativeMethods.SetForegroundWindow(nextWnd);
-                    }
-                }
-
-                _preDragForegroundWindow = IntPtr.Zero;
+            
+            if (MapCanvas.IsMouseCaptured) {
+                MapCanvas.ReleaseMouseCapture();
+                MapCanvas.Cursor = System.Windows.Input.Cursors.Arrow;
             }
-
+            
+            // If they clicked the empty canvas, clear focus from the textbox 
+            // so the user can use hotkeys/interact with the map normally again.
+            if (e.OriginalSource == MapCanvas || e.OriginalSource == MapImageElement) {
+                FocusManager.SetFocusedElement(this, null); // Clear focus safely
+                Keyboard.ClearFocus();
+            }
+            
             e.Handled = true;
+            return;
+        }
+        
+        var vm = (MapViewModel)DataContext;
+        
+        if (e.OriginalSource is DependencyObject clickedObj) {
+            // Check if the click is inside our custom EditableMapText control tree
+            var parentTextControl = FindParent<EditableMapText>(clickedObj);
+            if (parentTextControl != null || e.OriginalSource is System.Windows.Controls.TextBox) {
+                _isDragging = false;
+                e.Handled = true; // Stop the map window from running click-through or drag rules!
+                return;
+            }
+        }
+
+        if (_isDragging) {
+            try {
+                _isDragging = false;
+                MapCanvas.ReleaseMouseCapture();
+                MapCanvas.Cursor = System.Windows.Input.Cursors.Arrow;
+
+                if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
+                    mainVm.Settings.KeyboardClickThrough) {
+                    IntPtr currentForeground = NativeMethods.GetForegroundWindow();
+                    if (currentForeground == _hwnd) {
+                        if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
+                            NativeMethods.SetForegroundWindow(_preDragForegroundWindow);
+                        }
+                        else {
+                            IntPtr nextWnd = NativeMethods.GetWindow(_hwnd, NativeMethods.GW_HWNDNEXT);
+                            if (nextWnd != IntPtr.Zero) NativeMethods.SetForegroundWindow(nextWnd);
+                        }
+                    }
+
+                    _preDragForegroundWindow = IntPtr.Zero;
+                }
+            }
+            finally {
+                e.Handled = true;
+            }
         }
     }
 
@@ -768,7 +1044,7 @@ public partial class MapWindow : ChildWindow {
     private void MapScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
         var vm = (MapViewModel)DataContext;
         vm.Settings ??= new MapSettings();
-        
+
         // 1. Calculate the new scale
         double zoomFactor = e.Delta > 0 ? 1.1 : 0.9;
         double newScale = vm.Settings.ZoomLevel * zoomFactor;
@@ -815,6 +1091,112 @@ public partial class MapWindow : ChildWindow {
     private void MapWindow_Loaded(object sender, RoutedEventArgs e) {
         Deactivated += HandleWindowDeactivated;
         Closed += (s, e) => Deactivated -= HandleWindowDeactivated;
+    }
+
+    #region write the text box to the image
+
+    void OnLabelStamped(object? s, MapTextStampEventArgs a) {
+        var vm = (MapViewModel)DataContext;
+        if (vm.MapImage == null) return;
+
+        WriteableBitmap targetWriteableBmp = null;
+
+        // 1. If it's already a WriteableBitmap, we can use it directly
+        if (vm.MapImage is WriteableBitmap existingWriteable) {
+            targetWriteableBmp = existingWriteable;
+        }
+        else {
+            BitmapSource sourceToUse = vm.MapImage;
+
+            // 2. Check if the format is standard 32-bit. If not, normalize it.
+            if (vm.MapImage.Format != PixelFormats.Pbgra32 && vm.MapImage.Format != PixelFormats.Bgra32) {
+                FormatConvertedBitmap convertedBmp = new FormatConvertedBitmap();
+                convertedBmp.BeginInit();
+                convertedBmp.Source = vm.MapImage;
+                convertedBmp.DestinationFormat = PixelFormats.Pbgra32; // Highly compatible with GDI+ / WPF
+                convertedBmp.EndInit();
+
+                sourceToUse = convertedBmp;
+            }
+
+            // 3. Initialize the mutable WriteableBitmap with our safely formatted source
+            targetWriteableBmp = new WriteableBitmap(sourceToUse);
+        }
+
+        // 4. Render the stamp
+        DrawMapHelpers.BurnTextToBitmap(targetWriteableBmp, a);
+
+        // 5. Update UI and VM
+        vm.MapImage = targetWriteableBmp;
+        MapImageElement.Source = vm.MapImage;
+    }
+
+    // void OnLabelStamped(object? s, MapTextStampEventArgs a)
+    // {
+    //     // a.X, a.Y, a.Width, a.Height, a.RotationAngle, etc. are all in map pixels
+    //     // Render with GDI+ Graphics here
+    //     var vm = (MapViewModel)DataContext;
+    //     
+    //     // 1. Convert your BitmapSource into a mutable WriteableBitmap on the fly
+    //     WriteableBitmap targetWriteableBmp = null;
+    //
+    //     if (vm.MapImage is WriteableBitmap existingWriteable)
+    //     {
+    //         targetWriteableBmp = existingWriteable;
+    //     }
+    //     else
+    //     {
+    //         // This constructor copies the immutable BitmapSource pixels into a mutable buffer
+    //         targetWriteableBmp = new WriteableBitmap(vm.MapImage);
+    //         
+    //         // if (vm.MapImage.Format != PixelFormats.Pbgra32 && vm.MapImage.Format != PixelFormats.Bgra32)
+    //         // {
+    //         //     // Force convert the image data into a standard 32-bit layout with alpha channels
+    //         //     FormatConvertedBitmap convertedBmp = new FormatConvertedBitmap();
+    //         //     convertedBmp.BeginInit();
+    //         //     convertedBmp.Source = vm.MapImage;
+    //         //     convertedBmp.DestinationFormat = PixelFormats.Pbgra32;
+    //         //     convertedBmp.EndInit();
+    //         //
+    //         //     targetWriteableBmp = new WriteableBitmap(convertedBmp);
+    //         // }
+    //         // else
+    //         // {
+    //         //     targetWriteableBmp = new WriteableBitmap(vm.MapImage);
+    //         // }
+    //     }
+    //     
+    //     DrawMapHelpers.BurnTextToBitmap(targetWriteableBmp, a);
+    //     
+    //     vm.MapImage = targetWriteableBmp;
+    //     MapImageElement.Source = vm.MapImage;
+    // }
+
+    // ═════════════════════════════════════════════════════════════════
+// Visual Tree Helper
+// ═════════════════════════════════════════════════════════════════
+    private T? FindParent<T>(DependencyObject child) where T : DependencyObject {
+        // Get the immediate visual parent of the clicked element
+        DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+
+        // If we hit the top of the tree without finding it, return null
+        if (parentObject == null) return null;
+
+        // If the parent matches the type we are looking for (EditableMapText), return it!
+        if (parentObject is T parent) return parent;
+
+        // Otherwise, recursively move up to the next parent level
+        return FindParent<T>(parentObject);
+    }
+
+    #endregion
+
+    void OnResetMapClicked(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+
+        // Restore the pristine original image
+        vm.MapImage = vm.OriginalMapImage;
+        MapImageElement.Source = vm.MapImage;
     }
 
     private void HandleWindowDeactivated(object? sender, EventArgs e) {
@@ -894,7 +1276,7 @@ public partial class MapWindow : ChildWindow {
 
             var openFileDialog = new Microsoft.Win32.OpenFileDialog {
                 Filter =
-                    "Image files (*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif)|*.png;*.jpeg;*.jpg;*.bmp;*.tiff;*.svg;*.gif"
+                    "Image files (*.png;*.jpeg;*.jpg;*.bmp)|*.png;*.jpeg;*.jpg;*.bmp"
             };
 
             if (openFileDialog.ShowDialog(helperWindow) == true) {
@@ -959,7 +1341,7 @@ public partial class MapWindow : ChildWindow {
             IsDialogActive = false;
         }
     }
-    
+
     private void ToggleDrawMode_Click(object sender, RoutedEventArgs e) {
         var vm = (MapViewModel)DataContext;
         try {
@@ -968,15 +1350,26 @@ public partial class MapWindow : ChildWindow {
                 var mapName = vm.MapName;
                 mapName = Path.GetFileNameWithoutExtension(mapName);
                 vm.StartDrawMode(mapName);
-                StatusTextBlock.Text = $"Status: Drawing mode active — {mapName}";  
+                StatusTextBlock.Text = $"Status: Drawing mode active — {mapName}";
             }
             else {
                 vm.StopDrawMode();
             }
         }
-        finally {
-        }
+        finally { }
     }
+
+    private void DrawModeAddText_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        try {
+            if (string.IsNullOrWhiteSpace(vm.MapName)) return;
+            if (!vm.IsDrawModeActive) return;
+            StatusTextBlock.Text = "Status: Pick a point to add text.";
+            _isPickingTextLocation = true;
+        }
+        finally { }
+    }
+
 
     private void StopDrawMode_Click(object sender, RoutedEventArgs e) {
         var vm = (MapViewModel)DataContext;
@@ -1186,32 +1579,6 @@ public partial class MapWindow : ChildWindow {
                 extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
         }
     }
-
-    // private void UpdateSavedPlacement()
-    // {
-    //     // CRITICAL: Only update the settings if the window is in a "Normal" state.
-    //     // This ignores the 28px height that happens during minimization.
-    //     if (DataContext is MapViewModel vm) {
-    //         if (this.WindowState == WindowState.Normal) {
-    //             // Use .Width and .Height to match the coordinate system of your Bindings
-    //             // Use .ActualWidth only if .Width is 'NaN' (not set)
-    //             vm.AppSettings.MapWindowPlacement.Top = this.Top;
-    //             vm.AppSettings.MapWindowPlacement.Left = this.Left;
-    //             if (!double.IsNaN(this.Width)) {
-    //                 vm.AppSettings.MapWindowPlacement.Width = this.Width; 
-    //             }
-    //             if (!double.IsNaN(this.Height)) {
-    //                 vm.AppSettings.MapWindowPlacement.Height = this.Height; 
-    //             }
-    //             vm.AppSettings.MapWindowPlacement.State = this.WindowState;
-    //         }
-    //         else if (this.WindowState == WindowState.Maximized) {
-    //             // If maximized, only update the State, don't overwrite the Width/Height
-    //             // so that when they "Restore" later, it goes back to the old size.
-    //             vm.AppSettings.MapWindowPlacement.State = this.WindowState;
-    //         }
-    //     }
-    // }
 
     public void ValidateAndSetWindowPosition(Window window, double savedLeft, double savedTop) {
         // 1. Get the total bounds of all monitors combined

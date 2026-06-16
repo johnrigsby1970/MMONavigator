@@ -24,6 +24,7 @@ public class MapViewModel : INotifyPropertyChanged {
     private string? _currentCoordinatesLabel;
     private string? _hoverCoordinatesLabel;
     private BitmapSource? _mapImage;
+    private BitmapSource? _originalMapImage;
     private WriteableBitmap? _breadcrumbImage;
     private WriteableBitmap? _fogImage;
     private double _markerX;
@@ -56,6 +57,45 @@ public class MapViewModel : INotifyPropertyChanged {
     private const double CursorPositionTopMargin = 5;
 
     private const double HowFarCanAPersonSee = 30;
+    
+    private double _currentZoomScale = 1.0;
+    
+    private double _markerSize = 12.5;
+    public double MarkerSize
+    {
+        get => _markerSize;
+        set { _markerSize = value; OnPropertyChanged(); }
+    }
+
+    private Thickness _markerMargin = new Thickness(-6.25, -6.25, 0, 0);
+    public Thickness MarkerMargin
+    {
+        get => _markerMargin;
+        set { _markerMargin = value; OnPropertyChanged(); }
+    }
+
+// Call this method whenever your map zoom changes
+    public void UpdateMarkerScale(double currentZoomScale)
+    {
+        _currentZoomScale = currentZoomScale;
+
+        double baseSize = 12.5;
+    
+        // If zoom scale gets small (zoomed out), we increase the visual size.
+        // Example: At 0.1 zoom, this makes the marker roughly 24 pixels.
+        if (currentZoomScale < 0.5) 
+        {
+            // Smoothly scale up the marker the further we zoom out
+            MarkerSize = baseSize + ((0.5 - currentZoomScale) * 30.0);
+        }
+        else {
+            MarkerSize = baseSize;
+        }
+
+        // Keep it centered: Margin must always be negative half of the size
+        double halfSize = -MarkerSize / 2.0;
+        MarkerMargin = new Thickness(halfSize, halfSize, 0, 0);
+    }
     
     // Higher value for the "zoomed in" look
     public double FollowZoomLevel => 2.5;
@@ -483,6 +523,7 @@ public class MapViewModel : INotifyPropertyChanged {
         }
         else if (e.PropertyName == nameof(MapSettings.ZoomLevel)) {
             //_staticMarkersDirty = true; //Despite AI adding this, it should not be necessary to recalculate during zoom
+            if (_settings != null) UpdateMarkerScale(_settings.ZoomLevel);
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.ShowLocations)) {
@@ -612,8 +653,16 @@ public class MapViewModel : INotifyPropertyChanged {
     
     public BitmapSource? MapImage {
         get => _mapImage;
-        private set {
+        set {
             _mapImage = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public BitmapSource? OriginalMapImage {
+        get => _originalMapImage;
+        set {
+            _originalMapImage = value;
             OnPropertyChanged();
         }
     }
@@ -743,7 +792,9 @@ public class MapViewModel : INotifyPropertyChanged {
             image.UriSource = new Uri(_settings.ImagePath);
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.EndInit();
+            image.Freeze(); // Freezing makes it cross-thread safe and optimizes performance
             MapImage = image;
+            OriginalMapImage = image; // Your backup reference
             var fogFilePath = Path.ChangeExtension(_settings.ImagePath, ".fog");
             if (File.Exists(fogFilePath)) {
                 var fogImage = new BitmapImage();
@@ -878,7 +929,7 @@ public class MapViewModel : INotifyPropertyChanged {
 
         return dPixel / dReal; // Returns exactly how many pixels represent 1 game unit
     }
-
+    
     private void PunchTransparentCircle(double centerX, double centerY, double radiusInPixels) {
         if (FogImage == null) return;
 
@@ -1453,6 +1504,30 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
     
+    public void SaveMapImage()
+    {
+        string originalPath = Settings.ImagePath;
+    
+        if (File.Exists(originalPath))
+        {
+            // Generate a backup path (e.g., "C:/Maps/world_map.png.bak")
+            string backupPath = originalPath + ".bak";
+        
+            try
+            {
+                // Copy the original file on disk, overwriting any previous backup
+                File.Copy(originalPath, backupPath, overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                // Log or handle backup failure without crashing the save routine
+                Debug.WriteLine($"Failed to create file backup: {ex.Message}");
+            }
+        }
+
+        // ... Proceed with your existing PNG Encoder / WriteableBitmap saving logic ...
+    }
+    
     // ──────────────────────────────────────────────────────────
     // Draw Mode
     // ──────────────────────────────────────────────────────────
@@ -1460,7 +1535,7 @@ public class MapViewModel : INotifyPropertyChanged {
     public void StartDrawMode(string mapName) {
         if (IsDrawModeActive) StopDrawMode();
         ResetDrawSettings();
-
+        
         var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
         if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
 
@@ -1480,9 +1555,15 @@ public class MapViewModel : INotifyPropertyChanged {
         Settings ??= new MapSettings();
         _drawingRadius = null;
         if (File.Exists(imagePath)) {
-            Settings.ImagePath = imagePath;
-            LoadDrawModeMap(imagePath);
-            LoadImageConfig(imagePath);
+            if (imagePath != Settings.ImagePath) {
+                Settings.ImagePath = imagePath;
+                LoadDrawModeMap(imagePath);
+                
+            }
+            else {
+                SaveMapImage();
+            }
+            _drawingRadius = null;
             if (Settings.IsCalibrated) {
                 _drawModeNeedsCalibration = false;
                 _drawingRadius = GetDrawBrushRadius();
@@ -1496,6 +1577,8 @@ public class MapViewModel : INotifyPropertyChanged {
             CreateNewDrawMap(imagePath);
             _drawModeNeedsCalibration = true;
         }
+        
+        BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(MapImage);
 
         IsDrawModeActive = true;
         StartDrawAutoSave();
@@ -1553,7 +1636,7 @@ public class MapViewModel : INotifyPropertyChanged {
         MapImage = bitmap;
         MapPath = imagePath;
         MapName = imagePath;
-        BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(bitmap);
+
         if (_settings != null) _settings.IsCalibrated = false;
 
         OnPropertyChanged(nameof(UIVisibility));
@@ -1561,16 +1644,16 @@ public class MapViewModel : INotifyPropertyChanged {
     }
 
     private void LoadDrawModeMap(string imagePath) {
-        var bitmap = LoadAsBgra32WriteableBitmap(imagePath);
-        _drawingRadius = null;
+        var bitmap = LoadAsPbgra32WriteableBitmap(imagePath);
+
         MapImage = bitmap;
         MapPath = imagePath;
         MapName = imagePath;
-        BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(bitmap);
-
+        
         LoadImageConfig(imagePath);
         OnPropertyChanged(nameof(UIVisibility));
         UpdateMarkers();
+
     }
 
     private void CalibrateNewDrawMap(CoordinateData initialPos) {
@@ -1815,23 +1898,30 @@ public class MapViewModel : INotifyPropertyChanged {
         };
     }
     
-    private static WriteableBitmap LoadAsBgra32WriteableBitmap(string imagePath) {
+    private static WriteableBitmap LoadAsPbgra32WriteableBitmap(string imagePath) 
+    {
         var bmp = new BitmapImage();
         bmp.BeginInit();
         bmp.UriSource = new Uri(imagePath);
         bmp.CacheOption = BitmapCacheOption.OnLoad;
         bmp.EndInit();
-        bmp.Freeze();
+        bmp.Freeze(); // This freeze is perfect and safe
 
-        if (bmp.Format == PixelFormats.Bgra32)
+        // 1. Check if it's already in our preferred high-performance format
+        if (bmp.Format == PixelFormats.Pbgra32)
+        {
             return new WriteableBitmap(bmp);
+        }
 
+        // 2. Normalize to Pbgra32 if it's any other format (RGB24, Bgra32, Indexed, etc.)
         var converted = new FormatConvertedBitmap();
         converted.BeginInit();
         converted.Source = bmp;
-        converted.DestinationFormat = PixelFormats.Bgra32;
+        converted.DestinationFormat = PixelFormats.Pbgra32; 
         converted.EndInit();
-        converted.Freeze();
+    
+        // Note: Do NOT freeze 'converted' here.
+    
         return new WriteableBitmap(converted);
     }
 

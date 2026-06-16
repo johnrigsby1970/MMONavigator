@@ -366,6 +366,26 @@
                                VerticalAlignment="Center" Focusable="False" />
                 </Border>
 
+                <!-- Divider -->
+                <Rectangle Width="1" Height="16" Fill="#666666" Margin="6,0" VerticalAlignment="Center" />
+                
+                <!-- Add text button -->
+                <!-- <Button x:Name="DrawModeAddText" Width="34" Height="18" Margin="1,0" BorderThickness="2" -->
+                <!--         BorderBrush="Transparent" Cursor="Hand" Click="DrawModeAddText_Click" -->
+                <!--         Focusable="True"> -->
+                <!--     <TextBlock Text="Add Text" FontSize="10" Foreground="White" HorizontalAlignment="Center" -->
+                <!--                VerticalAlignment="Center" Focusable="False" /> -->
+                <!-- </Button> -->
+                
+                <Button x:Name="DrawModeAddText" Style="{StaticResource CalibrationButtonStyle}"
+                        Content="Add Text" Click="DrawModeAddText_Click"
+                        Margin="1,0"
+                        Padding="5,2"
+                        HorizontalAlignment="Center"
+                        Width="70"
+                        Focusable="False"
+                        ToolTip="Add text to map" />
+                
             </StackPanel>
         </Border>
 
@@ -473,6 +493,7 @@
                         Height="{Binding MapImage.Height}"
                         MouseLeftButtonDown="MapCanvas_MouseLeftButtonDown"
                         MouseLeftButtonUp="MapCanvas_MouseLeftButtonUp"
+                        MouseRightButtonDown="MapCanvas_MouseRightButtonDown"
                         MouseMove="MapCanvas_MouseMove"
                         Focusable="False">
                     <Canvas.ContextMenu>
@@ -540,12 +561,25 @@
                                     </Style>
                                 </MenuItem.Style>
                             </MenuItem>
+                            <Separator Focusable="False">
+                                <Separator.Style>
+                                    <Style TargetType="Separator">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding UIVisibility}" Value="Collapsed">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Separator.Style>
+                            </Separator>
                             <MenuItem Header="Draw Mode" IsCheckable="True"
                                       Click="ToggleDrawMode_Click"
                                       IsChecked="{Binding IsDrawModeActive, Mode=OneWay}"
                                       IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
-
-
+                            <MenuItem Header="Undo Edit" IsCheckable="False"
+                                      Click="OnResetMapClicked"
+                                      IsEnabled="{Binding IsDrawModeActive}" Focusable="False" />
                         </ContextMenu>
                     </Canvas.ContextMenu>
                     <Canvas.LayoutTransform>
@@ -602,10 +636,10 @@
                                Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </Grid>
                     <!-- Position Marker -->
-                    <Ellipse x:Name="PulseCircle" Width="12.5" Height="12.5" Stroke="Yellow" StrokeThickness="2"
+                    <Ellipse x:Name="PulseCircle" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Stroke="Yellow" StrokeThickness="2"
                              Visibility="{Binding CurrentPositionMarkerVisibility}"
                              Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
-                             Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
+                             Margin="{Binding MarkerMargin}" RenderTransformOrigin="0.5,0.5" Focusable="False"
                              Canvas.ZIndex="40">
                         <Ellipse.RenderTransform>
                             <ScaleTransform ScaleX="1" ScaleY="1" />
@@ -645,11 +679,11 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <Ellipse x:Name="PositionMarker" Width="12.5" Height="12.5" Fill="Red" Stroke="White"
+                    <Ellipse x:Name="PositionMarker" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Fill="Red" Stroke="White"
                              StrokeThickness="1"
                              Visibility="{Binding CurrentPositionMarkerVisibility}"
                              Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
-                             Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
+                             Margin="{Binding MarkerMargin}" Focusable="False" Canvas.ZIndex="40">
                         <Ellipse.RenderTransform>
                             <TranslateTransform X="0" Y="0" />
                         </Ellipse.RenderTransform>
@@ -669,11 +703,11 @@
                     </Path>
 
                     <!-- Destination Marker -->
-                    <Ellipse x:Name="DestinationPulseCircle" Width="12.5" Height="12.5" Stroke="Purple"
+                    <Ellipse x:Name="DestinationPulseCircle" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Stroke="Purple"
                              StrokeThickness="2"
                              Visibility="{Binding TargetMarkerVisibility}"
                              Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
-                             Margin="-6.25,-6.25" RenderTransformOrigin="0.5,0.5" Focusable="False"
+                             Margin="{Binding MarkerMargin}" RenderTransformOrigin="0.5,0.5" Focusable="False"
                              Canvas.ZIndex="40">
                         <Ellipse.RenderTransform>
                             <ScaleTransform ScaleX="1" ScaleY="1" />
@@ -713,11 +747,11 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <Ellipse x:Name="DestinationMarker" Width="12.5" Height="12.5" Fill="Yellow" Stroke="Black"
+                    <Ellipse x:Name="DestinationMarker" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Fill="Yellow" Stroke="Black"
                              StrokeThickness="1"
                              Visibility="{Binding TargetMarkerVisibility}"
                              Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
-                             Margin="-6.25,-6.25" Focusable="False" Canvas.ZIndex="40">
+                             Margin="{Binding MarkerMargin}" Focusable="False" Canvas.ZIndex="40">
                         <Ellipse.RenderTransform>
                             <TranslateTransform X="0" Y="0" />
                         </Ellipse.RenderTransform>
