@@ -792,7 +792,8 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
                     Foreground = new SolidColorBrush(Colors.White),
                     FontSize = 14,
                     Width = 180,
-                    Height = 80
+                    Height = 80,
+                    TargetImage = MapImageElement // <-- Hand over the strongly-typed reference directly!
                 };
 
                 // When the user stamps the text, restore original background tracking parameters automatically

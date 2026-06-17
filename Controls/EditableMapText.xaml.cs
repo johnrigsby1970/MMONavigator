@@ -92,6 +92,13 @@ public partial class EditableMapText : UserControl {
         set => SetValue(InitialTextProperty, value);
     }
 
+    public static readonly DependencyProperty TargetImageProperty =
+        DependencyProperty.Register(
+            nameof(TargetImage), 
+            typeof(System.Windows.Controls.Image), 
+            typeof(EditableMapText), 
+            new PropertyMetadata(null));
+    
     public static readonly DependencyProperty TextAlignProperty =
         DependencyProperty.Register(nameof(TextAlign), typeof(TextAlignment), typeof(EditableMapText),
             new PropertyMetadata(TextAlignment.Left, OnTextAlignChanged));
@@ -841,7 +848,7 @@ public partial class EditableMapText : UserControl {
         if (parent == null) return;
 
         // 1. Locate the MapImageElement down the tree safely
-        var mapImage = FindDescendantByName<System.Windows.Controls.Image>(parent, "MapImageElement");
+        var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName);
         if (mapImage == null || mapImage.Source is not BitmapSource bitmapSource) return;
 
         // 2. Get the RAW, completely unrotated layout positions from the Canvas properties.
@@ -923,4 +930,12 @@ public partial class EditableMapText : UserControl {
 
 
     Canvas? ParentCanvas => VisualTreeHelper.GetParent(this) as Canvas;
+    
+    public System.Windows.Controls.Image? TargetImage
+    {
+        get => (System.Windows.Controls.Image?)GetValue(TargetImageProperty);
+        set => SetValue(TargetImageProperty, value);
+    }
+
+    public string MapImageElementName { get; set; } = "MapImageElement";
 }
