@@ -848,7 +848,7 @@ public partial class EditableMapText : UserControl {
         if (parent == null) return;
 
         // 1. Locate the MapImageElement down the tree safely
-        var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName);
+        var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName) ?? FindDescendantByType<System.Windows.Controls.Image>(parent);
         if (mapImage == null || mapImage.Source is not BitmapSource bitmapSource) return;
 
         // 2. Get the RAW, completely unrotated layout positions from the Canvas properties.
@@ -925,6 +925,23 @@ public partial class EditableMapText : UserControl {
             if (result != null) return result;
         }
 
+        return null;
+    }
+    
+    private static T? FindDescendantByType<T>(DependencyObject element) where T : DependencyObject
+    {
+        int count = VisualTreeHelper.GetChildrenCount(element);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(element, i);
+            if (child is T tElement)
+            {
+                return tElement;
+            }
+
+            var result = FindDescendantByType<T>(child);
+            if (result != null) return result;
+        }
         return null;
     }
 
