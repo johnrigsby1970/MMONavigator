@@ -203,6 +203,7 @@
             <Border x:Name="BackgroundBorder"
                     CornerRadius="{Binding BoxCornerRadius,
                         RelativeSource={RelativeSource AncestorType=local:EditableMapText}}"
+                    PreviewMouseLeftButtonDown="Border_PreviewMouseLeftButtonDown"
                     MouseLeftButtonDown="Border_MouseLeftButtonDown"
                     MouseLeftButtonUp="Border_MouseLeftButtonUp"
                     MouseMove="Border_MouseMove"

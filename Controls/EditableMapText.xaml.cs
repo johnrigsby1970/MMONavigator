@@ -103,7 +103,7 @@ public partial class EditableMapText : UserControl {
 
     public static readonly DependencyProperty TextOpacityProperty =
         DependencyProperty.Register(nameof(TextOpacity), typeof(double), typeof(EditableMapText),
-            new PropertyMetadata(1.0));
+            new PropertyMetadata(1.0, OnTextOpacityChanged)); // <-- Add callback
 
     public double TextOpacity {
         get => (double)GetValue(TextOpacityProperty);
@@ -235,6 +235,13 @@ public partial class EditableMapText : UserControl {
         if (d is EditableMapText c && c.IsLoaded) c.UpdateAlignmentButtons();
     }
 
+    static void OnTextOpacityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
+        if (d is EditableMapText c && c.IsLoaded) {
+            // Forces the color picker swatches to update their layout transparency displays
+            c.UpdateSwatchColors(); 
+        }
+    }
+    
     static void OnRotationAngleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
         if (d is EditableMapText c) c.MainRotation.Angle = (double)e.NewValue;
     }
@@ -504,6 +511,35 @@ public partial class EditableMapText : UserControl {
     // ═════════════════════════════════════════════════════════════════
     // Drag / Move
     // ═════════════════════════════════════════════════════════════════
+    
+    void Border_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // Double click handles switching to Edit mode natively; let it pass
+        if (e.ClickCount == 2) return;
+
+        // If we are in Edit mode and the user explicitly clicked the scrollbar or text caret handling area,
+        // let the TextBox keep native control.
+        if (_state == EditableMapTextState.Edit && e.OriginalSource is ScrollViewer)
+        {
+            return;
+        }
+
+        // CRUCIAL: If the user clicks down on the border background while the crosshair is showing,
+        // initiate the drag sequence immediately and bypass TextBox interception.
+        var parent = ParentCanvas;
+        if (parent == null) return;
+
+        _isDragging       = true;
+        _dragOriginScreen = e.GetPosition(parent);
+        _dragOriginLeft   = Canvas.GetLeft(this);
+        _dragOriginTop    = Canvas.GetTop(this);
+    
+        // Explicitly lock mouse tracking to this border so it tracks even outside the window bounds
+        BackgroundBorder.CaptureMouse();
+    
+        // Mark the event as handled ONLY if we want to drag, which prevents the TextBox from freezing the capture loop
+        e.Handled = true;
+    }
 
     void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         if (e.ClickCount == 2 && _state == EditableMapTextState.Display) {
@@ -540,6 +576,7 @@ public partial class EditableMapText : UserControl {
         if (!_isDragging) return;
         _isDragging = false;
         BackgroundBorder.ReleaseMouseCapture();
+        e.Handled = true; // Clean up event bubble path
     }
 
     // ═════════════════════════════════════════════════════════════════
