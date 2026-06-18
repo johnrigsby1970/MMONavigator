@@ -189,6 +189,15 @@ public partial class EditableMapText : UserControl {
         set => SetValue(BoxBorderThicknessProperty, value);
     }
 
+    public static readonly DependencyProperty BoxBorderOpacityProperty =
+        DependencyProperty.Register(nameof(BoxBorderOpacity), typeof(double), typeof(EditableMapText),
+            new PropertyMetadata(1.0, OnBoxBorderInvalidated));
+
+    public double BoxBorderOpacity {
+        get => (double)GetValue(BoxBorderOpacityProperty);
+        set => SetValue(BoxBorderOpacityProperty, value);
+    }
+
     public static readonly DependencyProperty BoxCornerRadiusProperty =
         DependencyProperty.Register(nameof(BoxCornerRadius), typeof(CornerRadius), typeof(EditableMapText),
             new PropertyMetadata(new CornerRadius(4)));
@@ -268,7 +277,9 @@ public partial class EditableMapText : UserControl {
     }
 
     void RebuildBorderBrush() {
-        BackgroundBorder.BorderBrush = new SolidColorBrush(BoxBorderColor);
+        var c = BoxBorderColor;
+        c.A = (byte)Math.Round(Math.Clamp(BoxBorderOpacity, 0, 1) * 255);
+        BackgroundBorder.BorderBrush = new SolidColorBrush(c);
         BackgroundBorder.BorderThickness = new Thickness(BoxBorderThickness);
     }
 
@@ -904,8 +915,10 @@ public partial class EditableMapText : UserControl {
             BackgroundColor = BoxBackgroundColor,
             BackgroundOpacity = BoxBackgroundOpacity,
             BoxBorderColor = BoxBorderColor,
+            BoxBorderOpacity = BoxBorderOpacity,
             BoxBorderThickness = BoxBorderThickness * pixelWidthRatio,
-            CornerRadius = new CornerRadius(BoxCornerRadius.TopLeft * pixelWidthRatio)
+            CornerRadius = new CornerRadius(BoxCornerRadius.TopLeft * pixelWidthRatio),
+            IsEllipse = false
         };
 
         Stamped?.Invoke(this, args);

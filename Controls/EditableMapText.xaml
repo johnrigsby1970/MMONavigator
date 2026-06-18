@@ -545,6 +545,19 @@
                                     ToolTip="Border color"
                                     MouseLeftButtonDown="BorderColorSwatch_Click"/>
 
+                            <!-- Border opacity -->
+                            <TextBlock Style="{StaticResource TbLabelStyle}" Text="α" ToolTip="Border opacity"/>
+                            <Slider x:Name="BorderOpacitySlider"
+                                    Width="40"
+                                    Height="20"
+                                    VerticalAlignment="Center"
+                                    Focusable="False"
+                                    Minimum="0" Maximum="1"
+                                    ToolTip="Border opacity"
+                                    Value="{Binding BoxBorderOpacity,
+                                        RelativeSource={RelativeSource AncestorType=local:EditableMapText},
+                                        Mode=TwoWay}"/>
+
                             <!-- Border thickness -->
                             <TextBlock Style="{StaticResource TbLabelStyle}" Text="px" ToolTip="Border thickness"/>
                             <Slider x:Name="BorderThicknessSlider"

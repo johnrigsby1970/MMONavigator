@@ -378,13 +378,31 @@
                 <!-- </Button> -->
                 
                 <Button x:Name="DrawModeAddText" Style="{StaticResource CalibrationButtonStyle}"
-                        Content="Add Text" Click="DrawModeAddText_Click"
+                        Content="Add Text Box" Click="DrawModeAddText_Click"
+                        Margin="1,0"
+                        Padding="5,2"
+                        HorizontalAlignment="Center"
+                        Width="90"
+                        Focusable="False"
+                        ToolTip="Add text with box to map" />
+                
+                <Button x:Name="DrawModeAddCircle" Style="{StaticResource CalibrationButtonStyle}"
+                        Content="Add Text Circle" Click="DrawModeAddCircle_Click"
+                        Margin="1,0"
+                        Padding="5,2"
+                        HorizontalAlignment="Center"
+                        Width="90"
+                        Focusable="False"
+                        ToolTip="Add text with circle to map" />
+                
+                <Button x:Name="DrawModeAddEllipse" Style="{StaticResource CalibrationButtonStyle}"
+                        Content="Add Ellipse" Click="DrawModeAddEllipse_Click"
                         Margin="1,0"
                         Padding="5,2"
                         HorizontalAlignment="Center"
                         Width="70"
                         Focusable="False"
-                        ToolTip="Add text to map" />
+                        ToolTip="Add ellipse to map" />
                 
             </StackPanel>
         </Border>

@@ -29,6 +29,8 @@ public partial class MapWindow : ChildWindow {
     private bool? _savedFogSettings;
     private bool _isSettingDestination;
     private bool _isPickingTextLocation;
+    private bool _isPickingCircleLocation;
+    private bool _isPickingEllipseLocation;
     private bool _isAddingPin;
     private int _calibrationStep;
     private bool _isDragging;
@@ -92,10 +94,12 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void CancelActiveModes() {
-        if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isCalibrating) {
+        if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation || _isPickingEllipseLocation || _isCalibrating) {
             _isSettingDestination = false;
             _isAddingPin = false;
             _isPickingTextLocation = false;
+            _isPickingCircleLocation = false;
+            _isPickingEllipseLocation = false;
             if (_isCalibrating) {
                 if (_savedFogSettings.HasValue) {
                     var vm = (MapViewModel)DataContext;
@@ -447,7 +451,7 @@ public partial class MapWindow : ChildWindow {
         if (e.Key == Key.Escape) {
             // Only mark handled if we actually cancelled something, 
             // so Esc can still close dialogs or do other native tasks if we're idle.
-            if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isCalibrating) {
+            if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation || _isPickingEllipseLocation || _isCalibrating) {
                 CancelActiveModes();
                 e.Handled = true;
             }
@@ -560,7 +564,7 @@ public partial class MapWindow : ChildWindow {
         var vm = (MapViewModel)DataContext;
         
         // Helper flag: Are we actively interacting with ANY part of the text tool?
-        bool isInteractingWithTextTool = _isPickingTextLocation || vm.IsDrawModeActive ||
+        bool isInteractingWithTextTool = _isPickingTextLocation || _isPickingCircleLocation || _isPickingEllipseLocation || vm.IsDrawModeActive ||
                                          Keyboard.FocusedElement is System.Windows.Controls.TextBox ||
                                          IsMouseOverTextControl(); // <-- NEW robust check
 Debug.WriteLine($"[DEBUG_LOG] isInteractingWithTextTool: {isInteractingWithTextTool} {msg}");
@@ -718,7 +722,7 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
 
     private void MapCanvas_MouseRightButtonDown(object sender, MouseButtonEventArgs e) {
         // Only intercept the right-click if the user is actually in a special mode
-        if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isCalibrating) {
+        if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation || _isPickingEllipseLocation || _isCalibrating) {
             CancelActiveModes();
 
             // CRITICAL: Tell WPF we consumed this click to cancel the tool.
@@ -750,7 +754,7 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
             }
         }
 
-        if (!_isPickingTextLocation) {
+        if (!_isPickingTextLocation && !_isPickingCircleLocation && !_isPickingEllipseLocation) {
             if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm &&
                 mainVm.Settings.KeyboardClickThrough) {
                 _preDragForegroundWindow = NativeMethods.GetForegroundWindow();
@@ -762,7 +766,7 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
             NativeMethods.SetForegroundWindow(_hwnd);
         }
 
-        if (!_isCalibrating && !_isSettingDestination && !_isAddingPin && !_isPickingTextLocation) {
+        if (!_isCalibrating && !_isSettingDestination && !_isAddingPin && !_isPickingTextLocation && !_isPickingCircleLocation && !_isPickingEllipseLocation) {
             _isDragging = true;
             _lastMousePosition = e.GetPosition(MapScrollViewer);
             MapCanvas.CaptureMouse();
@@ -816,6 +820,85 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
             return;
         }
 
+        if (_isPickingCircleLocation) {
+            //We aere in draw mode and have selected to add text to the map
+            var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
+            if (coords.HasValue) {
+                // 1. Temporarily flip click-through window properties OFF 
+                // so the OS can safely bind standard keyboard streams
+                var oldClickThroughSetting = vm.AppSettings.KeyboardClickThrough;
+                vm.AppSettings.KeyboardClickThrough = false;
+                UpdateKeyboardClickThrough();
+
+                var label = new EditableMapEllipse {
+                    InitialText = "New Text",
+                    BoxBackgroundColor = Colors.Black,
+                    Foreground = new SolidColorBrush(Colors.White),
+                    FontSize = 14,
+                    Width = 180,
+                    Height = 80,
+                    TargetImage = MapImageElement // <-- Hand over the strongly-typed reference directly!
+                };
+
+                // When the user stamps the text, restore original background tracking parameters automatically
+                label.Stamped += (s, args) => {
+                    OnCircleStamped(s, args);
+                    vm.AppSettings.KeyboardClickThrough = oldClickThroughSetting;
+                    UpdateKeyboardClickThrough();
+                };
+
+                Canvas.SetLeft(label, clickPoint.X - (label.Width / 2));
+                Canvas.SetTop(label, clickPoint.Y - (label.Height / 2));
+
+                MapCanvas.Children.Add(label);
+
+                _isPickingCircleLocation = false;
+                StatusTextBlock.Text = "Status: When done adding text, save it to the image";
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (_isPickingEllipseLocation) {
+            //We aere in draw mode and have selected to add text to the map
+            var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
+            if (coords.HasValue) {
+                // 1. Temporarily flip click-through window properties OFF 
+                // so the OS can safely bind standard keyboard streams
+                var oldClickThroughSetting = vm.AppSettings.KeyboardClickThrough;
+                vm.AppSettings.KeyboardClickThrough = false;
+                UpdateKeyboardClickThrough();
+
+                var label = new MapCircleMarker {
+                    CircleBackgroundColor = Colors.Black,
+                    Foreground = new SolidColorBrush(Colors.White),
+                    FontSize = 14,
+                    Width = 180,
+                    Height = 80,
+                    TargetImage = MapImageElement // <-- Hand over the strongly-typed reference directly!
+                };
+
+                // When the user stamps the text, restore original background tracking parameters automatically
+                label.Stamped += (s, args) => {
+                    OnCircleMarkerStamped(s, args);
+                    vm.AppSettings.KeyboardClickThrough = oldClickThroughSetting;
+                    UpdateKeyboardClickThrough();
+                };
+
+                Canvas.SetLeft(label, clickPoint.X - (label.Width / 2));
+                Canvas.SetTop(label, clickPoint.Y - (label.Height / 2));
+
+                MapCanvas.Children.Add(label);
+
+                _isPickingEllipseLocation = false;
+                StatusTextBlock.Text = "Status: When done adding ellipse, save it to the image";
+            }
+
+            e.Handled = true;
+            return;
+        }
+        
         if (_isSettingDestination) {
             var coords = vm.GetCoordinatesFromPixels(clickPoint.X, clickPoint.Y);
             if (coords.HasValue) {
@@ -1131,47 +1214,82 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         vm.MapImage = targetWriteableBmp;
         MapImageElement.Source = vm.MapImage;
     }
+    #endregion
+    
+    #region write the circle to the image
+    
+    void OnCircleStamped(object? s, MapTextStampEventArgs a) {
+        var vm = (MapViewModel)DataContext;
+        if (vm.MapImage == null) return;
 
-    // void OnLabelStamped(object? s, MapTextStampEventArgs a)
-    // {
-    //     // a.X, a.Y, a.Width, a.Height, a.RotationAngle, etc. are all in map pixels
-    //     // Render with GDI+ Graphics here
-    //     var vm = (MapViewModel)DataContext;
-    //     
-    //     // 1. Convert your BitmapSource into a mutable WriteableBitmap on the fly
-    //     WriteableBitmap targetWriteableBmp = null;
-    //
-    //     if (vm.MapImage is WriteableBitmap existingWriteable)
-    //     {
-    //         targetWriteableBmp = existingWriteable;
-    //     }
-    //     else
-    //     {
-    //         // This constructor copies the immutable BitmapSource pixels into a mutable buffer
-    //         targetWriteableBmp = new WriteableBitmap(vm.MapImage);
-    //         
-    //         // if (vm.MapImage.Format != PixelFormats.Pbgra32 && vm.MapImage.Format != PixelFormats.Bgra32)
-    //         // {
-    //         //     // Force convert the image data into a standard 32-bit layout with alpha channels
-    //         //     FormatConvertedBitmap convertedBmp = new FormatConvertedBitmap();
-    //         //     convertedBmp.BeginInit();
-    //         //     convertedBmp.Source = vm.MapImage;
-    //         //     convertedBmp.DestinationFormat = PixelFormats.Pbgra32;
-    //         //     convertedBmp.EndInit();
-    //         //
-    //         //     targetWriteableBmp = new WriteableBitmap(convertedBmp);
-    //         // }
-    //         // else
-    //         // {
-    //         //     targetWriteableBmp = new WriteableBitmap(vm.MapImage);
-    //         // }
-    //     }
-    //     
-    //     DrawMapHelpers.BurnTextToBitmap(targetWriteableBmp, a);
-    //     
-    //     vm.MapImage = targetWriteableBmp;
-    //     MapImageElement.Source = vm.MapImage;
-    // }
+        WriteableBitmap targetWriteableBmp = null;
+
+        // 1. If it's already a WriteableBitmap, we can use it directly
+        if (vm.MapImage is WriteableBitmap existingWriteable) {
+            targetWriteableBmp = existingWriteable;
+        }
+        else {
+            BitmapSource sourceToUse = vm.MapImage;
+
+            // 2. Check if the format is standard 32-bit. If not, normalize it.
+            if (vm.MapImage.Format != PixelFormats.Pbgra32 && vm.MapImage.Format != PixelFormats.Bgra32) {
+                FormatConvertedBitmap convertedBmp = new FormatConvertedBitmap();
+                convertedBmp.BeginInit();
+                convertedBmp.Source = vm.MapImage;
+                convertedBmp.DestinationFormat = PixelFormats.Pbgra32; // Highly compatible with GDI+ / WPF
+                convertedBmp.EndInit();
+
+                sourceToUse = convertedBmp;
+            }
+
+            // 3. Initialize the mutable WriteableBitmap with our safely formatted source
+            targetWriteableBmp = new WriteableBitmap(sourceToUse);
+        }
+
+        // 4. Render the stamp
+        DrawMapHelpers.BurnCircleToBitmap(targetWriteableBmp, a);
+
+        // 5. Update UI and VM
+        vm.MapImage = targetWriteableBmp;
+        MapImageElement.Source = vm.MapImage;
+    }
+    
+    void OnCircleMarkerStamped(object? s, MapTextStampEventArgs a) {
+        var vm = (MapViewModel)DataContext;
+        if (vm.MapImage == null) return;
+
+        WriteableBitmap targetWriteableBmp = null;
+
+        // 1. If it's already a WriteableBitmap, we can use it directly
+        if (vm.MapImage is WriteableBitmap existingWriteable) {
+            targetWriteableBmp = existingWriteable;
+        }
+        else {
+            BitmapSource sourceToUse = vm.MapImage;
+
+            // 2. Check if the format is standard 32-bit. If not, normalize it.
+            if (vm.MapImage.Format != PixelFormats.Pbgra32 && vm.MapImage.Format != PixelFormats.Bgra32) {
+                FormatConvertedBitmap convertedBmp = new FormatConvertedBitmap();
+                convertedBmp.BeginInit();
+                convertedBmp.Source = vm.MapImage;
+                convertedBmp.DestinationFormat = PixelFormats.Pbgra32; // Highly compatible with GDI+ / WPF
+                convertedBmp.EndInit();
+
+                sourceToUse = convertedBmp;
+            }
+
+            // 3. Initialize the mutable WriteableBitmap with our safely formatted source
+            targetWriteableBmp = new WriteableBitmap(sourceToUse);
+        }
+
+        // 4. Render the stamp
+        DrawMapHelpers.BurnCircleMarkerToBitmap(targetWriteableBmp, a);
+
+        // 5. Update UI and VM
+        vm.MapImage = targetWriteableBmp;
+        MapImageElement.Source = vm.MapImage;
+    }
+
 
     // ═════════════════════════════════════════════════════════════════
 // Visual Tree Helper
@@ -1359,7 +1477,30 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         }
         finally { }
     }
-
+    
+    private void DrawModeAddCircle_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        try {
+            if (string.IsNullOrWhiteSpace(vm.MapName)) return;
+            if (!vm.IsDrawModeActive) return;
+            StatusTextBlock.Text = "Status: Pick a point to add circle.";
+            _isPickingCircleLocation = true;
+        }
+        finally { }
+    }
+    
+    private void DrawModeAddEllipse_Click(object sender, RoutedEventArgs e) {
+        var vm = (MapViewModel)DataContext;
+        try {
+            if (string.IsNullOrWhiteSpace(vm.MapName)) return;
+            if (!vm.IsDrawModeActive) return;
+            StatusTextBlock.Text = "Status: Pick a point to add ellipse.";
+            _isPickingEllipseLocation = true;
+        }
+        finally { }
+    }
+    
+    
     private void DrawModeAddText_Click(object sender, RoutedEventArgs e) {
         var vm = (MapViewModel)DataContext;
         try {

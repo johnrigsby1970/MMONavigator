@@ -14,120 +14,477 @@ public static class DrawMapHelpers {
     //and rotated correctly based on the resolution of the image considering the text box control is not in the
     //same reference frame.
     public static void BurnTextToBitmap(WriteableBitmap bitmap, MapTextStampEventArgs args) {
-    int width = bitmap.PixelWidth;
-    int height = bitmap.PixelHeight;
+        int width = bitmap.PixelWidth;
+        int height = bitmap.PixelHeight;
 
-    bitmap.Lock();
+        bitmap.Lock();
 
-    try {
-        using (Bitmap gdiBitmap = new Bitmap(
-                   width,
-                   height,
-                   bitmap.BackBufferStride,
-                   System.Drawing.Imaging.PixelFormat.Format32bppPArgb,
-                   bitmap.BackBuffer)) {
-            using (Graphics g = Graphics.FromImage(gdiBitmap)) {
-                g.TextRenderingHint = TextRenderingHint.AntiAlias;
-                g.SmoothingMode = SmoothingMode.AntiAlias;
+        try {
+            using (Bitmap gdiBitmap = new Bitmap(
+                       width,
+                       height,
+                       bitmap.BackBufferStride,
+                       System.Drawing.Imaging.PixelFormat.Format32bppPArgb,
+                       bitmap.BackBuffer)) {
+                using (Graphics g = Graphics.FromImage(gdiBitmap)) {
+                    g.TextRenderingHint = TextRenderingHint.AntiAlias;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
 
-                // 1. Move to the bounding box position
-                g.TranslateTransform((float)args.X, (float)args.Y);
+                    // 1. Move to the bounding box position
+                    g.TranslateTransform((float)args.X, (float)args.Y);
 
-                // 2. Handle center-pivot rotation to exactly match WPF's RenderTransformOrigin="0.5,0.5"
-                if (args.RotationAngle != 0) {
-                    float centerX = (float)args.Width / 2f;
-                    float centerY = (float)args.Height / 2f;
+                    // 2. Handle center-pivot rotation to exactly match WPF's RenderTransformOrigin="0.5,0.5"
+                    if (args.RotationAngle != 0) {
+                        float centerX = (float)args.Width / 2f;
+                        float centerY = (float)args.Height / 2f;
 
-                    g.TranslateTransform(centerX, centerY);
-                    g.RotateTransform((float)args.RotationAngle);
-                    g.TranslateTransform(-centerX, -centerY);
-                }
+                        g.TranslateTransform(centerX, centerY);
+                        g.RotateTransform((float)args.RotationAngle);
+                        g.TranslateTransform(-centerX, -centerY);
+                    }
 
-                // Bounding rectangle in local space
-                RectangleF boxBounds = new RectangleF(0, 0, (float)args.Width, (float)args.Height);
+                    // Bounding rectangle in local space
+                    RectangleF boxBounds = new RectangleF(0, 0, (float)args.Width, (float)args.Height);
 
-                // 3. Draw Background and Border
-                if (args.BackgroundOpacity > 0 && args.BackgroundColor != System.Windows.Media.Colors.Transparent) {
-                    int bgAlpha = (int)(args.BackgroundOpacity * 255);
-                    System.Drawing.Color gdiBgColor = System.Drawing.Color.FromArgb(
-                        bgAlpha, args.BackgroundColor.R, args.BackgroundColor.G, args.BackgroundColor.B);
+                    // // 3. Draw Background and Border
+                    //
+                    // // Calculate paths/bounds once if needed by either background or border
+                    // bool hasRoundedCorners = args.CornerRadius.TopLeft > 0 || args.CornerRadius.TopRight > 0 ||
+                    //                          args.CornerRadius.BottomRight > 0 || args.CornerRadius.BottomLeft > 0;
+                    //
+                    // // Determine visibility flags
+                    // bool shouldDrawBackground = args.BackgroundOpacity > 0 &&
+                    //                             args.BackgroundColor != System.Windows.Media.Colors.Transparent;
+                    // bool shouldDrawBorder = args.BoxBorderThickness > 0 && args.BoxBorderOpacity > 0 &&
+                    //                         args.BoxBorderColor != System.Windows.Media.Colors.Transparent;
+                    //
+                    // if (shouldDrawBackground || shouldDrawBorder) {
+                    //     GraphicsPath path = null;
+                    //     if (hasRoundedCorners) {
+                    //         path = GetRoundedRectPath(boxBounds, args.CornerRadius);
+                    //     }
+                    //
+                    //     try {
+                    //         // --- A. Draw Background ---
+                    //         if (shouldDrawBackground) {
+                    //             int bgAlpha = (int)(args.BackgroundOpacity * 255);
+                    //             System.Drawing.Color gdiBgColor = System.Drawing.Color.FromArgb(
+                    //                 bgAlpha, args.BackgroundColor.R, args.BackgroundColor.G, args.BackgroundColor.B);
+                    //
+                    //             using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
+                    //                 if (hasRoundedCorners) {
+                    //                     g.FillPath(bgBrush, path);
+                    //                 }
+                    //                 else {
+                    //                     g.FillRectangle(bgBrush, boxBounds);
+                    //                 }
+                    //             }
+                    //         }
+                    //
+                    //         // --- B. Draw Border (Independent of Background) ---
+                    //         if (shouldDrawBorder) {
+                    //             int borderAlpha = (int)(args.BoxBorderOpacity * 255);
+                    //             System.Drawing.Color gdiBorderColor = System.Drawing.Color.FromArgb(
+                    //                 borderAlpha, args.BoxBorderColor.R, args.BoxBorderColor.G, args.BoxBorderColor.B);
+                    //
+                    //             using (System.Drawing.Pen borderPen =
+                    //                    new System.Drawing.Pen(gdiBorderColor, (float)args.BoxBorderThickness)) {
+                    //                 borderPen.Alignment = PenAlignment.Inset;
+                    //
+                    //                 if (hasRoundedCorners) {
+                    //                     g.DrawPath(borderPen, path);
+                    //                 }
+                    //                 else {
+                    //                     // Note: Replaced 0, 0 with boxBounds dimensions to match your original logic intent,
+                    //                     // but using boxBounds.X/Y is usually safer depending on how your Graphics context is translated.
+                    //                     g.DrawRectangle(borderPen, boxBounds.X, boxBounds.Y, boxBounds.Width,
+                    //                         boxBounds.Height);
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    //     finally {
+                    //         // Clean up the GraphicsPath if it was created
+                    //         path?.Dispose();
+                    //     }
+                    // }
 
-                    int borderAlpha = (int)(args.BackgroundOpacity * 255);
-                    System.Drawing.Color gdiBorderColor = System.Drawing.Color.FromArgb(
-                        borderAlpha, args.BoxBorderColor.R, args.BoxBorderColor.G, args.BoxBorderColor.B);
+                    // 3. Draw Background and Border
 
-                    if (args.CornerRadius.TopLeft > 0 || args.CornerRadius.TopRight > 0 ||
-                        args.CornerRadius.BottomRight > 0 || args.CornerRadius.BottomLeft > 0) {
-                        using (GraphicsPath path = GetRoundedRectPath(boxBounds, args.CornerRadius)) {
-                            using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
-                                g.FillPath(bgBrush, path);
+                    // Calculate paths/bounds once if needed by either background or border
+                    bool hasRoundedCorners = args.CornerRadius.TopLeft > 0 || args.CornerRadius.TopRight > 0 ||
+                                             args.CornerRadius.BottomRight > 0 || args.CornerRadius.BottomLeft > 0;
+
+                    // Determine visibility flags
+                    bool shouldDrawBackground = args.BackgroundOpacity > 0 &&
+                                                args.BackgroundColor != System.Windows.Media.Colors.Transparent;
+                    bool shouldDrawBorder = args.BoxBorderThickness > 0 && args.BoxBorderOpacity > 0 &&
+                                            args.BoxBorderColor != System.Windows.Media.Colors.Transparent;
+
+                    if (shouldDrawBackground || shouldDrawBorder) {
+                        GraphicsPath bgPath = null;
+                        GraphicsPath borderPath = null;
+
+                        if (hasRoundedCorners) {
+                            bgPath = GetRoundedRectPath(boxBounds, args.CornerRadius);
+                        }
+
+                        try {
+                            // --- A. Draw Background ---
+                            if (shouldDrawBackground) {
+                                int bgAlpha = (int)(args.BackgroundOpacity * 255);
+                                System.Drawing.Color gdiBgColor = System.Drawing.Color.FromArgb(
+                                    bgAlpha, args.BackgroundColor.R, args.BackgroundColor.G, args.BackgroundColor.B);
+
+                                using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
+                                    if (hasRoundedCorners) {
+                                        g.FillPath(bgBrush, bgPath);
+                                    }
+                                    else {
+                                        g.FillRectangle(bgBrush, boxBounds);
+                                    }
+                                }
                             }
 
-                            if (args.BoxBorderThickness > 0 && args.BoxBorderColor != System.Windows.Media.Colors.Transparent) {
-                                using (System.Drawing.Pen borderPen = new System.Drawing.Pen(gdiBorderColor, (float)args.BoxBorderThickness)) {
-                                    borderPen.Alignment = PenAlignment.Inset;
-                                    g.DrawPath(borderPen, path);
+                            // --- B. Draw Border (Independent of Background) ---
+                            if (shouldDrawBorder) {
+                                int borderAlpha = (int)(args.BoxBorderOpacity * 255);
+                                System.Drawing.Color gdiBorderColor = System.Drawing.Color.FromArgb(
+                                    borderAlpha, args.BoxBorderColor.R, args.BoxBorderColor.G, args.BoxBorderColor.B);
+
+                                float thickness = (float)args.BoxBorderThickness;
+                                float halfThickness = thickness / 2f;
+
+                                // Manually inset the border bounds to mimic Inset alignment safely
+                                RectangleF borderBounds = new RectangleF(
+                                    boxBounds.X + halfThickness,
+                                    boxBounds.Y + halfThickness,
+                                    boxBounds.Width - thickness,
+                                    boxBounds.Height - thickness
+                                );
+
+                                using (System.Drawing.Pen
+                                       borderPen = new System.Drawing.Pen(gdiBorderColor, thickness)) {
+                                    // Using Center alignment prevents GDI+ from applying hidden transforms to the Graphics state
+                                    borderPen.Alignment = PenAlignment.Center;
+
+                                    if (hasRoundedCorners) {
+                                        // Generate a specific inset path for the border stroke
+                                        borderPath = GetRoundedRectPath(borderBounds, args.CornerRadius);
+                                        g.DrawPath(borderPen, borderPath);
+                                    }
+                                    else {
+                                        g.DrawRectangle(borderPen, borderBounds.X, borderBounds.Y, borderBounds.Width,
+                                            borderBounds.Height);
+                                    }
                                 }
                             }
                         }
-                    }
-                    else {
-                        using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
-                            g.FillRectangle(bgBrush, boxBounds);
-                        }
-
-                        if (args.BoxBorderThickness > 0 && args.BoxBorderColor != System.Windows.Media.Colors.Transparent) {
-                            using (System.Drawing.Pen borderPen = new System.Drawing.Pen(gdiBorderColor, (float)args.BoxBorderThickness)) {
-                                borderPen.Alignment = PenAlignment.Inset;
-                                g.DrawRectangle(borderPen, 0, 0, boxBounds.Width, boxBounds.Height);
-                            }
+                        finally {
+                            // Clean up paths safely
+                            bgPath?.Dispose();
+                            borderPath?.Dispose();
                         }
                     }
-                }
 
-                // 4. Setup Font Style & Formatting
-                System.Drawing.FontStyle fontStyle = System.Drawing.FontStyle.Regular;
-                if (args.IsBold) fontStyle |= System.Drawing.FontStyle.Bold;
-                if (args.IsItalic) fontStyle |= System.Drawing.FontStyle.Italic;
-                if (args.IsUnderline) fontStyle |= System.Drawing.FontStyle.Underline;
+                    // // 4. Setup Font Style & Formatting
+                    // System.Drawing.FontStyle fontStyle = System.Drawing.FontStyle.Regular;
+                    // if (args.IsBold) fontStyle |= System.Drawing.FontStyle.Bold;
+                    // if (args.IsItalic) fontStyle |= System.Drawing.FontStyle.Italic;
+                    // if (args.IsUnderline) fontStyle |= System.Drawing.FontStyle.Underline;
+                    //
+                    // float padding = (float)args.TextPadding;
+                    // float textWidth = (float)(args.Width - (padding * 2));
+                    // float textHeight = (float)(args.Height - (padding * 2));
+                    //
+                    // RectangleF textLayoutBounds = new RectangleF(
+                    //     padding,
+                    //     padding,
+                    //     textWidth > 0 ? textWidth : 1f,
+                    //     textHeight > 0 ? textHeight : 1f
+                    // );
+                    //
+                    // // Use GenericTypographic layout formatting to match WPF rendering spacing perfectly
+                    // using (StringFormat stringFormat = new StringFormat(StringFormat.GenericTypographic)) {
+                    //     stringFormat.FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoClip;
+                    //     stringFormat.Alignment = ConvertAlignment(args.TextAlignment);
+                    //
+                    //     int textAlpha = (int)(args.TextOpacity * 255);
+                    //     System.Drawing.Color gdiTextColor = System.Drawing.Color.FromArgb(
+                    //         textAlpha, args.TextColor.R, args.TextColor.G, args.TextColor.B);
+                    //
+                    //     using (System.Drawing.Font font = new System.Drawing.Font(args.FontFamilyName,
+                    //                (float)args.FontSize, fontStyle, System.Drawing.GraphicsUnit.Pixel))
+                    //     using (System.Drawing.Brush textBrush = new SolidBrush(gdiTextColor)) {
+                    //         g.DrawString(args.Text, font, textBrush, textLayoutBounds, stringFormat);
+                    //     }
+                    // }
 
-                float padding = (float)args.TextPadding;
-                float textWidth = (float)(args.Width - (padding * 2));
-                float textHeight = (float)(args.Height - (padding * 2));
+                    // 4. Setup Font Style & Formatting
+                    System.Drawing.FontStyle fontStyle = System.Drawing.FontStyle.Regular;
+                    if (args.IsBold) fontStyle |= System.Drawing.FontStyle.Bold;
+                    if (args.IsItalic) fontStyle |= System.Drawing.FontStyle.Italic;
+                    if (args.IsUnderline) fontStyle |= System.Drawing.FontStyle.Underline;
 
-                RectangleF textLayoutBounds = new RectangleF(
-                    padding,
-                    padding,
-                    textWidth > 0 ? textWidth : 1f,
-                    textHeight > 0 ? textHeight : 1f
-                );
+                    // Calculate total inset including the border thickness if it's visible
+                    float borderThickness = (shouldDrawBorder) ? (float)args.BoxBorderThickness : 0f;
+                    float padding = (float)args.TextPadding;
 
-                // Use GenericTypographic layout formatting to match WPF rendering spacing perfectly
-                using (StringFormat stringFormat = new StringFormat(StringFormat.GenericTypographic)) {
-                    stringFormat.FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoClip;
-                    stringFormat.Alignment = ConvertAlignment(args.TextAlignment);
+                    // The text box must start further inward to clear the border
+                    float textX = padding + borderThickness;
+                    float textY = padding + borderThickness;
+                    float textWidth = (float)(args.Width - (textX * 2));
+                    float textHeight = (float)(args.Height - (textY * 2));
 
-                    int textAlpha = (int)(args.TextOpacity * 255);
-                    System.Drawing.Color gdiTextColor = System.Drawing.Color.FromArgb(
-                        textAlpha, args.TextColor.R, args.TextColor.G, args.TextColor.B);
+                    // GDI+ GenericTypographic alignment adjustment 
+                    // GenericTypographic can shave off a few pixels of font descent/leading whitespace, causing an upward shift.
+                    // We add a tiny offset to match WPF's looser text bounding box.
+                    float gdiTypographicVerticalOffset =
+                        (float)args.FontSize * 0.05f; // ~5% of font size helps normalize the shift
 
-                    using (System.Drawing.Font font = new System.Drawing.Font(args.FontFamilyName,
-                               (float)args.FontSize, fontStyle, System.Drawing.GraphicsUnit.Pixel))
-                    using (System.Drawing.Brush textBrush = new SolidBrush(gdiTextColor)) {
-                        g.DrawString(args.Text, font, textBrush, textLayoutBounds, stringFormat);
+                    RectangleF textLayoutBounds = new RectangleF(
+                        textX,
+                        textY + gdiTypographicVerticalOffset,
+                        textWidth > 0 ? textWidth : 1f,
+                        textHeight > 0 ? textHeight : 1f
+                    );
+
+                    // Use GenericTypographic layout formatting to match WPF rendering spacing perfectly
+                    using (StringFormat stringFormat = new StringFormat(StringFormat.GenericTypographic)) {
+                        // Crucial: StringFormatFlags.NoWrap or LineLimit behaves differently based on alignment.
+                        // If you are using Center or Right alignment, GenericTypographic needs trailing spaces measured.
+                        stringFormat.FormatFlags = StringFormatFlags.LineLimit | StringFormatFlags.NoClip;
+                        stringFormat.Alignment = ConvertAlignment(args.TextAlignment);
+
+                        // If text is vertically centered in WPF, make sure GDI+ knows it too:
+                        // stringFormat.LineAlignment = StringAlignment.Center; // Uncomment if your text is vertically centered
+
+                        int textAlpha = (int)(args.TextOpacity * 255);
+                        System.Drawing.Color gdiTextColor = System.Drawing.Color.FromArgb(
+                            textAlpha, args.TextColor.R, args.TextColor.G, args.TextColor.B);
+
+                        using (System.Drawing.Font font = new System.Drawing.Font(args.FontFamilyName,
+                                   (float)args.FontSize, fontStyle, System.Drawing.GraphicsUnit.Pixel))
+                        using (System.Drawing.Brush textBrush = new SolidBrush(gdiTextColor)) {
+                            g.DrawString(args.Text, font, textBrush, textLayoutBounds, stringFormat);
+                        }
                     }
-                }
 
-                g.ResetTransform();
+                    g.ResetTransform();
+                }
             }
-        }
 
-        bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
+            bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
+        }
+        finally {
+            bitmap.Unlock();
+        }
     }
-    finally {
-        bitmap.Unlock();
+
+    public static void BurnCircleToBitmap(WriteableBitmap bitmap, MapTextStampEventArgs args) {
+        int width = bitmap.PixelWidth;
+        int height = bitmap.PixelHeight;
+
+        bitmap.Lock();
+
+        try {
+            using (Bitmap gdiBitmap = new Bitmap(
+                       width,
+                       height,
+                       bitmap.BackBufferStride,
+                       System.Drawing.Imaging.PixelFormat.Format32bppPArgb,
+                       bitmap.BackBuffer)) {
+                using (Graphics g = Graphics.FromImage(gdiBitmap)) {
+                    g.TextRenderingHint = TextRenderingHint.AntiAlias;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+
+                    // 1. Move to the bounding box position
+                    g.TranslateTransform((float)args.X, (float)args.Y);
+
+                    // 2. Handle center-pivot rotation to exactly match WPF's RenderTransformOrigin="0.5,0.5"
+                    if (args.RotationAngle != 0) {
+                        float centerX = (float)args.Width / 2f;
+                        float centerY = (float)args.Height / 2f;
+
+                        g.TranslateTransform(centerX, centerY);
+                        g.RotateTransform((float)args.RotationAngle);
+                        g.TranslateTransform(-centerX, -centerY);
+                    }
+
+                    // Bounding rectangle in local space
+                    RectangleF boxBounds = new RectangleF(0, 0, (float)args.Width, (float)args.Height);
+
+                    // Determine visibility flags
+                    bool shouldDrawBackground = args.BackgroundOpacity > 0 &&
+                                                args.BackgroundColor != System.Windows.Media.Colors.Transparent;
+                    bool shouldDrawBorder = args.BoxBorderThickness > 0 && args.BoxBorderOpacity > 0 &&
+                                            args.BoxBorderColor != System.Windows.Media.Colors.Transparent;
+
+                    // 3. Draw Background and Border
+                    if (shouldDrawBackground) {
+                        int bgAlpha = (int)(args.BackgroundOpacity * 255);
+                        System.Drawing.Color gdiBgColor = System.Drawing.Color.FromArgb(
+                            bgAlpha, args.BackgroundColor.R, args.BackgroundColor.G, args.BackgroundColor.B);
+
+                        using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
+                            g.FillEllipse(bgBrush, boxBounds);
+                        }
+                    }
+
+                    if (shouldDrawBorder) {
+                        int borderAlpha = (int)Math.Round(Math.Clamp(args.BoxBorderOpacity, 0, 1) * 255);
+                        System.Drawing.Color gdiBorderColor = System.Drawing.Color.FromArgb(
+                            borderAlpha, args.BoxBorderColor.R, args.BoxBorderColor.G, args.BoxBorderColor.B);
+
+                        float thickness = (float)args.BoxBorderThickness;
+                        float halfThickness = thickness / 2f;
+
+                        // Manually inset the border bounds to avoid GDI+ PenAlignment.Inset coordinate shifting bugs
+                        RectangleF borderBounds = new RectangleF(
+                            boxBounds.X + halfThickness,
+                            boxBounds.Y + halfThickness,
+                            boxBounds.Width - thickness,
+                            boxBounds.Height - thickness
+                        );
+
+                        using (System.Drawing.Pen borderPen = new System.Drawing.Pen(gdiBorderColor, thickness)) {
+                            borderPen.Alignment = PenAlignment.Center;
+                            g.DrawEllipse(borderPen, borderBounds);
+                        }
+                    }
+
+                    // 4. Setup Font Style & Formatting
+                    System.Drawing.FontStyle fontStyle = System.Drawing.FontStyle.Regular;
+                    if (args.IsBold) fontStyle |= System.Drawing.FontStyle.Bold;
+                    if (args.IsItalic) fontStyle |= System.Drawing.FontStyle.Italic;
+                    if (args.IsUnderline) fontStyle |= System.Drawing.FontStyle.Underline;
+
+                    // FIX: Instead of shrinking the text box dynamically (which can cause mathematical drifting), 
+                    // we make the text layout bounds perfectly match the outer container bounds.
+                    // The GDI+ StringAlignment engines will handle the dead-center alignment flawlessly.
+                    RectangleF textLayoutBounds = new RectangleF(
+                        0,
+                        0,
+                        (float)args.Width,
+                        (float)args.Height
+                    );
+
+                    // Use GenericTypographic layout formatting to match WPF rendering spacing perfectly
+                    using (StringFormat stringFormat = new StringFormat(StringFormat.GenericTypographic)) {
+                        // Crucial for Centering: MeasureTrailingSpaces forces GDI+ to include the full width of spaces 
+                        // when calculating the horizontal center point, preventing off-center drifting.
+                        stringFormat.FormatFlags = StringFormatFlags.LineLimit |
+                                                   StringFormatFlags.NoClip |
+                                                   StringFormatFlags.MeasureTrailingSpaces;
+
+                        // Explicitly enforce absolute center alignment both ways
+                        stringFormat.Alignment = StringAlignment.Center; // Horizontal Center
+                        stringFormat.LineAlignment = StringAlignment.Center; // Vertical Center
+
+                        int textAlpha = (int)(args.TextOpacity * 255);
+                        System.Drawing.Color gdiTextColor = System.Drawing.Color.FromArgb(
+                            textAlpha, args.TextColor.R, args.TextColor.G, args.TextColor.B);
+
+                        using (System.Drawing.Font font = new System.Drawing.Font(args.FontFamilyName,
+                                   (float)args.FontSize, fontStyle, System.Drawing.GraphicsUnit.Pixel))
+                        using (System.Drawing.Brush textBrush = new SolidBrush(gdiTextColor)) {
+                            g.DrawString(args.Text, font, textBrush, textLayoutBounds, stringFormat);
+                        }
+                    }
+
+                    g.ResetTransform();
+                }
+            }
+
+            bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
+        }
+        finally {
+            bitmap.Unlock();
+        }
     }
-}
+
+    public static void BurnCircleMarkerToBitmap(WriteableBitmap bitmap, MapTextStampEventArgs args) {
+        int width = bitmap.PixelWidth;
+        int height = bitmap.PixelHeight;
+
+        bitmap.Lock();
+
+        try {
+            using (Bitmap gdiBitmap = new Bitmap(
+                       width,
+                       height,
+                       bitmap.BackBufferStride,
+                       System.Drawing.Imaging.PixelFormat.Format32bppPArgb,
+                       bitmap.BackBuffer)) {
+                using (Graphics g = Graphics.FromImage(gdiBitmap)) {
+                    g.TextRenderingHint = TextRenderingHint.AntiAlias;
+                    g.SmoothingMode = SmoothingMode.AntiAlias;
+
+                    // 1. Move to the bounding box position
+                    g.TranslateTransform((float)args.X, (float)args.Y);
+
+                    // 2. Handle center-pivot rotation to exactly match WPF's RenderTransformOrigin="0.5,0.5"
+                    if (args.RotationAngle != 0) {
+                        float centerX = (float)args.Width / 2f;
+                        float centerY = (float)args.Height / 2f;
+
+                        g.TranslateTransform(centerX, centerY);
+                        g.RotateTransform((float)args.RotationAngle);
+                        g.TranslateTransform(-centerX, -centerY);
+                    }
+
+                    // Bounding rectangle in local space
+                    RectangleF boxBounds = new RectangleF(0, 0, (float)args.Width, (float)args.Height);
+
+                    // Determine visibility flags
+                    bool shouldDrawBackground = args.BackgroundOpacity > 0 &&
+                                                args.BackgroundColor != System.Windows.Media.Colors.Transparent;
+                    bool shouldDrawBorder = args.BoxBorderThickness > 0 && args.BoxBorderOpacity > 0 &&
+                                            args.BoxBorderColor != System.Windows.Media.Colors.Transparent;
+
+                    // 3. Draw Background and Border
+                    if (shouldDrawBackground) {
+                        int bgAlpha = (int)(args.BackgroundOpacity * 255);
+                        System.Drawing.Color gdiBgColor = System.Drawing.Color.FromArgb(
+                            bgAlpha, args.BackgroundColor.R, args.BackgroundColor.G, args.BackgroundColor.B);
+
+                        using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
+                            g.FillEllipse(bgBrush, boxBounds);
+                        }
+                    }
+
+                    if (shouldDrawBorder) {
+                        int borderAlpha = (int)Math.Round(Math.Clamp(args.BoxBorderOpacity, 0, 1) * 255);
+                        System.Drawing.Color gdiBorderColor = System.Drawing.Color.FromArgb(
+                            borderAlpha, args.BoxBorderColor.R, args.BoxBorderColor.G, args.BoxBorderColor.B);
+
+                        float thickness = (float)args.BoxBorderThickness;
+                        float halfThickness = thickness / 2f;
+
+                        // Manually inset the border bounds to avoid GDI+ PenAlignment.Inset coordinate shifting bugs
+                        RectangleF borderBounds = new RectangleF(
+                            boxBounds.X + halfThickness,
+                            boxBounds.Y + halfThickness,
+                            boxBounds.Width - thickness,
+                            boxBounds.Height - thickness
+                        );
+
+                        using (System.Drawing.Pen borderPen = new System.Drawing.Pen(gdiBorderColor, thickness)) {
+                            borderPen.Alignment = PenAlignment.Center;
+                            g.DrawEllipse(borderPen, borderBounds);
+                        }
+                    }
+                    
+                    g.ResetTransform();
+                }
+            }
+
+            bitmap.AddDirtyRect(new Int32Rect(0, 0, width, height));
+        }
+        finally {
+            bitmap.Unlock();
+        }
+    }
     
 // Map WPF Alignment Options directly to GDI+ Layout Engine
     private static StringAlignment ConvertAlignment(System.Windows.TextAlignment wpfAlign) {

@@ -39,6 +39,9 @@ public class MapTextStampEventArgs : EventArgs
     public Color BackgroundColor { get; init; }
     public double BackgroundOpacity { get; init; }
     public Color BoxBorderColor { get; init; }
+    public double BoxBorderOpacity { get; init; }
     public double BoxBorderThickness { get; init; }
     public CornerRadius CornerRadius { get; init; }
+    public bool IsEllipse { get; init; }
+    public double EllipseMargin { get; init; }
 }
