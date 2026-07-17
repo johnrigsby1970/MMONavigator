@@ -6,12 +6,16 @@ on:
   pull_request:
     branches: [ main, master ]
   release:
-    types: [ published ] # 👈 This line tells it to build when you make a release
-  workflow_dispatch: # Allows you to run this manually from the Actions tab
+    types: [ published ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
+
+    # Gives the script permission to upload files back to your release page
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout Code
@@ -20,16 +24,25 @@ jobs:
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x' # This matches your net8.0 target
+        dotnet-version: '8.0.x'
 
     - name: Restore Dependencies
       run: dotnet restore
 
-    # This compiles the app and outputs clean execution files to a specific publish folder
     - name: Publish Application
       run: dotnet publish MMONavigator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:UseAppHost=true
 
-    - name: Upload Build Artifacts
+    # NEW STEP: Pins the exact unzipped .exe directly to the release assets
+    - name: Upload to GitHub Release
+      if: github.event_name == 'release' # Only runs when you explicitly publish a release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: '**/bin/Release/net8.0-windows/win-x64/publish/MMONavigator.exe'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Built-in token GitHub uses to authorize the upload
+
+    # (Optional) Keeps your internal actions log artifact copy
+    - name: Upload Build Artifacts (Internal)
       uses: actions/upload-artifact@v4
       with:
         name: MMONavigator-SelfContained-SingleFile
