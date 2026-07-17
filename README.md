@@ -1,4 +1,6 @@
-﻿# MMONavigator
+⚖️ Code Signing: This project uses free code signing provided by the SignPath Foundation.
+
+ # MMONavigator
 
 This app will provide you with a directional indicator from your 
 current position to your destination, as defined by the coordinates 
