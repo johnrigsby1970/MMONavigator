@@ -7,7 +7,8 @@ initiated by you (ex: typing /loc to get your current position or using a macro 
 
 Watch a demonstration video here https://youtu.be/F6D_CjmfEns
 
-⚖️ Code Signing: This project uses free code signing provided by the SignPath Foundation.
+## Code signing policy
+Free code signing provided by SignPath.io, certificate by SignPath Foundation.
 
 ## Privacy Policy
 MMONavigator does not collect, store, or transmit any personal data or user information. All application processing (such as monitoring the system clipboard or rendering maps) happens entirely locally on your machine. No data is ever sent over the network to any third-party servers.
