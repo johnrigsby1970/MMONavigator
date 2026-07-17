@@ -1,5 +1,3 @@
-⚖️ Code Signing: This project uses free code signing provided by the SignPath Foundation.
-
  # MMONavigator
 
 This app will provide you with a directional indicator from your 
@@ -8,6 +6,11 @@ you provide.  It will update that direction based on triggers
 initiated by you (ex: typing /loc to get your current position or using a macro to do the same, repeatedly).
 
 Watch a demonstration video here https://youtu.be/F6D_CjmfEns
+
+⚖️ Code Signing: This project uses free code signing provided by the SignPath Foundation.
+
+## Privacy Policy
+MMONavigator does not collect, store, or transmit any personal data or user information. All application processing (such as monitoring the system clipboard or rendering maps) happens entirely locally on your machine. No data is ever sent over the network to any third-party servers.
 
 ## Dependencies
 
