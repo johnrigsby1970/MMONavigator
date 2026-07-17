@@ -27,7 +27,7 @@ jobs:
 
     # This compiles the app and outputs clean execution files to a specific publish folder
     - name: Publish Application
-      run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish MMONavigator.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:UseAppHost=true
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
