@@ -46,7 +46,7 @@ jobs:
         /p:GenerateAppxPackageOnBuild=true
         /p:HoursBetweenUpdateChecks=0
         /v:normal
-        /fl /flp:LogFile=msbuild.log;Verbosity=normal
+        /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
     - name: Check for build errors in log
       if: failure()
