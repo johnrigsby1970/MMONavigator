@@ -42,7 +42,7 @@ jobs:
         /p:Platform=x64
         /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
         /p:AppxBundle=Always
-        /p:UapAppxPackageBuildMode=StoreUpload
+        /p:UapAppxPackageBuildMode=CI
         /p:AppxPackageSigningEnabled=false
         /p:GenerateAppxPackageOnBuild=true
         /p:HoursBetweenUpdateChecks=0

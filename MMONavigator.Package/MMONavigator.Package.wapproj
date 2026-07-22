@@ -13,6 +13,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <AppxBundle>Always</AppxBundle>
     <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
+    <UapAppxPackageBuildMode Condition="'$(UapAppxPackageBuildMode)' == ''">CI</UapAppxPackageBuildMode>
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <DesktopBridgeSelfContained Condition="'$(DesktopBridgeSelfContained)' == ''">true</DesktopBridgeSelfContained>
@@ -66,6 +67,7 @@
   </PropertyGroup>
 
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" />
+  <Import Project="$(MSBuildCustomTargetsPath)\Microsoft.AppxPackage.Targets" Condition="Exists('$(MSBuildCustomTargetsPath)\Microsoft.AppxPackage.Targets')" />
 
   <Target Name="LogPackagingTargets" BeforeTargets="PrepareForBuild">
     <Message Importance="High" Text="DesktopBridge targets imported. Building for: $(AppxBundlePlatforms)" />
