@@ -37,16 +37,21 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild MMONavigator.Package/MMONavigator.Package.wapproj
+        /t:Build
         /p:Configuration=Release
         /p:Platform=x64
-        /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX"
+        /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
         /p:AppxBundle=Always
         /p:UapAppxPackageBuildMode=StoreUpload
         /p:AppxPackageSigningEnabled=false
         /p:GenerateAppxPackageOnBuild=true
+        /v:normal
 
     - name: List Files for Debugging
-      run: Get-ChildItem -Recurse "${{ github.workspace }}\Artifacts"
+      run: |
+        Get-ChildItem -Recurse "${{ github.workspace }}" -Filter "*.msix*"
+        Get-ChildItem -Recurse "${{ github.workspace }}\Artifacts"
+        Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\AppPackages"
 
     # Uploads the .msixupload file directly to your GitHub Release assets
     - name: Upload to GitHub Release
@@ -57,6 +62,9 @@ jobs:
           Artifacts/MSIX/**/*.msixupload
           Artifacts/MSIX/**/*.msix
           Artifacts/MSIX/**/*.msixbundle
+          MMONavigator.Package/AppPackages/**/*.msixupload
+          MMONavigator.Package/AppPackages/**/*.msix
+          MMONavigator.Package/AppPackages/**/*.msixbundle
         name: Release ${{ github.ref_name }}
         generate_release_notes: true
       env:
@@ -67,4 +75,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: MMONavigator-MSIX
-        path: Artifacts/MSIX/
+        path: |
+          Artifacts/MSIX/
+          MMONavigator.Package/AppPackages/
