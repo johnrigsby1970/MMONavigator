@@ -6,7 +6,7 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <DefaultLanguage>en-US</DefaultLanguage>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
-    <EntryPointProjectUniqueName>..\MMONavigator\MMONavigator.csproj</EntryPointProjectUniqueName>
+    <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     
     <Configurations>Debug;Release</Configurations>
     <Platforms>x86;x64;arm64</Platforms>
@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MMONavigator\MMONavigator.csproj">
+    <ProjectReference Include="..\MMONavigator.csproj">
       <SkipGetTargetFrameworkProperties>True</SkipGetTargetFrameworkProperties>
     </ProjectReference>
   </ItemGroup>
