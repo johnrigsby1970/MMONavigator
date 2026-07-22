@@ -13,6 +13,7 @@
     <SDKIdentifier>Windows</SDKIdentifier>
     <SDKVersion>10.0</SDKVersion>
     <ResolveNuGetPackages>true</ResolveNuGetPackages>
+    <AppxPackageFrameworks>false</AppxPackageFrameworks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(PlatformTarget)' == ''">
@@ -42,6 +43,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MMONavigator.csproj">
       <SkipGetTargetFrameworkProperties>True</SkipGetTargetFrameworkProperties>
+      <DesktopBridgeSelfContained>true</DesktopBridgeSelfContained>
     </ProjectReference>
   </ItemGroup>
   
