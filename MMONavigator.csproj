@@ -14,6 +14,10 @@
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
         <Platforms>x64</Platforms>
+        <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+        <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+        <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+        <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
         <EnableMsixTooling>true</EnableMsixTooling>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
         <ApplicationIcon>Resources\my-location-location.ico</ApplicationIcon>
