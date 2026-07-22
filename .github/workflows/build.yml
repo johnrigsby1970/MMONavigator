@@ -37,7 +37,7 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild MMONavigator.Package/MMONavigator.Package.wapproj
-        /t:Build,Publish
+        /t:Restore,Build
         /p:Configuration=Release
         /p:Platform=x64
         /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
@@ -78,6 +78,13 @@ jobs:
         if (Test-Path "${{ github.workspace }}\MMONavigator.Package\AppPackages") {
             Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\AppPackages"
         }
+        Write-Host "Checking MMONavigator.Package obj and bin..."
+        if (Test-Path "${{ github.workspace }}\MMONavigator.Package\obj") {
+            Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\obj"
+        }
+        if (Test-Path "${{ github.workspace }}\MMONavigator.Package\bin") {
+            Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\bin"
+        }
 
     # Uploads the .msixupload file directly to your GitHub Release assets
     - name: Upload to GitHub Release
@@ -85,6 +92,8 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
+          **/AppPackages/**/*.msix
+          **/AppPackages/**/*.msixbundle
           Artifacts/MSIX/**/*.msixupload
           Artifacts/MSIX/**/*.msix
           Artifacts/MSIX/**/*.msixbundle
