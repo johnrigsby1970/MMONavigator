@@ -44,19 +44,18 @@ jobs:
     # Build and package the app into an MSIXUpload bundle using full MSBuild
     - name: Build MSIX Package
       run: >
-        msbuild $env:Wap_Project_Path `
-          /p:Configuration=$env:Configuration `
-          /p:UapAppxPackageBuildMode=CI `
-          /p:GenerateAppxPackageOnBuild=true `
-          /p:AppxPackageSigningEnabled=false `
-          /p:Platform=x64 `
-          /p:ForceCreateAppxPackage=true `
-          /p:BuildAppxUploadPackageForStore=true `
-          /p:SelfContained=true `
-          /p:RuntimeIdentifier=win-x64 `
-          /v:normal `
-          /fl "/flp:LogFile=msbuild.log;Verbosity=normal" `
-          /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
+        msbuild $env:Wap_Project_Path
+        /p:Configuration=$env:Configuration
+        /p:Platform=x64
+        /p:UapAppxPackageBuildMode=StoreUpload
+        /p:GenerateAppxPackageOnBuild=true
+        /p:AppxPackageSigningEnabled=false
+        /p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/"
+        /p:AppxBundle=Always
+        /p:SelfContained=true
+        /p:RuntimeIdentifier=win-x64
+        /v:normal
+        /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
     - name: Check for build errors in log
       if: failure()

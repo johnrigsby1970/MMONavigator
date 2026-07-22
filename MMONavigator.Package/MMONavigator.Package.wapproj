@@ -1,24 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  
   <PropertyGroup>
     <ProjectGuid>{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}</ProjectGuid>
     <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <DefaultLanguage>en-US</DefaultLanguage>
-    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <AppxBundle>Always</AppxBundle>
-    <UapAppxPackageBuildMode Condition="'$(UapAppxPackageBuildMode)' == ''">CI</UapAppxPackageBuildMode>
+    
+    <UapAppxPackageBuildMode Condition="'$(UapAppxPackageBuildMode)' == ''">StoreUpload</UapAppxPackageBuildMode>
     <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">AppPackages\</AppxPackageDir>
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
     <AppxPackage>true</AppxPackage>
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <DesktopBridgeSelfContained Condition="'$(DesktopBridgeSelfContained)' == ''">true</DesktopBridgeSelfContained>
-    <DeployOptional>true</DeployOptional>
-    <DeployAndCommitted>true</DeployAndCommitted>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -60,16 +59,8 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" PrivateAssets="all" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
-    <PostBuildEvent>
-    </PostBuildEvent>
-  </PropertyGroup>
-
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" />
-  <Import Project="$(MSBuildCustomTargetsPath)\Microsoft.AppxPackage.Targets" Condition="Exists('$(MSBuildCustomTargetsPath)\Microsoft.AppxPackage.Targets')" />
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets')" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" 
+          Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets')" />
 
   <Target Name="LogPackagingTargets" BeforeTargets="PrepareForBuild">
     <Message Importance="High" Text="DesktopBridge targets imported. Building for: $(AppxBundlePlatforms)" />
