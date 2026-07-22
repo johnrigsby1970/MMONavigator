@@ -55,6 +55,8 @@ Global
 		{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}.Release|x64.Build.0 = Release|x64
 		{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}.Release|x86.ActiveCfg = Release|x86
 		{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}.Release|x86.Build.0 = Release|x86
+		{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}.Release|x64.Deploy.0 = Release|x64
+		{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}.Release|x86.Deploy.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
