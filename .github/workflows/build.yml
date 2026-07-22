@@ -37,7 +37,7 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild MMONavigator.Package/MMONavigator.Package.wapproj
-        /t:Restore,Build
+        /t:Build
         /p:Configuration=Release
         /p:Platform=x64
         /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
@@ -53,6 +53,7 @@ jobs:
         /p:PublishReadyToRun=false
         /p:SkipInvalidConfigurations=true
         /p:ForceCreateAppxPackage=true
+        /p:BuildAppxUploadPackageForStore=true
         /v:normal
         /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
