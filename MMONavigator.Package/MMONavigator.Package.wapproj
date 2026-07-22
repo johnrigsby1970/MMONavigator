@@ -14,6 +14,8 @@
     <SDKVersion>10.0</SDKVersion>
     <ResolveNuGetPackages>true</ResolveNuGetPackages>
     <AppxPackageFrameworks>false</AppxPackageFrameworks>
+    <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
+    <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(PlatformTarget)' == ''">
