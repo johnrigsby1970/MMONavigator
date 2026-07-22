@@ -41,7 +41,7 @@ jobs:
         /p:Configuration=Release
         /p:Platform=x64
         /p:PlatformTarget=x64
-        /p:AppxPackageFrameworks=false
+        /p:AppxPackage=true
         /p:GenerateAppxPackageOnBuild=true
         /p:UapAppxPackageBuildMode=StoreUpload
         /p:AppxPackageSigningEnabled=false
