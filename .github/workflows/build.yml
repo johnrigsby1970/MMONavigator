@@ -34,22 +34,18 @@ jobs:
       run: dotnet restore
 
     # Build and package the app as an unsigned MSIX for Store upload
-    - name: Build MSIX Package
+    - name: Publish MSIX Package
       run: |
-        msbuild MMONavigator.csproj `
-          /p:Configuration=Release `
-          /p:Platform=x64 `
-          /p:UapAppxPackageBuildMode=StoreUpload `
-          /p:AppxPackageSigningEnabled=false `
-          /p:AppxPackageDir="bin\Release\MSIX\" `
-          /p:AppxBundle=Always
+        dotnet publish MMONavigator.csproj -c Release -r win-x64 --self-contained true /p:GenerateAppxPackageOnBuild=true /p:AppxPackageSigningEnabled=false /p:UapAppxPackageBuildMode=StoreUpload /p:AppxPackageDir="${{ github.workspace }}\bin\Release\MSIX\"
 
     # Uploads the .msixupload file directly to your GitHub Release assets
     - name: Upload to GitHub Release
       if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
       uses: softprops/action-gh-release@v2
       with:
-        files: 'bin/Release/MSIX/**/*.msixupload'
+        files: |
+          bin/Release/**/*.msixupload
+          bin/Release/**/*.msix
         name: Release ${{ github.ref_name }}
         generate_release_notes: true
       env:
@@ -59,5 +55,7 @@ jobs:
     - name: Upload Build Artifacts (Internal)
       uses: actions/upload-artifact@v4
       with:
-        name: MMONavigator-MSIXUpload
-        path: 'bin/Release/MSIX/**/*.msixupload'
+        name: MMONavigator-MSIX
+        path: |
+          bin/Release/**/*.msixupload
+          bin/Release/**/*.msix
