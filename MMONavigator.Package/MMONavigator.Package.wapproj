@@ -8,16 +8,15 @@
     <DefaultLanguage>en-US</DefaultLanguage>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
-    <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
-    <AppxPackage>true</AppxPackage>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <AppxBundle>Always</AppxBundle>
-    <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
     <UapAppxPackageBuildMode Condition="'$(UapAppxPackageBuildMode)' == ''">CI</UapAppxPackageBuildMode>
+    <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">AppPackages\</AppxPackageDir>
+    <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+    <AppxPackage>true</AppxPackage>
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <DesktopBridgeSelfContained Condition="'$(DesktopBridgeSelfContained)' == ''">true</DesktopBridgeSelfContained>
-    <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">AppPackages\</AppxPackageDir>
     <DeployOptional>true</DeployOptional>
     <DeployAndCommitted>true</DeployAndCommitted>
   </PropertyGroup>
@@ -73,6 +72,8 @@
 
   <Target Name="LogPackagingTargets" BeforeTargets="PrepareForBuild">
     <Message Importance="High" Text="DesktopBridge targets imported. Building for: $(AppxBundlePlatforms)" />
+    <Message Importance="High" Text="UapAppxPackageBuildMode: $(UapAppxPackageBuildMode)" />
+    <Message Importance="High" Text="GenerateAppxPackageOnBuild: $(GenerateAppxPackageOnBuild)" />
   </Target>
 
   <Target Name="_ResolveVCLibDependencies" />
