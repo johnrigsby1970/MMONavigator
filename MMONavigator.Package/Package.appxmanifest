@@ -6,8 +6,8 @@
         IgnorableNamespaces="uap rescap">
 
     <Identity
-            Name="YourPublisher.MMONavigator"
-            Publisher="CN=YOUR-PUBLISHER-ID-FROM-PARTNER-CENTER"
+            Name="JohnRigsby.MMONavigator"
+            Publisher="CN=0C96541E-273E-4CE1-A8CB-C54727DA1D8B"
             Version="1.0.0.0" />
 
     <Properties>
