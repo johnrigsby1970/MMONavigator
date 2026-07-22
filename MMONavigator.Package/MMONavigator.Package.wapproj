@@ -11,6 +11,7 @@
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
     <AppxBundle>Always</AppxBundle>
     <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
+    <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
   </PropertyGroup>
 
   <PropertyGroup>

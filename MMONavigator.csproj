@@ -15,9 +15,6 @@
         <SelfContained>true</SelfContained>
         <Platforms>x64</Platforms>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-        <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
-        <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
-        <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
         <EnableMsixTooling>true</EnableMsixTooling>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
         <ApplicationIcon>Resources\my-location-location.ico</ApplicationIcon>
@@ -38,23 +35,9 @@
       <Folder Include="Resources\hot\" />
     </ItemGroup>
     <ItemGroup>
-      <None Remove="Resources\my-location-location.ico" />
       <Resource Include="Resources\my-location-location.ico" />
-      <None Remove="Resources\hot\my-location-location.ico" />
       <Resource Include="Resources\hot\my-location-location.ico" />
-      <None Remove="Resources\disabled\my-location-location.ico" />
       <Resource Include="Resources\disabled\my-location-location.ico" />
-    </ItemGroup>
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" PrivateAssets="all" />
-    </ItemGroup>
-    <ItemGroup>
-        <AppxManifest Include="MMONavigator.Package\Package.appxmanifest">
-            <SubType>Designer</SubType>
-        </AppxManifest>
-        <Content Include="MMONavigator.Package\Assets\**">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
     </ItemGroup>
 
 </Project>
