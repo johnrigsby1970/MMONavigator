@@ -37,6 +37,7 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild MMONavigator.Package/MMONavigator.Package.wapproj
+        /t:Build
         /p:Configuration=Release
         /p:Platform=x64
         /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
@@ -47,6 +48,8 @@ jobs:
         /p:HoursBetweenUpdateChecks=0
         /p:AppxPackage=true
         /p:AppxBundlePlatforms=x64
+        /p:SelfContained=true
+        /p:RuntimeIdentifier=win-x64
         /v:normal
         /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
@@ -57,9 +60,23 @@ jobs:
 
     - name: List Files for Debugging
       run: |
+        Write-Host "Checking for msbuild.log..."
+        if (Test-Path "msbuild.log") {
+            Write-Host "Found msbuild.log. Content:"
+            Get-Content "msbuild.log" -Tail 200
+        } else {
+            Write-Host "msbuild.log not found."
+        }
+        Write-Host "Searching for MSIX files..."
         Get-ChildItem -Recurse "${{ github.workspace }}" -Filter "*.msix*"
-        Get-ChildItem -Recurse "${{ github.workspace }}\Artifacts"
-        Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\AppPackages"
+        Write-Host "Checking Artifacts directory..."
+        if (Test-Path "${{ github.workspace }}\Artifacts") {
+            Get-ChildItem -Recurse "${{ github.workspace }}\Artifacts"
+        }
+        Write-Host "Checking AppPackages directory..."
+        if (Test-Path "${{ github.workspace }}\MMONavigator.Package\AppPackages") {
+            Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\AppPackages"
+        }
 
     # Uploads the .msixupload file directly to your GitHub Release assets
     - name: Upload to GitHub Release
