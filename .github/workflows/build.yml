@@ -39,7 +39,7 @@ jobs:
         msbuild MMONavigator.sln `
           /p:Configuration=Release `
           /p:Platform=x64 `
-          /p:DeployOnBuild=true `
+          /p:GenerateAppxPackageOnBuild=true `
           /p:UapAppxPackageBuildMode=StoreUpload `
           /p:AppxPackageSigningEnabled=false `
           /p:AppxPackageDir="${{ github.workspace }}\bin\Release\MSIX\" `
