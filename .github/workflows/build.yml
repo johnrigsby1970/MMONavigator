@@ -36,9 +36,9 @@ jobs:
     # Build and package the app into an MSIXUpload bundle using full MSBuild
     - name: Build MSIX Package
       run: >
-        msbuild MMONavigator.sln
+        msbuild MMONavigator.Package/MMONavigator.Package.wapproj
         /t:Build
-        /t:_GenerateAppxPackage
+        /t:Package
         /p:Configuration=Release
         /p:Platform=x64
         /p:PlatformTarget=x64
