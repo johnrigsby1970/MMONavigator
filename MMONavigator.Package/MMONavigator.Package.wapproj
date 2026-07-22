@@ -18,6 +18,8 @@
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <DesktopBridgeSelfContained Condition="'$(DesktopBridgeSelfContained)' == ''">true</DesktopBridgeSelfContained>
     <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">AppPackages\</AppxPackageDir>
+    <DeployOptional>true</DeployOptional>
+    <DeployAndCommitted>true</DeployAndCommitted>
   </PropertyGroup>
 
   <PropertyGroup>
