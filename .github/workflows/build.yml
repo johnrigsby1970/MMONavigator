@@ -37,7 +37,6 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild MMONavigator.Package/MMONavigator.Package.wapproj
-        /t:Build
         /p:Configuration=Release
         /p:Platform=x64
         /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\\"
@@ -45,7 +44,14 @@ jobs:
         /p:UapAppxPackageBuildMode=StoreUpload
         /p:AppxPackageSigningEnabled=false
         /p:GenerateAppxPackageOnBuild=true
+        /p:HoursBetweenUpdateChecks=0
         /v:normal
+        /fl /flp:LogFile=msbuild.log;Verbosity=normal
+
+    - name: Check for build errors in log
+      if: failure()
+      run: |
+        if (Test-Path "msbuild.log") { Get-Content "msbuild.log" -Tail 100 }
 
     - name: List Files for Debugging
       run: |
