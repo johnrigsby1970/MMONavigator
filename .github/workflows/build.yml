@@ -42,7 +42,7 @@ jobs:
           /p:GenerateAppxPackageOnBuild=true `
           /p:UapAppxPackageBuildMode=StoreUpload `
           /p:AppxPackageSigningEnabled=false `
-          /p:AppxPackageDir="${{ github.workspace }}\bin\Release\MSIX\" `
+          /p:AppxPackageDir="${{ github.workspace }}\bin\Release\MSIX" `
           /p:AppxBundle=Always
           
     # Uploads the .msixupload file directly to your GitHub Release assets
