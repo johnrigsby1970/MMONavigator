@@ -45,6 +45,8 @@ jobs:
         /p:AppxPackageSigningEnabled=false
         /p:GenerateAppxPackageOnBuild=true
         /p:HoursBetweenUpdateChecks=0
+        /p:AppxPackage=true
+        /p:AppxBundlePlatforms=x64
         /v:normal
         /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 

@@ -9,9 +9,11 @@
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+    <AppxPackage>true</AppxPackage>
     <AppxBundle>Always</AppxBundle>
     <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -26,6 +28,7 @@
     <OutputPath>bin\x64\Release\</OutputPath>
     <PlatformTarget>x64</PlatformTarget>
     <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">AppPackages\</AppxPackageDir>
+    <AppxBundlePlatforms>x64</AppxBundlePlatforms>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
