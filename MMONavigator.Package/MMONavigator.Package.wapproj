@@ -10,9 +10,7 @@
     
     <Configurations>Debug;Release</Configurations>
     <Platforms>x86;x64;arm64</Platforms>
-    <SDKIdentifier>Windows</SDKIdentifier>
-    <SDKVersion>10.0</SDKVersion>
-    <ResolveNuGetPackages>true</ResolveNuGetPackages>
+
     <AppxPackageFrameworks>false</AppxPackageFrameworks>
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
     <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
@@ -55,5 +53,6 @@
   
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" 
           Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets')" />
+
   <Target Name="_ResolveVCLibDependencies" />
 </Project>
