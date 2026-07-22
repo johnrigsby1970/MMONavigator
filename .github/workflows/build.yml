@@ -50,7 +50,7 @@ jobs:
         /p:AppxBundlePlatforms=x64
         /p:SelfContained=true
         /p:RuntimeIdentifier=win-x64
-        /p:PublishReadyToRun=true
+        /p:PublishReadyToRun=false
         /v:normal
         /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
