@@ -37,16 +37,13 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild MMONavigator.Package/MMONavigator.Package.wapproj
-        /t:Build
         /p:Configuration=Release
         /p:Platform=x64
-        /p:PlatformTarget=x64
-        /p:AppxPackage=true
-        /p:GenerateAppxPackageOnBuild=true
-        /p:UapAppxPackageBuildMode=StoreUpload
-        /p:AppxPackageSigningEnabled=false
         /p:AppxPackageDir="${{ github.workspace }}\bin\Release\MSIX/"
         /p:AppxBundle=Always
+        /p:UapAppxPackageBuildMode=StoreUpload
+        /p:AppxPackageSigningEnabled=false
+        /p:GenerateAppxPackageOnBuild=true
           
     # Uploads the .msixupload file directly to your GitHub Release assets
     - name: Upload to GitHub Release
