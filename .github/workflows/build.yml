@@ -36,9 +36,10 @@ jobs:
     # Build and package the app into an MSIXUpload bundle using full MSBuild
     - name: Build MSIX Package
       run: |
-        msbuild MMONavigator.Package/MMONavigator.Package.wapproj `
+        msbuild MMONavigator.sln `
           /p:Configuration=Release `
           /p:Platform=x64 `
+          /p:DeployOnBuild=true `
           /p:UapAppxPackageBuildMode=StoreUpload `
           /p:AppxPackageSigningEnabled=false `
           /p:AppxPackageDir="${{ github.workspace }}\bin\Release\MSIX\" `
