@@ -69,6 +69,7 @@
 
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" />
   <Import Project="$(MSBuildCustomTargetsPath)\Microsoft.AppxPackage.Targets" Condition="Exists('$(MSBuildCustomTargetsPath)\Microsoft.AppxPackage.Targets')" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets')" />
 
   <Target Name="LogPackagingTargets" BeforeTargets="PrepareForBuild">
     <Message Importance="High" Text="DesktopBridge targets imported. Building for: $(AppxBundlePlatforms)" />
