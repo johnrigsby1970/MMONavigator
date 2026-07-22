@@ -35,7 +35,6 @@
         <Page Remove="MMONavigator.Tests\**" />
     </ItemGroup>
     <ItemGroup>
-      <Folder Include="Assets\" />
       <Folder Include="Resources\hot\" />
     </ItemGroup>
     <ItemGroup>
@@ -50,7 +49,10 @@
         <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" PrivateAssets="all" />
     </ItemGroup>
     <ItemGroup>
-        <Content Include="Assets\**">
+        <AppxManifest Include="MMONavigator.Package\Package.appxmanifest">
+            <SubType>Designer</SubType>
+        </AppxManifest>
+        <Content Include="MMONavigator.Package\Assets\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
