@@ -8,6 +8,7 @@
     <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
+    <RuntimeIdentifiers>win-x64;win-x86;win-arm64</RuntimeIdentifiers>
     <DefaultLanguage>en-US</DefaultLanguage>
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>

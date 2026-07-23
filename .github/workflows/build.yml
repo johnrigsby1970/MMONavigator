@@ -44,12 +44,13 @@ jobs:
     # Build and package the app into an MSIXUpload bundle using full MSBuild
     - name: Build MSIX Package
       run: >
-        msbuild $env:Wap_Project_Path
+       msbuild $env:Wap_Project_Path
         /t:Rebuild
         /t:_GenerateAppxPackage
         /p:Configuration=$env:Configuration
         /p:Platform=x64
         /p:PlatformTarget=x64
+        /p:RuntimeIdentifier=win-x64
         /p:WapBuildingForDesktop=true
         /p:UapAppxPackageBuildMode=StoreUpload
         /p:GenerateAppxPackageOnBuild=true
