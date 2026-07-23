@@ -41,8 +41,7 @@
       <Resource Include="Resources\disabled\my-location-location.ico" />
     </ItemGroup>
     <ItemGroup>
-        <None Include="Package.appxmanifest">
-            <Link>AppxManifest.xml</Link>
+        <None Include="AppxManifest.xml">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="Assets\**">
