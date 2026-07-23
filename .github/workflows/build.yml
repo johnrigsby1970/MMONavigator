@@ -46,6 +46,7 @@ jobs:
       run: >
         msbuild $env:Wap_Project_Path
         /t:Clean,Rebuild
+        /t:_CreateAppxPackage `
         /p:Configuration=$env:Configuration
         /p:Platform=x64
         /p:RuntimeIdentifier=win-x64
