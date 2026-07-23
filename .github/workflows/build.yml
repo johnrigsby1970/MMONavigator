@@ -58,6 +58,7 @@ jobs:
       run: |
         msbuild $env:Wap_Project_Path `
           /t:Build `
+          /t:_GenerateAppxPackage `
           /p:Configuration=$env:Configuration `
           /p:Platform=x64 `
           /p:PlatformTarget=x64 `
