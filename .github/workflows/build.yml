@@ -64,11 +64,12 @@ jobs:
           /p:RuntimeIdentifier=win-x64 `
           /p:WapBuildingForDesktop=true `
           /p:BuildingInsideVisualStudio=true `
-          /p:GenerateAppxPackageOnBuild=true `
-          /p:AppxPackageSigningEnabled=false `
           /p:UapAppxPackageBuildMode=Sideload `
           /p:AppxBundle=Never `
+          /p:GenerateAppxPackageOnBuild=true `
+          /p:AppxPackageSigningEnabled=false `
           /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
+          /p:ProjectWapPublishIntermediateOutputPath="obj\" `
           /v:normal `
           /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
