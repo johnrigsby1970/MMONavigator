@@ -53,25 +53,25 @@ jobs:
           /p:RuntimeIdentifier=win-x64 `
           /p:IntermediateOutputPath="obj/wappublish/win-x64/"
 
-    # Build and package the app into an MSIXUpload bundle using full MSBuild
-    - name: Build MSIX Package
+    - name: Publish WPF App
       run: |
-        msbuild $env:Wap_Project_Path `
-          /t:Build `
-          /p:Configuration=$env:Configuration `
-          /p:Platform=x64 `
-          /p:PlatformTarget=x64 `
-          /p:RuntimeIdentifier=win-x64 `
-          /p:WapBuildingForDesktop=true `
-          /p:BuildingInsideVisualStudio=true `
-          /p:UapAppxPackageBuildMode=Sideload `
-          /p:AppxBundle=Never `
-          /p:GenerateAppxPackageOnBuild=true `
-          /p:AppxPackageSigningEnabled=false `
-          /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
-          /p:ProjectWapPublishIntermediateOutputPath="obj" `
-          /v:normal `
-          /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
+        dotnet publish MMONavigator.csproj `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -o "${{ github.workspace }}/publish"
+
+    - name: Create MSIX Package
+      run: |
+        # Locate MakeAppx in Visual Studio / Windows SDK installation on runner
+        $makeAppx = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "makeappx.exe" | 
+                    Where-Path -Like "*x64*" | 
+                    Select-Object -First 1 -ExpandProperty FullName
+
+        New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/Artifacts/MSIX"
+
+        # Pack the published directory into an MSIX file
+        & $makeAppx pack /d "${{ github.workspace }}/publish" /p "${{ github.workspace }}/Artifacts/MSIX/MMONavigator.msix" /o
 
     - name: Check for build errors in log
       if: failure()
