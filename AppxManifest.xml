@@ -10,7 +10,7 @@
     <Identity
             Name="JohnRigsby.MMONavigator"
             Publisher="CN=0C96541E-273E-4CE1-A8CB-C54727DA1D8B"
-            Version="0.6.0.0" />
+            Version="0.6.1.0" ProcessorArchitecture="x64"/>
 
     <Properties>
         <DisplayName>MMO Navigator</DisplayName>
