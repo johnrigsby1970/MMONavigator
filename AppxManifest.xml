@@ -28,7 +28,7 @@
 
     <Applications>
         <Application Id="App"
-                     Executable="MMONavigator\MMONavigator.exe"
+                     Executable="MMONavigator.exe"
                      EntryPoint="Windows.FullTrustApplication">
             <uap:VisualElements
                     DisplayName="MMO Navigator"
