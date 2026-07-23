@@ -13,7 +13,7 @@
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <AppxBundle>Always</AppxBundle>
-    
+    <AppxPackageFrameworks>false</AppxPackageFrameworks>
     <UapAppxPackageBuildMode Condition="'$(UapAppxPackageBuildMode)' == ''">StoreUpload</UapAppxPackageBuildMode>
     <AppxPackageDir Condition="'$(AppxPackageDir)' == ''">AppPackages\</AppxPackageDir>
     <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
@@ -86,4 +86,7 @@
   
   <!-- FIX: Bypass legacy UWP PRI portable library target to prevent MSB3816 System.Private.CoreLib errors on .NET 8 DLLs -->
     <Target Name="_GeneratePrisForPortableLibraries" />
+    
+      <!-- Bypass legacy UWP CoreRuntime targets for .NET 8 Desktop Bridge apps -->
+        <Target Name="_WireUpCoreRuntime" />
 </Project>
