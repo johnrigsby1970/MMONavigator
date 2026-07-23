@@ -59,6 +59,17 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" PrivateAssets="all" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <None Include="Assets\Generate-StoreAssets.ps1" />
+    <None Include="Assets\my-location-location-4.png" />
+    <None Include="Assets\my-location-location-7.png" />
+    <None Include="Assets\source.png" />
+    <None Include="Assets\Square150x150Logo.png" />
+    <None Include="Assets\Square44x44Logo.png" />
+    <None Include="Assets\StoreLogo.png" />
+    <None Include="Assets\Wide310x150Logo.png" />
+  </ItemGroup>
 
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" 
           Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets')" />

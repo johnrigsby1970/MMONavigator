@@ -40,5 +40,10 @@
       <Resource Include="Resources\hot\my-location-location.ico" />
       <Resource Include="Resources\disabled\my-location-location.ico" />
     </ItemGroup>
+    <ItemGroup>
+      <AppxManifest Include="Package.appxmanifest">
+        <SubType>Designer</SubType>
+      </AppxManifest>
+    </ItemGroup>
 
 </Project>
