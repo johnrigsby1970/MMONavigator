@@ -53,32 +53,41 @@ jobs:
           /p:RuntimeIdentifier=win-x64 `
           /p:IntermediateOutputPath="obj/wappublish/win-x64"
 
-    - name: Publish WPF App
+    - name: Publish WPF App (Self-Contained)
       run: |
+        # Publish self-contained build (bundles .NET runtime + single-file executable)
         dotnet publish MMONavigator.csproj `
           -c Release `
           -r win-x64 `
           --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
           -o "${{ github.workspace }}/publish"
 
-        # Force copy manifest to the root of publish directory as AppxManifest.xml
+        # Force copy manifest to root of publish directory as AppxManifest.xml
         if (Test-Path "AppxManifest.xml") {
           Copy-Item "AppxManifest.xml" "${{ github.workspace }}/publish/AppxManifest.xml" -Force
         } elseif (Test-Path "Package.appxmanifest") {
           Copy-Item "Package.appxmanifest" "${{ github.workspace }}/publish/AppxManifest.xml" -Force
         }
 
+        # Fix Executable path in AppxManifest.xml for root publish directory
+        (Get-Content "${{ github.workspace }}/publish/AppxManifest.xml") -replace 'Executable="MMONavigator\\MMONavigator\.exe"', 'Executable="MMONavigator.exe"' | Set-Content "${{ github.workspace }}/publish/AppxManifest.xml"
+
         # Copy Assets folder to publish/Assets if present
         if (Test-Path "Assets") {
           Copy-Item "Assets" "${{ github.workspace }}/publish/Assets" -Recurse -Force
         }
 
-        # Print publish directory contents to verify AppxManifest.xml is listed
-        Get-ChildItem "${{ github.workspace }}/publish"
+    - name: Create Standalone Portable Executable Zip
+      run: |
+        # Package the self-contained publish folder into a portable zip
+        New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/Artifacts/Portable"
+        Compress-Archive -Path "${{ github.workspace }}/publish/*" -DestinationPath "${{ github.workspace }}/Artifacts/Portable/MMONavigator-Portable-win-x64.zip" -Force
 
     - name: Create Store MSIX & MSIXUpload Package
       run: |
-        # 1. Locate MakeAppx in Windows SDK installation
+        # Locate MakeAppx tool
         $makeAppx = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "makeappx.exe" | Where-Object FullName -like "*x64*" | Select-Object -First 1).FullName
 
         $msixDir = "${{ github.workspace }}/Artifacts/MSIX"
@@ -88,22 +97,29 @@ jobs:
 
         New-Item -ItemType Directory -Force -Path $msixDir
 
-        # 2. Pack published directory into MSIX (No signing needed for Store)
+        # Pack into MSIX
         & $makeAppx pack /d $publishDir /p $msixPath /o
 
-        # 3. Create .msixupload package (Contains .msix + PDB symbol files for crash reporting)
+        # Create .msixupload container with symbol files
         $stagingDir = "${{ github.workspace }}/upload_staging"
         New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
-        
-        # Copy MSIX file
         Copy-Item $msixPath "$stagingDir/MMONavigator.msix"
-        
-        # Copy all PDB symbol files
         Get-ChildItem -Path $publishDir -Filter "*.pdb" | Copy-Item -Destination $stagingDir
 
-        # Zip into .msixupload
         Compress-Archive -Path "$stagingDir/*" -DestinationPath $msixUploadPath -Force
         Remove-Item $stagingDir -Recurse -Force
+
+    - name: Upload Store MSIX Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Store-MSIXUpload
+        path: ${{ github.workspace }}/Artifacts/MSIX/*
+
+    - name: Upload Standalone Portable Zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: Standalone-Portable-Exe
+        path: ${{ github.workspace }}/Artifacts/Portable/*
 
     - name: Check for build errors in log
       if: failure()
@@ -140,17 +156,18 @@ jobs:
             Get-ChildItem -Recurse "${{ github.workspace }}\MMONavigator.Package\bin"
         }
 
-    # Uploads the .msixupload file directly to your GitHub Release assets
+    # Uploads both the MSIX store files and the Standalone Portable ZIP to GitHub Releases
     - name: Upload to GitHub Release
       if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          **/AppPackages/**/*.msix
-          **/AppPackages/**/*.msixbundle
+          Artifacts/Portable/**/*.zip
           Artifacts/MSIX/**/*.msixupload
           Artifacts/MSIX/**/*.msix
           Artifacts/MSIX/**/*.msixbundle
+          **/AppPackages/**/*.msix
+          **/AppPackages/**/*.msixbundle
           MMONavigator.Package/AppPackages/**/*.msixupload
           MMONavigator.Package/AppPackages/**/*.msix
           MMONavigator.Package/AppPackages/**/*.msixbundle
