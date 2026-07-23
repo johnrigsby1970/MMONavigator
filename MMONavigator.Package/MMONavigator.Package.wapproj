@@ -6,9 +6,7 @@
     <ProjectTypeGuids>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <ProjectGuid>{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}</ProjectGuid>
     <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
-    
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>    
     <DefaultLanguage>en-US</DefaultLanguage>
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
@@ -75,11 +73,6 @@
 
 <Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" 
           Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets')" />
-
-  <Import Project="$(VSToolsPath)\AppxPackage\Microsoft.AppxPackage.Targets" 
-          Condition="'$(VSToolsPath)' != '' and Exists('$(VSToolsPath)\AppxPackage\Microsoft.AppxPackage.Targets')" />
-  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" 
-          Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets')" />
 
 <!-- Bypass VCLibs dependencies for managed .NET 8 apps -->
   <Target Name="_ResolveVCLibDependencies" />
