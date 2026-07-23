@@ -204,7 +204,7 @@ John Rigsby
 
 ## License
 
-MMONavigator © 2026 by John Rigsby is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/
+MMONavigator © 2026 by John Rigsby is licensed under GNU General Public License <https://www.gnu.org/licenses/>
 
 ## Acknowledgments
 
