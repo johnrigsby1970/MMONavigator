@@ -56,7 +56,6 @@ jobs:
         /p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/"
         /p:AppxBundle=Always
         /p:SelfContained=true
-        /p:RuntimeIdentifier=win-x64
         /v:normal
         /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 

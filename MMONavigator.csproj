@@ -16,6 +16,7 @@
         <Platforms>x64</Platforms>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <EnableMsixTooling>true</EnableMsixTooling>
+        <RuntimeIdentifiers>win-x64;win-x86;win-arm64</RuntimeIdentifiers>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
         <ApplicationIcon>Resources\my-location-location.ico</ApplicationIcon>
     </PropertyGroup>
