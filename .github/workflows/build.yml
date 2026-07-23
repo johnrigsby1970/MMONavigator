@@ -57,21 +57,20 @@ jobs:
     - name: Build MSIX Package
       run: |
         msbuild $env:Wap_Project_Path `
-        /t:Build,Package `
-        /p:Configuration=$env:Configuration `
-        /p:Platform=x64 `
-        /p:PlatformTarget=x64 `
-        /p:RuntimeIdentifier=win-x64 `
-        /p:WapBuildingForDesktop=true `
-        /p:UapAppxPackageBuildMode=StoreUpload `
-        /p:GenerateAppxPackageOnBuild=true `
-        /p:AppxPackageSigningEnabled=false `
-        /p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/" `
-        /p:AppxBundle=Always `
-        /p:SelfContained=true `
-        /p:BuildingInsideVisualStudio=true `
-        /v:normal `
-        /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
+          /t:Build,Package `
+          /p:Configuration=$env:Configuration `
+          /p:Platform=x64 `
+          /p:PlatformTarget=x64 `
+          /p:RuntimeIdentifier=win-x64 `
+          /p:WapBuildingForDesktop=true `
+          /p:UapAppxPackageBuildMode=StoreUpload `
+          /p:GenerateAppxPackageOnBuild=true `
+          /p:AppxPackageSigningEnabled=false `
+          /p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/" `
+          /p:AppxBundle=Always `
+          /p:SelfContained=true `
+          /v:normal `
+          /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
     - name: Check for build errors in log
       if: failure()
