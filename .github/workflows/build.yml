@@ -76,15 +76,34 @@ jobs:
         # Print publish directory contents to verify AppxManifest.xml is listed
         Get-ChildItem "${{ github.workspace }}/publish"
 
-    - name: Create MSIX Package
+    - name: Create Store MSIX & MSIXUpload Package
       run: |
-        # Locate MakeAppx in Windows SDK installation on runner
+        # 1. Locate MakeAppx in Windows SDK installation
         $makeAppx = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "makeappx.exe" | Where-Object FullName -like "*x64*" | Select-Object -First 1).FullName
 
-        New-Item -ItemType Directory -Force -Path "${{ github.workspace }}/Artifacts/MSIX"
+        $msixDir = "${{ github.workspace }}/Artifacts/MSIX"
+        $publishDir = "${{ github.workspace }}/publish"
+        $msixPath = "$msixDir/MMONavigator.msix"
+        $msixUploadPath = "$msixDir/MMONavigator.msixupload"
 
-        # Pack the published directory into an MSIX file
-        & $makeAppx pack /d "${{ github.workspace }}/publish" /p "${{ github.workspace }}/Artifacts/MSIX/MMONavigator.msix" /o
+        New-Item -ItemType Directory -Force -Path $msixDir
+
+        # 2. Pack published directory into MSIX (No signing needed for Store)
+        & $makeAppx pack /d $publishDir /p $msixPath /o
+
+        # 3. Create .msixupload package (Contains .msix + PDB symbol files for crash reporting)
+        $stagingDir = "${{ github.workspace }}/upload_staging"
+        New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
+        
+        # Copy MSIX file
+        Copy-Item $msixPath "$stagingDir/MMONavigator.msix"
+        
+        # Copy all PDB symbol files
+        Get-ChildItem -Path $publishDir -Filter "*.pdb" | Copy-Item -Destination $stagingDir
+
+        # Zip into .msixupload
+        Compress-Archive -Path "$stagingDir/*" -DestinationPath $msixUploadPath -Force
+        Remove-Item $stagingDir -Recurse -Force
 
     - name: Check for build errors in log
       if: failure()
