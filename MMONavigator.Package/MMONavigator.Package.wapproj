@@ -7,6 +7,7 @@
     <ProjectGuid>{E6B7D15A-4E11-4DF2-A320-3B482270C5EC}</ProjectGuid>
     <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <DefaultLanguage>en-US</DefaultLanguage>
     <EntryPointProjectUniqueName>..\MMONavigator.csproj</EntryPointProjectUniqueName>
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
@@ -51,8 +52,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MMONavigator.csproj">
-      <SkipGetTargetFrameworkProperties>True</SkipGetTargetFrameworkProperties>
       <PublishProfile>Default</PublishProfile>
+      <DesktopBridgeSelfContained>true</DesktopBridgeSelfContained>
     </ProjectReference>
   </ItemGroup>
   
