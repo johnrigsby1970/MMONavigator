@@ -45,7 +45,7 @@ jobs:
     - name: Build MSIX Package
       run: >
         msbuild $env:Wap_Project_Path `
-        /t:Clean,Rebuild,Package `
+        /t:Clean,Restore,Build,Package `
         /p:Configuration=$env:Configuration `
         /p:Platform=x64 `
         /p:PlatformTarget=x64 `
