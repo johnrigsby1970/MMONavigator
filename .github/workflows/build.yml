@@ -61,6 +61,21 @@ jobs:
           --self-contained true `
           -o "${{ github.workspace }}/publish"
 
+    # Force copy manifest to the root of publish directory as AppxManifest.xml
+        if (Test-Path "AppxManifest.xml") {
+          Copy-Item "AppxManifest.xml" "${{ github.workspace }}/publish/AppxManifest.xml" -Force
+        } elseif (Test-Path "Package.appxmanifest") {
+          Copy-Item "Package.appxmanifest" "${{ github.workspace }}/publish/AppxManifest.xml" -Force
+        } 
+
+        # Copy Assets folder to publish/Assets if present
+        if (Test-Path "Assets") {
+          Copy-Item "Assets" "${{ github.workspace }}/publish/Assets" -Recurse -Force
+        } 
+
+        # Print publish directory contents to verify AppxManifest.xml is listed
+        Get-ChildItem "${{ github.workspace }}/publish"
+
     - name: Create MSIX Package
       run: |
         # Locate MakeAppx in Windows SDK installation on runner
