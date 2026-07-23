@@ -49,7 +49,7 @@ jobs:
           /p:Platform=x64 `
           /p:RuntimeIdentifier=win-x64
 
-        msbuild MMONavigator\MMONavigator.csproj `
+        msbuild MMONavigator.csproj `
           /t:Restore `
           /p:Configuration=$env:Configuration `
           /p:Platform=x64 `
