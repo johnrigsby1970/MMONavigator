@@ -20,7 +20,6 @@
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <!-- FIX: Disable legacy UWP PCL PRI assembly reflection scanning for .NET 8 -->
         <GeneratePrisForPortableLibraries>false</GeneratePrisForPortableLibraries>
-<ProjectWapPublishIntermediateOutputPath>obj\</ProjectWapPublishIntermediateOutputPath>
 </PropertyGroup>
 
   <PropertyGroup>

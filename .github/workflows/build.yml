@@ -69,7 +69,7 @@ jobs:
           /p:GenerateAppxPackageOnBuild=true `
           /p:AppxPackageSigningEnabled=false `
           /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
-          /p:ProjectWapPublishIntermediateOutputPath="obj\" `
+          /p:ProjectWapPublishIntermediateOutputPath="obj" `
           /v:normal `
           /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
