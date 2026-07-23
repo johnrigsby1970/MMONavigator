@@ -53,6 +53,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MMONavigator.csproj">
+      <SetPlatform>Platform=x64</SetPlatform>
       <PublishProfile>Default</PublishProfile>
       <DesktopBridgeSelfContained>true</DesktopBridgeSelfContained>
     </ProjectReference>
