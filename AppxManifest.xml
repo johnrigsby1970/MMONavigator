@@ -23,6 +23,10 @@
         <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
     </Dependencies>
 
+    <uap10:Properties>
+        <uap10:ActiveCodePage>UTF-8</uap10:ActiveCodePage>
+    </uap10:Properties>
+    
     <Resources>
         <Resource Language="en-us"/>
     </Resources>
@@ -41,10 +45,6 @@
             </uap:VisualElements>
         </Application>
     </Applications>
-
-    <uap10:Properties>
-        <uap10:ActiveCodePage>UTF-8</uap10:ActiveCodePage>
-    </uap10:Properties>
     
     <Capabilities>
         <rescap:Capability Name="runFullTrust" />
