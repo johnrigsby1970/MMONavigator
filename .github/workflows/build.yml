@@ -38,12 +38,9 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Restore Dependencies
-      run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
-
-    - name: Restore Project Dependencies
+    - name: Restore Solution Dependencies
       run: |
-        msbuild $env:Wap_Project_Path `
+        msbuild $env:Solution_Path `
           /t:Restore `
           /p:Configuration=$env:Configuration `
           /p:Platform=x64 `
