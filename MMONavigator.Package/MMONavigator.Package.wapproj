@@ -21,6 +21,8 @@
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <DesktopBridgeSelfContained Condition="'$(DesktopBridgeSelfContained)' == ''">true</DesktopBridgeSelfContained>
+    <!-- FIX: Disable legacy UWP PCL PRI assembly reflection scanning for .NET 8 -->
+        <GeneratePrisForPortableLibraries>false</GeneratePrisForPortableLibraries>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -79,5 +81,9 @@
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" 
           Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets')" />
 
+<!-- Bypass VCLibs dependencies for managed .NET 8 apps -->
   <Target Name="_ResolveVCLibDependencies" />
+  
+  <!-- FIX: Bypass legacy UWP PRI portable library target to prevent MSB3816 System.Private.CoreLib errors on .NET 8 DLLs -->
+    <Target Name="_GeneratePrisForPortableLibraries" />
 </Project>
