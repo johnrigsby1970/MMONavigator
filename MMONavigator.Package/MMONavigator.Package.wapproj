@@ -87,4 +87,7 @@
     
       <!-- Bypass legacy UWP CoreRuntime targets for .NET 8 Desktop Bridge apps -->
         <Target Name="_WireUpCoreRuntime" />
+        
+        <!-- FIX: Bypass the task that throws 'Namespace prefix m is not defined' -->
+          <Target Name="GenerateAppxPackageRecipe" />
 </Project>
