@@ -41,11 +41,19 @@ jobs:
     - name: Restore Dependencies
       run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration
 
+    - name: Restore Project Dependencies
+      run: |
+        msbuild $env:Wap_Project_Path `
+          /t:Restore `
+          /p:Configuration=$env:Configuration `
+          /p:Platform=x64 `
+          /p:RuntimeIdentifier=win-x64
+
     # Build and package the app into an MSIXUpload bundle using full MSBuild
     - name: Build MSIX Package
       run: >
         msbuild $env:Wap_Project_Path `
-        /t:Restore,Build,Package `
+        /t:Build,Package `
         /p:Configuration=$env:Configuration `
         /p:Platform=x64 `
         /p:PlatformTarget=x64 `
