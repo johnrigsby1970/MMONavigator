@@ -51,7 +51,7 @@ jobs:
           /p:Configuration=$env:Configuration `
           /p:Platform=x64 `
           /p:RuntimeIdentifier=win-x64 `
-          /p:IntermediateOutputPath="obj/wappublish/win-x64/"
+          /p:IntermediateOutputPath="obj/wappublish/win-x64"
 
     - name: Publish WPF App
       run: |
