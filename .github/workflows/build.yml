@@ -58,18 +58,17 @@ jobs:
       run: |
         msbuild $env:Wap_Project_Path `
           /t:Build `
-          /t:_GenerateAppxPackage `
           /p:Configuration=$env:Configuration `
           /p:Platform=x64 `
           /p:PlatformTarget=x64 `
           /p:RuntimeIdentifier=win-x64 `
           /p:WapBuildingForDesktop=true `
-          /p:UapAppxPackageBuildMode=StoreUpload `
+          /p:BuildingInsideVisualStudio=true `
           /p:GenerateAppxPackageOnBuild=true `
           /p:AppxPackageSigningEnabled=false `
-          /p:AppxPackageDir="${{ github.workspace }}/Artifacts/MSIX/" `
-          /p:AppxBundle=Always `
-          /p:SelfContained=true `
+          /p:UapAppxPackageBuildMode=Sideload `
+          /p:AppxBundle=Never `
+          /p:AppxPackageDir="${{ github.workspace }}\Artifacts\MSIX\" `
           /v:normal `
           /fl "/flp:LogFile=msbuild.log;Verbosity=normal"
 
