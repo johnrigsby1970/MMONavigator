@@ -18,7 +18,6 @@
     <AppxPackage>true</AppxPackage>
     <SkipCopyBuildProduct>true</SkipCopyBuildProduct>
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
-    <DesktopBridgeSelfContained Condition="'$(DesktopBridgeSelfContained)' == ''">true</DesktopBridgeSelfContained>
     <!-- FIX: Disable legacy UWP PCL PRI assembly reflection scanning for .NET 8 -->
         <GeneratePrisForPortableLibraries>false</GeneratePrisForPortableLibraries>
   </PropertyGroup>
