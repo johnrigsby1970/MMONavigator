@@ -97,29 +97,39 @@ jobs:
 
         New-Item -ItemType Directory -Force -Path $msixDir
 
-        # Pack into MSIX
+        # 1. Pack into MSIX
         & $makeAppx pack /d $publishDir /p $msixPath /o
 
-        # Create .msixupload container with symbol files
+        # 2. Prepare staging directories for .msixupload container
         $stagingDir = "${{ github.workspace }}/upload_staging"
+        $symbolsDir = "${{ github.workspace }}/symbols_staging"
         New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
+        New-Item -ItemType Directory -Force -Path $symbolsDir | Out-Null
+
+        # Copy MSIX file into staging
         Copy-Item $msixPath "$stagingDir/MMONavigator.msix"
-        Get-ChildItem -Path $publishDir -Filter "*.pdb" | Copy-Item -Destination $stagingDir
 
+        # 3. Compress PDB symbols into .appxsym archive (Required format for Partner Center)
+        $pdbFiles = Get-ChildItem -Path $publishDir -Filter "*.pdb"
+        if ($pdbFiles) {
+          Copy-Item -Path $pdbFiles.FullName -Destination $symbolsDir
+          Compress-Archive -Path "$symbolsDir/*" -DestinationPath "$stagingDir/MMONavigator.appxsym" -Force
+        }
+
+        # 4. Zip .msix + .appxsym into final .msixupload file
         Compress-Archive -Path "$stagingDir/*" -DestinationPath $msixUploadPath -Force
+
+        # Cleanup temporary staging directories
         Remove-Item $stagingDir -Recurse -Force
+        Remove-Item $symbolsDir -Recurse -Force
 
-    - name: Upload Store MSIX Artifact
+    - name: Upload Artifacts to Build Run
       uses: actions/upload-artifact@v4
       with:
-        name: Store-MSIXUpload
-        path: ${{ github.workspace }}/Artifacts/MSIX/*
-
-    - name: Upload Standalone Portable Zip
-      uses: actions/upload-artifact@v4
-      with:
-        name: Standalone-Portable-Exe
-        path: ${{ github.workspace }}/Artifacts/Portable/*
+        name: Build-Artifacts
+        path: |
+          Artifacts/MSIX/*
+          Artifacts/Portable/*
 
     - name: Check for build errors in log
       if: failure()
