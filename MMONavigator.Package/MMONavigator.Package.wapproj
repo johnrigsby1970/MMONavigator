@@ -71,9 +71,6 @@
     <Message Importance="High" Text="GenerateAppxPackageOnBuild: $(GenerateAppxPackageOnBuild)" />
   </Target>
 
-<Import Project="$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets" 
-          Condition="Exists('$(MSBuildExtensionsPath)\Microsoft\DesktopBridge\Microsoft.DesktopBridge.targets')" />
-
   <Import Project="$(VSToolsPath)\AppxPackage\Microsoft.AppxPackage.Targets" 
           Condition="'$(VSToolsPath)' != '' and Exists('$(VSToolsPath)\AppxPackage\Microsoft.AppxPackage.Targets')" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" 
