@@ -13,7 +13,7 @@
         <AssemblyVersion>0.1</AssemblyVersion>
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
-        <Platforms>AnyCPU;x64</Platforms>
+        <Platforms>x64;AnyCPU</Platforms>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <EnableMsixTooling>true</EnableMsixTooling>
         <RuntimeIdentifiers>win-x64;win-x86;win-arm64</RuntimeIdentifiers>
