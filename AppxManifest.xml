@@ -22,10 +22,6 @@
     <Dependencies>
         <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
     </Dependencies>
-
-    <uap10:Properties>
-        <uap10:ActiveCodePage>UTF-8</uap10:ActiveCodePage>
-    </uap10:Properties>
     
     <Resources>
         <Resource Language="en-us"/>
@@ -43,6 +39,13 @@
                     Square44x44Logo="Assets\Square44x44Logo.png">
                 <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
             </uap:VisualElements>
+
+            <!-- Correct location for uap10:ActiveCodePage -->
+            <Extensions>
+                <uap10:Extension Category="windows.activeCodePage">
+                    <uap10:ActiveCodePage>UTF-8</uap10:ActiveCodePage>
+                </uap10:Extension>
+            </Extensions>
         </Application>
     </Applications>
     
