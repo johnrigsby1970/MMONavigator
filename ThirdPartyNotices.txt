@@ -1,0 +1,36 @@
+THIRD PARTY NOTICES
+
+This project, MMONavigator, incorporates portions of code and techniques from the following third-party sources:
+
+1. OutlinedTextBlock
+   - Source: Stack Overflow
+   - URL: https://stackoverflow.com/questions/93650/apply-stroke-to-a-textblock-in-wpf
+   - License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+
+2. Transparent WPF Window with Default Title Bar Functionality
+   - Source: Stack Overflow
+   - URL: https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
+   - License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+
+3. WPF Window with Transparent Background containing Opaque Controls
+   - Source: Stack Overflow
+   - URL: https://stackoverflow.com/questions/21461017/wpf-window-with-transparent-background-containing-opaque-controls
+   - License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+
+4. Semi-Transparent Window that allows Mouse Events to Pass
+   - Source: Stack Overflow
+   - URL: https://stackoverflow.com/questions/2842667/how-to-create-a-semi-transparent-window-in-wpf-that-allows-mouse-events-to-pass
+   - License: CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)
+
+5. Simple WPF Compass Control
+   - Source: WunderVision (Corey)
+   - URL: https://corey255a1.wixsite.com/wundervision/single-post/simple-wpf-compass-control
+   - Attribution: Corey (WunderVision)
+
+6. Segoe UI Symbol Font Reference
+   - Source: Microsoft Learn
+   - URL: https://learn.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
+   - License: Referenced system font.
+
+For code under CC BY-SA 4.0:
+You are free to share and adapt the material, provided you give appropriate credit, provide a link to the license, and indicate if changes were made. If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
