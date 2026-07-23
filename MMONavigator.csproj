@@ -39,6 +39,10 @@
       <Resource Include="Resources\my-location-location.ico" />
       <Resource Include="Resources\hot\my-location-location.ico" />
       <Resource Include="Resources\disabled\my-location-location.ico" />
+      <None Remove="LICENSE" />
+      <Resource Include="LICENSE" />
+      <None Remove="ThirdPartyNotices.txt" />
+      <Resource Include="ThirdPartyNotices.txt" />
     </ItemGroup>
     <ItemGroup>
         <None Include="AppxManifest.xml">

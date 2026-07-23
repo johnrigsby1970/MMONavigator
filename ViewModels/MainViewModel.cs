@@ -450,6 +450,7 @@ public class MainViewModel : INotifyPropertyChanged {
     public ICommand EditLocationCommand { get; }
     public ICommand RemoveLocationCommand { get; }
     public ICommand SelectLocationFileCommand { get; }
+    public ICommand OpenAboutCommand { get; }
     public ICommand OpenMapCommand { get; }
     public ICommand TimerCommand { get; }
     public ICommand BuyMeACoffeeCommand { get; }
@@ -477,6 +478,7 @@ public class MainViewModel : INotifyPropertyChanged {
         AddLocationCommand = new RelayCommand(_ => AddLocation());
         EditLocationCommand = new RelayCommand(_ => EditLocation());
         SelectLocationFileCommand = new RelayCommand(_ => SelectLocationFile());
+        OpenAboutCommand = new RelayCommand(_ => OpenAbout());
         OpenMapCommand = new RelayCommand(_ => OpenMap());
         RemoveLocationCommand = new RelayCommand(_ => RemoveLocation());
         TimerCommand = new RelayCommand(p => {
@@ -966,6 +968,11 @@ public class MainViewModel : INotifyPropertyChanged {
         }
     }
 
+    private void OpenAbout() {
+        var aboutWindow = new About();
+        aboutWindow.Show();
+    }
+    
     private void OpenMap() {
         if (_mapWindow == null || !System.Windows.Application.Current.Windows.OfType<MapWindow>().Any()) {
             _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings, _settingsService)

@@ -96,12 +96,22 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                
+                <Button x:Name="licensebutton" Width="24" Height="24"
+                        Content="&#xE946;"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="12pt"
+                        Margin="3" 
+                        Command="{Binding OpenAboutCommand}"
+                        ToolTip="About" Style="{StaticResource PrimaryButtonStyle}"
+                        Visibility="Collapsed">
+                </Button>
                 <Button x:Name="togglebutton" Width="24" Height="24"
                         Content="&#xE7B3;"
                         FontFamily="Segoe MDL2 Assets"
                         FontSize="12pt"
                         Margin="3" Click="ToggleVisibityButton_Click"
-                         ToolTip="Hide Directions" Style="{StaticResource PrimaryButtonStyle}"
+                        ToolTip="Hide Directions" Style="{StaticResource PrimaryButtonStyle}"
                         Visibility="Collapsed">
                 </Button>
                 <!-- <Button x:Name="minbutton" Width="24" Height="24" -->
