@@ -16,47 +16,62 @@ public partial class InputDialog : ChildWindow {
         InputTextBox.Focus();
         InputTextBox.SelectAll();
     }
-    
+
     public bool IsConfirmed { get; private set; }
-    
+
     private void OkButton_Click(object sender, RoutedEventArgs e) {
-        //See notes.txt
-        IsConfirmed = true;
-        ManualDialogResult = true;
-        Hide(); 
-        
-        // Close the window after a tiny delay so the UI loop finishes 
-        // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
-    }
-
-    private void CancelButton_Click(object sender, RoutedEventArgs e) {
-        //See notes.txt
-        IsConfirmed = false;
-        ManualDialogResult = false;
-        Hide(); 
-        
-        // Close the window after a tiny delay so the UI loop finishes 
-        // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
-    }
-
-    private void InputTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
-        if (e.Key == Key.Enter) {
+        try {
             //See notes.txt
             IsConfirmed = true;
             ManualDialogResult = true;
-            Hide(); 
-            
+            Hide();
+
             // Close the window after a tiny delay so the UI loop finishes 
             // processing the 'Hide' message before the OS-level 'Close' message.
-            Dispatcher.BeginInvoke(new Action(() => {
-                Close();
-            }), System.Windows.Threading.DispatcherPriority.Background);
+            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]OkButton_Click error: {ex.Message}");
+        }
+    }
+
+    private void CancelButton_Click(object sender, RoutedEventArgs e) {
+        try {
+            //See notes.txt
+            IsConfirmed = false;
+            ManualDialogResult = false;
+            Hide();
+
+            // Close the window after a tiny delay so the UI loop finishes 
+            // processing the 'Hide' message before the OS-level 'Close' message.
+            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]CancelButton_Click error: {ex.Message}");
+        }
+    }
+
+    private void InputTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
+        try {
+            if (e.Key == Key.Enter) {
+                //See notes.txt
+                IsConfirmed = true;
+                ManualDialogResult = true;
+                Hide();
+
+                // Close the window after a tiny delay so the UI loop finishes 
+                // processing the 'Hide' message before the OS-level 'Close' message.
+                Dispatcher.BeginInvoke(new Action(() => { Close(); }),
+                    System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]InputTextBox_KeyDown error: {ex.Message}");
         }
     }
 }

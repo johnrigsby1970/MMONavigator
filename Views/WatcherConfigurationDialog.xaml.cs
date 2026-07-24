@@ -18,8 +18,9 @@ public partial class WatcherConfigurationDialog : ChildWindow {
     public string LogFilePath => FilePathTextBox.Text;
     public string LogFileRegex => RegexTextBox.Text;
     public string CoordinateOrder => OrderComboBox.SelectedItem?.ToString() ?? "x z y d";
-    
+
     private CoordinateSystem _currentCoordinateSystem;
+
     public CoordinateSystem CurrentCoordinateSystem {
         get => _currentCoordinateSystem;
         set {
@@ -29,22 +30,22 @@ public partial class WatcherConfigurationDialog : ChildWindow {
             }
         }
     }
-    
+
 // Property
     public List<CoordinateItem> Items = Enum.GetValues(typeof(CoordinateSystem))
         .Cast<CoordinateSystem>()
-        .Select(e => new CoordinateItem { 
-            Value = e, 
-            Label = Methods.GetDisplayName(e) 
+        .Select(e => new CoordinateItem {
+            Value = e,
+            Label = Methods.GetDisplayName(e)
         })
         .ToList();
-    
+
     public WatcherConfigurationDialog(AppSettings settings) {
         InitializeComponent();
         DataContext = this;
-        
+
         SystemComboBox.ItemsSource = Items;
-        
+
         _settings = settings;
 
         ProfileComboBox.ItemsSource = _settings.Profiles;
@@ -54,7 +55,7 @@ public partial class WatcherConfigurationDialog : ChildWindow {
                               ?? _settings.Profiles.FirstOrDefault();
 
         ProfileComboBox.SelectedItem = selectedProfile;
-        
+
         OrderComboBox.ItemsSource = Constants.AvailableCoordinateOrders;
 
         ClipboardRadio.Checked += WatchMode_Checked;
@@ -160,7 +161,7 @@ public partial class WatcherConfigurationDialog : ChildWindow {
 
         FilePathTextBox.Text = profile.LogFilePath;
         RegexTextBox.Text = profile.LogFileRegex;
-        
+
         CurrentCoordinateSystem = Items.First(i => i.Value == profile.CoordinateSystem).Value;
         OrderComboBox.SelectedItem = profile.CoordinateOrder;
         KeyboardClickThroughCheckBox.IsChecked = _settings.KeyboardClickThrough;
@@ -228,13 +229,15 @@ public partial class WatcherConfigurationDialog : ChildWindow {
     private void AddProfile_Click(object sender, RoutedEventArgs e) {
         string newName = ProfileComboBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(newName)) {
-            System.Windows.MessageBox.Show("Please enter a name for the new profile.", "New Profile", MessageBoxButton.OK,
+            System.Windows.MessageBox.Show("Please enter a name for the new profile.", "New Profile",
+                MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
         }
 
         if (_settings.Profiles.Any(p => p.Name.Trim().Equals(newName, StringComparison.OrdinalIgnoreCase))) {
-            System.Windows.MessageBox.Show("A profile with this name already exists.", "New Profile", MessageBoxButton.OK,
+            System.Windows.MessageBox.Show("A profile with this name already exists.", "New Profile",
+                MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
         }
@@ -277,7 +280,8 @@ public partial class WatcherConfigurationDialog : ChildWindow {
                 return;
             }
 
-            var result = System.Windows.MessageBox.Show($"Are you sure you want to remove the profile '{profileToRemove.Name}'?",
+            var result = System.Windows.MessageBox.Show(
+                $"Are you sure you want to remove the profile '{profileToRemove.Name}'?",
                 "Remove Profile", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes) {
                 _settings.Profiles.Remove(profileToRemove);
@@ -292,20 +296,57 @@ public partial class WatcherConfigurationDialog : ChildWindow {
     private void BrowseButton_Click(object sender, RoutedEventArgs e) {
         IsDialogActive = true;
         Window? helperWindow = null;
-        
+
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
-            
+
             var openFileDialog = new Microsoft.Win32.OpenFileDialog {
-                Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*"
+                Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*",
+                CheckFileExists = true,
+                CheckPathExists = true
             };
 
-            // Use the native interop handle to ensure the dialog 
-            // feels 'attached' to the helper
-            var helper = new WindowInteropHelper(helperWindow);
-            
-            if (openFileDialog.ShowDialog() == true) {
-                FilePathTextBox.Text = openFileDialog.FileName;
+            try {
+                bool? result = null;
+
+                // 1. Safely handle owner window handle attachment
+                if (helperWindow != null) {
+                    var helper = new WindowInteropHelper(helperWindow);
+                    IntPtr ownerHandle = helper.Handle;
+
+                    if (ownerHandle != IntPtr.Zero) {
+                        // Pass the handle directly to attach the dialog modally
+                        result = openFileDialog.ShowDialog(helperWindow);
+                    }
+                    else {
+                        // Fallback if handle isn't created yet
+                        result = openFileDialog.ShowDialog();
+                    }
+                }
+                else {
+                    // Fallback if helperWindow is null
+                    result = openFileDialog.ShowDialog();
+                }
+
+                // 2. Validate user selection
+                if (result == true) {
+                    string selectedPath = openFileDialog.FileName;
+
+                    if (!string.IsNullOrWhiteSpace(selectedPath)) {
+                        FilePathTextBox.Text = selectedPath;
+                    }
+                }
+            }
+            catch (InvalidOperationException ex) {
+                // Thrown if called on a non-STA background thread
+                System.Windows.MessageBox.Show(
+                    $"Unable to open file dialog: Threading issue detected.\n\nDetails: {ex.Message}",
+                    "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (Exception ex) {
+                // General safety net for OS/Win32 interop unexpected failures
+                System.Windows.MessageBox.Show($"An error occurred while opening the file dialog:\n{ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         finally {
@@ -325,7 +366,8 @@ public partial class WatcherConfigurationDialog : ChildWindow {
         if (!profileExists && !string.IsNullOrWhiteSpace(currentProfileName) &&
             !currentProfileName.Equals("Default", StringComparison.OrdinalIgnoreCase)) {
             var result =
-                System.Windows.MessageBox.Show($"The profile '{currentProfileName}' does not exist. Would you like to add it?",
+                System.Windows.MessageBox.Show(
+                    $"The profile '{currentProfileName}' does not exist. Would you like to add it?",
                     "Add New Profile", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes) {
                 AddNewProfile(currentProfileName);
@@ -349,26 +391,21 @@ public partial class WatcherConfigurationDialog : ChildWindow {
         //See notes.txt
         IsConfirmed = true;
         ManualDialogResult = true;
-        Hide(); 
-        
+        Hide();
+
         // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
+        Dispatcher.BeginInvoke(new Action(() => { Close(); }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
         //See notes.txt
         IsConfirmed = false;
         ManualDialogResult = false;
-        Hide(); 
-    
+        Hide();
+
         // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
+        Dispatcher.BeginInvoke(new Action(() => { Close(); }), System.Windows.Threading.DispatcherPriority.Background);
     }
-
 }

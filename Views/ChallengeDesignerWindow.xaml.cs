@@ -13,6 +13,12 @@ public partial class ChallengeDesignerWindow : Window {
     }
 
     private void ChallengeTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) {
-        ViewModel.SelectedNode = e.NewValue as ChallengeNodeViewModel;
+        try {
+            ViewModel.SelectedNode = e.NewValue as ChallengeNodeViewModel;
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]ChallengeTree_SelectedItemChanged error: {ex.Message}");
+        }
     }
 }

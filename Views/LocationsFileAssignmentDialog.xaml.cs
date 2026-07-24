@@ -1,7 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -43,7 +41,7 @@ public partial class LocationsFileAssignmentDialog : ChildWindow {
         }
     }
 
-    public GameProfile Profile { get; set; }
+    public GameProfile? Profile { get; set; }
 
     private bool _isSelected;
 
@@ -72,124 +70,255 @@ public partial class LocationsFileAssignmentDialog : ChildWindow {
     }
 
     private void OpenFileButton_Click(object sender, RoutedEventArgs e) {
-        IsDialogActive = true;
-        Window? helperWindow = null;
-
         try {
-            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
+            IsDialogActive = true;
+            Window? helperWindow = null;
 
-            // Configure open file dialog box
-            var dialog = new Microsoft.Win32.OpenFileDialog {
-                //dialog.FileName = "locations.json"; // Default file name
-                DefaultDirectory = Helpers.NativeMethods.AppFolder(),
-                DefaultExt = ".json", // Default file extension
-                Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
-            };
+            try {
+                ConfigureDialogToHaveAValidOwner(this, out helperWindow);
 
-            // Use the native interop handle to ensure the dialog 
-            // feels 'attached' to the helper
-            var helper = new WindowInteropHelper(helperWindow);
+                // Configure open file dialog box
+                // 1. Configure dialog with clean filter string
+                var dialog = new Microsoft.Win32.OpenFileDialog {
+                    DefaultExt = ".json",
+                    Filter = "Locations (*.json)|*.json|All files (*.*)|*.*", // Fixed trailing semicolon
+                    CheckFileExists = true,
+                    CheckPathExists = true
+                };
 
-            // Show the open file dialog box
-            var result = dialog.ShowDialog();
-
-            // Process open file dialog box results
-            if (result == true) {
-                // Open document - get the name of the selected file
-                string filename = dialog.FileName;
-
-                if (File.Exists(filename)) {
-                    LocationsPath = filename;
+                // 2. Safely set initial directory
+                try {
+                    string appFolder = Helpers.NativeMethods.AppFolder();
+                    if (!string.IsNullOrWhiteSpace(appFolder) && Directory.Exists(appFolder)) {
+                        dialog.InitialDirectory = appFolder;
+                    }
                 }
-                else {
-                    if (string.IsNullOrEmpty(Profile.LastLocationsFile)) {
-                        if (Profile.Name != "Default") {
-                            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
-                                MakeValidFileName(Profile.Name) + "_locations.json");
+                catch {
+                    // Fail silently — dialog defaults to Documents or last used folder
+                }
+
+                try {
+                    bool? result = null;
+
+                    // 3. Safely handle window attachment
+                    if (helperWindow != null) {
+                        var helper = new WindowInteropHelper(helperWindow);
+                        if (helper.Handle != IntPtr.Zero) {
+                            result = dialog.ShowDialog();
                         }
                         else {
-                            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
+                            result = dialog.ShowDialog();
                         }
                     }
                     else {
-                        LocationsPath = Profile.LastLocationsFile;
+                        result = dialog.ShowDialog();
+                    }
+
+                    // 4. Process user selection
+                    if (result == true) {
+                        string selectedFilename = dialog.FileName;
+
+                        if (!string.IsNullOrWhiteSpace(selectedFilename) && File.Exists(selectedFilename)) {
+                            LocationsPath = selectedFilename;
+                        }
+                        else {
+                            // Fallback path calculation
+                            string? targetPath = null;
+
+                            if (Profile != null && string.IsNullOrEmpty(Profile.LastLocationsFile)) {
+                                string profileName = Profile.Name ?? "Default";
+                                if (!string.Equals(profileName, "Default", StringComparison.OrdinalIgnoreCase)) {
+                                    string safeName = MakeValidFileName(profileName);
+                                    targetPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
+                                        $"{safeName}_locations.json");
+                                }
+                                else {
+                                    targetPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
+                                }
+                            }
+                            else if (Profile != null) {
+                                targetPath = Profile.LastLocationsFile;
+                            }
+
+                            // Verify the fallback path actually exists before setting it
+                            if (!string.IsNullOrWhiteSpace(targetPath) && File.Exists(targetPath)) {
+                                LocationsPath = targetPath;
+                            }
+                            else {
+                                System.Windows.MessageBox.Show(
+                                    "The selected locations file could not be found or accessed.",
+                                    "File Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return; // Stop execution safely without attempting to load an invalid file
+                            }
+                        }
+
+                        // 5. Execute file loading inside a guarded block
+                        try {
+                            LoadLocations(LocationsPath);
+                        }
+                        catch (Exception ex) {
+                            System.Windows.MessageBox.Show($"Unable to load locations from file:\n{ex.Message}",
+                                "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
                     }
                 }
-
-                LoadLocations(LocationsPath);
-                // You can use the filename to read the file or display it in a TextBox
-                // e.g., FileNameTextBox.Text = filename;
+                catch (InvalidOperationException ex) {
+                    System.Windows.MessageBox.Show(
+                        $"Unable to open file dialog: Threading or state issue detected.\n\nDetails: {ex.Message}",
+                        "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                catch (Exception ex) {
+                    System.Windows.MessageBox.Show(
+                        $"An unexpected error occurred while selecting the locations file:\n{ex.Message}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            finally {
+                // ALWAYS close the helper to prevent memory leaks
+                helperWindow?.Close();
+                IsDialogActive = false;
             }
         }
-        finally {
-            // ALWAYS close the helper to prevent memory leaks
-            helperWindow?.Close();
-            IsDialogActive = false;
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]OpenFileButton_Click error: {ex.Message}");
         }
     }
 
     private void SaveAsButton_Click(object sender, RoutedEventArgs e) {
-        if (string.IsNullOrWhiteSpace(LocationsPath)) return;
-
-        IsDialogActive = true;
-        Window? helperWindow = null;
-
         try {
-            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
+            if (string.IsNullOrWhiteSpace(LocationsPath)) return;
 
-            // Configure open file dialog box
-            var dialog = new Microsoft.Win32.SaveFileDialog {
-                Title = "Download Selected File",
-                FileName = Path.GetFileName(LocationsPath), // Default file name
-                DefaultDirectory = AppDomain.CurrentDomain.BaseDirectory,
-                DefaultExt = ".json", // Default file extension
-                Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
-            };
+            IsDialogActive = true;
+            Window? helperWindow = null;
 
-            // Use the native interop handle to ensure the dialog 
-            // feels 'attached' to the helper
-            var helper = new WindowInteropHelper(helperWindow);
+            try {
+                ConfigureDialogToHaveAValidOwner(this, out helperWindow);
 
-            // Show the open file dialog box
-            var result = dialog.ShowDialog();
+                // 1. Ensure source file exists before bothering the user
+                if (string.IsNullOrWhiteSpace(LocationsPath) || !File.Exists(LocationsPath)) {
+                    System.Windows.MessageBox.Show("The source locations file could not be found to export.",
+                        "Export Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
-            // Process open file dialog box results
-            if (result == true) {
-                // Open document - get the name of the selected file
-                var filename = dialog.FileName;
+                // 2. Safe default file name derivation
+                string defaultFileName = "locations.json";
+                try {
+                    string extractedName = Path.GetFileName(LocationsPath);
+                    if (!string.IsNullOrWhiteSpace(extractedName)) {
+                        defaultFileName = extractedName;
+                    }
+                }
+                catch (ArgumentException) {
+                    // Safe fallback if LocationsPath contains invalid path characters
+                }
 
-                if (File.Exists(LocationsPath)) {
-                    File.Copy(LocationsPath, filename, true);
+                var dialog = new Microsoft.Win32.SaveFileDialog {
+                    Title = "Download Selected File",
+                    FileName = defaultFileName,
+                    DefaultExt = ".json",
+                    Filter = "Locations (*.json)|*.json|All files (*.*)|*.*", // Fixed trailing semicolon
+                    OverwritePrompt = true
+                };
+
+                // 3. Safely set initial directory to AppData / Documents instead of BaseDirectory
+                try {
+                    string safeInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                    if (Directory.Exists(safeInitialDir)) {
+                        dialog.InitialDirectory = safeInitialDir;
+                    }
+                }
+                catch {
+                    // Fail gracefully — dialog falls back to Windows default
+                }
+
+                // 4. Safely show dialog attached to owner
+                bool? result;
+                try {
+                    result = helperWindow != null
+                        ? dialog.ShowDialog(helperWindow)
+                        : dialog.ShowDialog();
+                }
+                catch (Exception ex) {
+                    System.Windows.MessageBox.Show($"Unable to display the save dialog:\n{ex.Message}",
+                        "Dialog Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 5. Process save result inside defensive I/O block
+                if (result == true) {
+                    string targetFilename = dialog.FileName;
+
+                    if (string.IsNullOrWhiteSpace(targetFilename)) {
+                        return;
+                    }
+
+                    try {
+                        File.Copy(LocationsPath, targetFilename, overwrite: true);
+
+                        System.Windows.MessageBox.Show("File exported successfully.",
+                            "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (UnauthorizedAccessException) {
+                        System.Windows.MessageBox.Show(
+                            "Access denied. You do not have permission to save to that location.",
+                            "Permission Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    catch (IOException ex) {
+                        System.Windows.MessageBox.Show(
+                            $"Could not save the file. It may be in use by another program.\n\nDetails: {ex.Message}",
+                            "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    catch (Exception ex) {
+                        System.Windows.MessageBox.Show(
+                            $"An unexpected error occurred while saving the file:\n{ex.Message}",
+                            "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
             }
+            finally {
+                // ALWAYS close the helper to prevent memory leaks
+                helperWindow?.Close();
+                IsDialogActive = false;
+            }
         }
-        finally {
-            // ALWAYS close the helper to prevent memory leaks
-            helperWindow?.Close();
-            IsDialogActive = false;
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]SaveAsButton_Click error: {ex.Message}");
         }
     }
 
     private void SetDefaultButton_Click(object sender, RoutedEventArgs e) {
-        if (Profile.Name != "Default") {
-            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
-                MakeValidFileName(Profile.Name) + "_locations.json");
+        try {
+            if (Profile == null) {
+                throw new Exception("Invalid Profile");
+            }
+
+            if (Profile.Name != "Default") {
+                LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(),
+                    MakeValidFileName(Profile.Name) + "_locations.json");
+            }
+            else {
+                LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
+            }
+
+            var message =
+                $"Use the locations stored in '{LocationsPath}'.\r\n\r\nDo you want to use the locations stored in this file?";
+            const string caption = "Confirm File Assignment";
+            const MessageBoxButton buttons = MessageBoxButton.YesNo;
+            const MessageBoxImage icon = MessageBoxImage.Question;
+
+            var result = System.Windows.MessageBox.Show(message, caption, buttons, icon);
+
+            // Handle the result
+            if (result == MessageBoxResult.Yes) {
+                LoadLocations(LocationsPath);
+            }
         }
-        else {
-            LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
-        }
-
-        var message =
-            $"Use the locations stored in '{LocationsPath}'.\r\n\r\nDo you want to use the locations stored in this file?";
-        const string caption = "Confirm File Assignment";
-        const MessageBoxButton buttons = MessageBoxButton.YesNo;
-        const MessageBoxImage icon = MessageBoxImage.Question;
-
-        var result = System.Windows.MessageBox.Show(message, caption, buttons, icon);
-
-        // Handle the result
-        if (result == MessageBoxResult.Yes) {
-            LoadLocations(LocationsPath);
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]SetDefaultButton_Click error: {ex.Message}");
         }
     }
 
@@ -201,6 +330,10 @@ public partial class LocationsFileAssignmentDialog : ChildWindow {
 
     public void LoadLocations(string path) {
         if (string.IsNullOrEmpty(path)) {
+            if (Profile == null) {
+                throw new Exception("Invalid Profile");
+            }
+
             if (Profile.Name != "Default") {
                 path = Path.Combine(Helpers.NativeMethods.AppFolder(),
                     MakeValidFileName(Profile.Name) + "_locations.json");
@@ -246,32 +379,46 @@ public partial class LocationsFileAssignmentDialog : ChildWindow {
             OnPropertyChanged(nameof(Locations));
         }
         catch (Exception ex) {
-            MessageBox.Show($"Error loading locations: {ex.Message}. Make sure you are picking a file that contains locations originally created by this program.");
+            MessageBox.Show(
+                $"Error loading locations: {ex.Message}. Make sure you are picking a file that contains locations originally created by this program.");
         }
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) {
-        //See notes.txt
-        IsConfirmed = true;
-        ManualDialogResult = true;
-        Hide();
+        try {
+            //See notes.txt
+            IsConfirmed = true;
+            ManualDialogResult = true;
+            Hide();
 
-        // Close the window after a tiny delay so the UI loop finishes 
-        // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => { Close(); }), System.Windows.Threading.DispatcherPriority.Background);
+            // Close the window after a tiny delay so the UI loop finishes 
+            // processing the 'Hide' message before the OS-level 'Close' message.
+            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]OkButton_Click error: {ex.Message}");
+        }
     }
 
     public bool IsConfirmed { get; private set; }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
-        //See notes.txt
-        IsConfirmed = false;
-        ManualDialogResult = false;
-        Hide();
+        try {
+            //See notes.txt
+            IsConfirmed = false;
+            ManualDialogResult = false;
+            Hide();
 
-        // Close the window after a tiny delay so the UI loop finishes 
-        // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => { Close(); }), System.Windows.Threading.DispatcherPriority.Background);
+            // Close the window after a tiny delay so the UI loop finishes 
+            // processing the 'Hide' message before the OS-level 'Close' message.
+            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]CancelButton_Click error: {ex.Message}");
+        }
     }
-
 }

@@ -16,6 +16,7 @@
 
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using MMONavigator.Helpers;
 
 namespace MMONavigator;
@@ -34,8 +35,53 @@ public partial class App : System.Windows.Application {
             System.Windows.Interop.RenderMode.SoftwareOnly;
         
         base.OnStartup(e);
+        
+        // 1. Catches unhandled exceptions on the main UI thread
+        this.DispatcherUnhandledException += App_DispatcherUnhandledException;
+
+        // 2. Catches unhandled exceptions on background worker/Task threads
+        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+        // 3. Catches unhandled exceptions in unobserved async Tasks
+        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
     }
 
+    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        LogCrash(e.Exception);
+        
+        // Prevent the app from crashing!
+        e.Handled = true;
+
+        System.Windows.MessageBox.Show("An unexpected error occurred, but the app recovered. Check the crash log for details.", 
+            "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private void CurrentDomain_UnhandledException(object? sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            LogCrash(ex);
+        }
+    }
+
+    private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        LogCrash(e.Exception);
+        e.SetObserved(); // Prevents process termination on older framework behavior
+    }
+
+    private void LogCrash(Exception ex)
+    {
+        try
+        {
+            string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YourAppName", "crash_log.txt");
+            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+            File.AppendAllText(logPath, $"[{DateTime.Now}] {ex}\n\n");
+        }
+        catch { /* Fallback if logging fails */ }
+    }
+    
     private void MigrateData() {
         try {
             string source = NativeMethods.BaseFolder();

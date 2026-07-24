@@ -43,15 +43,14 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     public static GridLength StandardGridRowHeight => new GridLength(StandardRowHeight);
     private static readonly GridLength HiddenRowHeight = new GridLength(CollapsedRowHeight);
     private IntPtr _hwnd;
-    
-    
-    protected override void OnSourceInitialized(EventArgs e)
-    {
+
+
+    protected override void OnSourceInitialized(EventArgs e) {
         base.OnSourceInitialized(e);
-        
+
         _hwnd = new WindowInteropHelper(this).Handle;
         _viewModel.InitializeWindow(_hwnd);
-        
+
         // Only keep this if you have other HwndSource hooks (like your Clipboard handler)
         var source = HwndSource.FromHwnd(_hwnd);
         source?.AddHook(HwndHandler);
@@ -102,44 +101,26 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         var hwnd = new WindowInteropHelper(this).Handle;
         _viewModel.StartWatcher(hwnd);
     }
-    
+
     private void Stop() {
         _viewModel.StopWatcher();
     }
 
-    //control how the window reacts to being clicked, specifically preventing the window from
-    //taking "focus" (becoming the active foreground window) in certain scenarios.
-    //I want activity in this window to not steal focus from say another program like my gaming application.
-    //So I can click but keep typing elsewhere.
-    // private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
-    //     // 1. Handle the specific message you need to monitor
-    //     if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
-    //         KeepOnTop();
-    //         _viewModel.HandleClipboardUpdate();
-    //     }
-    //     
-    //     // 2. Everything else is ignored by this handler and passed through 
-    //     // to the default WPF window procedure.
-    //     handled = false;
-    //     
-    //     return IntPtr.Zero;
-    // }
-    
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
             // 1. Kick the heavy lifting and clipboard reading off the UI thread immediately.
             // We use a fire-and-forget task so this handler returns instantly.
             _ = ProcessClipboardAsync();
-        
+
             // If KeepOnTop() absolutely MUST run on clipboard updates, 
             // let's also defer it slightly so it doesn't fight the game's render cycle.
             _ = DeferKeepOnTopAsync();
         }
-    
+
         handled = false;
         return IntPtr.Zero;
     }
-    
+
     private async Task ProcessClipboardAsync() {
         // Give the game 50-75ms to finish its macro write and close its clipboard handle
         await Task.Delay(75);
@@ -154,7 +135,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             // instead of locking up the OS clipboard chain.
         }
     }
-    
+
     private async Task DeferKeepOnTopAsync() {
         await Task.Delay(10); // Tiny pause to let the OS breathe
         KeepOnTop();
@@ -164,60 +145,62 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         // SWP_NOACTIVATE is the key here. It prevents your window 
         // from stealing focus from the game/media player.
         var hwnd = new WindowInteropHelper(this).Handle;
-        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0, 
+        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
     }
-    
-    // protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
-    // {
-    //     base.OnPreviewMouseDown(e);
-    //
-    //     // Check if the click is outside the popup
-    //     if (LocationPopup.IsOpen && !LocationPopup.IsMouseOver)
-    //     {
-    //         // Force the popup to close
-    //         LocationPopup.IsOpen = false;
-    //     
-    //         // Ensure the click passes through to the game if desired
-    //         // You may need a Native Win32 call if the hit-test is blocked
-    //     }
-    // }
-    
+
     #region Title Bar
 
     //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
-    
-    private void ConfigureWatcher_Click(object sender, RoutedEventArgs e) {
-        var dialog = new WatcherConfigurationDialog(_viewModel.Settings);
-        dialog.Owner = this;
-        dialog.ShowDialog(); 
 
-        // Check your manual property instead of the built-in DialogResult
-        if (dialog.ManualDialogResult == true)
-        {
-            System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Watcher configuration dialog OK");
-            
-            // The dialog now manages profiles and settings directly on the passed _viewModel.Settings
-            // We just need to ensure they are saved and the view model is notified of potential changes
-            // that might not have fired PropertyChanged yet (though they should have).
-            
-            _viewModel.SaveSettings();
-            _viewModel.LoadLocations();
-            _viewModel.UpdateListStatus();
-            
-            // Force a refresh of the watcher just in case
-            _viewModel.StartWatcher(new WindowInteropHelper(this).Handle);
+    private void ConfigureWatcher_Click(object sender, RoutedEventArgs e) {
+        try {
+            var dialog = new WatcherConfigurationDialog(_viewModel.Settings);
+            dialog.Owner = this;
+            dialog.ShowDialog();
+
+            // Check your manual property instead of the built-in DialogResult
+            if (dialog.ManualDialogResult == true) {
+                System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Watcher configuration dialog OK");
+
+                // The dialog now manages profiles and settings directly on the passed _viewModel.Settings
+                // We just need to ensure they are saved and the view model is notified of potential changes
+                // that might not have fired PropertyChanged yet (though they should have).
+
+                _viewModel.SaveSettings();
+                _viewModel.LoadLocations();
+                _viewModel.UpdateListStatus();
+
+                // Force a refresh of the watcher just in case
+                _viewModel.StartWatcher(new WindowInteropHelper(this).Handle);
+            }
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]ConfigureWatcher_Click error: {ex.Message}");
         }
     }
 
     private void HideShowSettings_Click(object sender, RoutedEventArgs e) {
-        ToggleSettings();
-        Close_Popup(sender, e);
+        try {
+            ToggleSettings();
+            Close_Popup(sender, e);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]HideShowSettings_Click error: {ex.Message}");
+        }
     }
 
     private void HideShowTimers_Click(object sender, RoutedEventArgs e) {
-        ToggleTimers();
-        Close_Popup(sender, e);
+        try {
+            ToggleTimers();
+            Close_Popup(sender, e);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]HideShowTimers_Click error: {ex.Message}");
+        }
     }
 
     private void ToggleSettings() {
@@ -244,43 +227,78 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     private void TitleBar_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
-        settingsbutton.Visibility = Visibility.Visible;
-        timerbutton.Visibility = Visibility.Visible;
-        togglebutton.Visibility = Visibility.Visible;
-        licensebutton.Visibility = Visibility.Visible;
-        closebutton.Visibility = Visibility.Visible;
+        try {
+            settingsbutton.Visibility = Visibility.Visible;
+            timerbutton.Visibility = Visibility.Visible;
+            togglebutton.Visibility = Visibility.Visible;
+            licensebutton.Visibility = Visibility.Visible;
+            closebutton.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]TitleBar_MouseEnter error: {ex.Message}");
+        }
     }
 
     private void TitleBar_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
-        settingsbutton.Visibility = Visibility.Collapsed;
-        timerbutton.Visibility = Visibility.Collapsed;
-        togglebutton.Visibility = Visibility.Collapsed;
-        licensebutton.Visibility = Visibility.Collapsed;
-        closebutton.Visibility = Visibility.Collapsed;
-    }
-    
-    private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
-        if (WindowState != WindowState.Minimized) {
-            WindowState = WindowState.Minimized;
+        try {
+            settingsbutton.Visibility = Visibility.Collapsed;
+            timerbutton.Visibility = Visibility.Collapsed;
+            togglebutton.Visibility = Visibility.Collapsed;
+            licensebutton.Visibility = Visibility.Collapsed;
+            closebutton.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]TitleBar_MouseLeave error: {ex.Message}");
         }
     }
-    
+
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e) {
+        try {
+            if (WindowState != WindowState.Minimized) {
+                WindowState = WindowState.Minimized;
+            }
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]MinimizeButton_Click error: {ex.Message}");
+        }
+    }
+
     private void ToggleVisibityButton_Click(object sender, RoutedEventArgs e) {
-        Close_Popup(sender, e);
-        _viewModel.MainContentVisibility=!_viewModel.MainContentVisibility;
-        togglebutton.ToolTip = _viewModel.MainContentVisibility ? "Hide Directions" : "Show Directions";
+        try {
+            Close_Popup(sender, e);
+            _viewModel.MainContentVisibility = !_viewModel.MainContentVisibility;
+            togglebutton.ToolTip = _viewModel.MainContentVisibility ? "Hide Directions" : "Show Directions";
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]ToggleVisibityButton_Click error: {ex.Message}");
+        }
     }
-    
+
     private void LicenseButton_Click(object sender, RoutedEventArgs e) {
-        Close_Popup(sender, e);
-        _viewModel.MainContentVisibility=!_viewModel.MainContentVisibility;
+        try {
+            Close_Popup(sender, e);
+            _viewModel.MainContentVisibility = !_viewModel.MainContentVisibility;
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]LicenseButton_Click error: {ex.Message}");
+        }
     }
-    
-    
-    
+
+
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
-        if (WindowState != WindowState.Normal) {
-            WindowState = WindowState.Normal;
+        try {
+            if (WindowState != WindowState.Normal) {
+                WindowState = WindowState.Normal;
+            }
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]MaximizeButton_Click error: {ex.Message}");
         }
     }
 
@@ -297,12 +315,14 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         catch {
             // ignored
         }
+
         try {
             HwndSource.FromHwnd(_hwnd)?.RemoveHook(HwndHandler);
         }
         catch {
             // ignored
         }
+
         try {
             base.OnClosed(e);
         }
@@ -310,59 +330,76 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             // ignored
         }
     }
-    
-    protected override void OnClosing(CancelEventArgs e)
-    {
-        _viewModel.SaveSettings(); 
-        
+
+    protected override void OnClosing(CancelEventArgs e) {
+        _viewModel.SaveSettings();
+
         base.OnClosing(e);
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
-        Close_Popup(sender, e);
-        Hide();
-        // Close the window after a tiny delay so the UI loop finishes 
-        // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
+        try {
+            Close_Popup(sender, e);
+            Hide();
+            // Close the window after a tiny delay so the UI loop finishes 
+            // processing the 'Hide' message before the OS-level 'Close' message.
+            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]CloseButton_Click error: {ex.Message}");
+        }
     }
-    
+
     #endregion
-    
-    private void ToggleButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (myGrid.DataContext is MainViewModel vm)
-        {
-            // Simply flip the state
-            vm.IsExpanded = !vm.IsExpanded;
-            System.Diagnostics.Debug.WriteLine($"ToggleButton_Click");
+
+    private void ToggleButton_Click(object sender, RoutedEventArgs e) {
+        try {
+            if (myGrid.DataContext is MainViewModel vm) {
+                // Simply flip the state
+                vm.IsExpanded = !vm.IsExpanded;
+                System.Diagnostics.Debug.WriteLine($"ToggleButton_Click");
+            }
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]ToggleButton_Click error: {ex.Message}");
         }
     }
-    
-    private void Close_Popup(object sender, RoutedEventArgs e)
-    {
-        if (myGrid.DataContext is MainViewModel vm)
-        {
-            // Simply flip the state
-            vm.IsExpanded = false;
-            System.Diagnostics.Debug.WriteLine($"TitleBar_MouseLeftButtonUp");
+
+    private void Close_Popup(object sender, RoutedEventArgs e) {
+        try {
+            if (myGrid.DataContext is MainViewModel vm) {
+                // Simply flip the state
+                vm.IsExpanded = false;
+                System.Diagnostics.Debug.WriteLine($"TitleBar_MouseLeftButtonUp");
+            }
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]Close_Popup error: {ex.Message}");
         }
     }
-    
-    private void LocationPopup_PreviewMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        // 1. Force the entire app to the foreground so WPF wakes up
-        NativeMethods.SetForegroundWindow(_hwnd);
 
-        // 2. Clear focus from whatever might be blocking
-        Keyboard.ClearFocus();
+    private void LocationPopup_PreviewMouseDown(object sender, MouseButtonEventArgs e) {
+        try {
+            // 1. Force the entire app to the foreground so WPF wakes up
+            NativeMethods.SetForegroundWindow(_hwnd);
 
-        // 3. Force focus specifically to the TreeView
-        LocationTree.Focus();
-    
-        // 4. Force a re-evaluation of the binding if it feels "stuck"
-        // Using CommandManager causes WPF to re-evaluate all CanExecute/Bindings
-        CommandManager.InvalidateRequerySuggested();
+            // 2. Clear focus from whatever might be blocking
+            Keyboard.ClearFocus();
+
+            // 3. Force focus specifically to the TreeView
+            LocationTree.Focus();
+
+            // 4. Force a re-evaluation of the binding if it feels "stuck"
+            // Using CommandManager causes WPF to re-evaluate all CanExecute/Bindings
+            CommandManager.InvalidateRequerySuggested();
+        }
+        catch (Exception ex) {
+            System.Diagnostics.Debug.WriteLine(
+                $"[DEBUG_LOG]Close_Popup error: {ex.Message}");
+        }
     }
 }
