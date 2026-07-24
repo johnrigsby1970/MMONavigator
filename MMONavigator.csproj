@@ -20,6 +20,8 @@
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
         <ApplicationIcon>Resources\my-location-location.ico</ApplicationIcon>
         <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+        <!-- Suppress the WinForms DPI analyzer warning -->
+        <NoWarn>$(NoWarn);WFAC010</NoWarn>
     </PropertyGroup>
     <PropertyGroup>
         <UseWindowsForms>true</UseWindowsForms>
