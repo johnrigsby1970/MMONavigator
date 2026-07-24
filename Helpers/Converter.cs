@@ -11,7 +11,7 @@ public class CenterConverter : IValueConverter
         if (value is double containerSize && parameter != null)
         {
             // Parse the element's size from the ConverterParameter
-            if (double.TryParse(parameter.ToString(), out double elementSize))
+            if (double.TryParse(parameter.ToString(), CultureInfo.InvariantCulture, out double elementSize))
             {
                 return (containerSize - elementSize) / 2;
             }

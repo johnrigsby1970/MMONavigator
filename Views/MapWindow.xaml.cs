@@ -991,6 +991,14 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
                 // Check your manual property instead of the built-in DialogResult
                 if (inputDialog.ManualDialogResult == true) {
                     if (Scrubber.TryParse(inputDialog.Answer, "x y", out var coords)) {
+                        // Validate that Point 2 is distinct enough from Point 1
+                        if (Math.Abs(coords.X - vm.Settings.Point1.X) <= 10 || 
+                            Math.Abs(coords.Y - vm.Settings.Point1.Y) <= 10) {
+                            MessageBox.Show("Calibration points are too close together. Please choose points that differ by more than 10 units in both X and Y for accurate mapping.", 
+                                "Invalid Calibration", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+
                         vm.Settings.Point2.X = coords.X;
                         vm.Settings.Point2.Y = coords.Y;
                         vm.Settings.Point2.PixelX = clickPoint.X;
@@ -1183,7 +1191,7 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         var vm = (MapViewModel)DataContext;
         if (vm.MapImage == null) return;
 
-        WriteableBitmap targetWriteableBmp = null;
+        WriteableBitmap? targetWriteableBmp = null;
 
         // 1. If it's already a WriteableBitmap, we can use it directly
         if (vm.MapImage is WriteableBitmap existingWriteable) {
@@ -1222,7 +1230,7 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         var vm = (MapViewModel)DataContext;
         if (vm.MapImage == null) return;
 
-        WriteableBitmap targetWriteableBmp = null;
+        WriteableBitmap? targetWriteableBmp = null;
 
         // 1. If it's already a WriteableBitmap, we can use it directly
         if (vm.MapImage is WriteableBitmap existingWriteable) {
@@ -1258,7 +1266,7 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         var vm = (MapViewModel)DataContext;
         if (vm.MapImage == null) return;
 
-        WriteableBitmap targetWriteableBmp = null;
+        WriteableBitmap? targetWriteableBmp = null;
 
         // 1. If it's already a WriteableBitmap, we can use it directly
         if (vm.MapImage is WriteableBitmap existingWriteable) {
@@ -1545,6 +1553,11 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
             return;
         }
 
+        if (newName.Length > 100) {
+            MessageBox.Show("Map name is too long. Please use a shorter name (under 100 characters).");
+            return;
+        }
+
         // Remove invalid characters
         foreach (char c in Path.GetInvalidFileNameChars()) {
             newName = newName.Replace(c, '_');
@@ -1557,17 +1570,39 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
         }
 
         var destImagePath = Path.Combine(mapsDir, newName + extension);
+        
+        // Final path length check
+        if (destImagePath.Length >= 255) {
+            MessageBox.Show("The resulting file path is too long for Windows. Please use a shorter name.");
+            return;
+        }
+
         try {
             if (vm.Settings.ImagePath != destImagePath) {
                 File.Copy(vm.Settings.ImagePath, destImagePath, true);
             }
 
             var configPath = Path.Combine(mapsDir, newName + ".json");
-            var json = JsonSerializer.Serialize(vm.Settings);
-            File.WriteAllText(configPath, json);
+            var json = JsonSerializer.Serialize(vm.Settings, new JsonSerializerOptions { WriteIndented = true });
+            
+            // Atomic write for map configuration
+            var tempPath = configPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            if (File.Exists(configPath)) {
+                File.Replace(tempPath, configPath, configPath + ".old");
+                try { File.Delete(configPath + ".old"); } catch { }
+            } else {
+                File.Move(tempPath, configPath);
+            }
 
             vm.Settings.ImagePath = destImagePath;
             StatusTextBlock.Text = $"Status: Map saved as {newName}";
+        }
+        catch (UnauthorizedAccessException) {
+            MessageBox.Show("Access denied. Please ensure you have permission to write to the application folder.", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        catch (IOException ioex) {
+            MessageBox.Show($"IO Error saving map: {ioex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         catch (Exception ex) {
             MessageBox.Show($"Error saving map: {ex.Message}");
@@ -1632,9 +1667,24 @@ Debug.WriteLine($"[DEBUG_LOG] NOT normal");
             try {
                 if (!string.IsNullOrEmpty(vm.MapPath) && vm.Settings.IsCalibrated && File.Exists(vm.MapPath)) {
                     var configPath = Path.Combine(mapsDir, Path.GetFileNameWithoutExtension(vm.MapPath) + ".json");
-                    var json = JsonSerializer.Serialize(vm.Settings);
-                    File.WriteAllText(configPath, json);
+                    var json = JsonSerializer.Serialize(vm.Settings, new JsonSerializerOptions { WriteIndented = true });
+                    
+                    // Atomic write for map configuration
+                    var tempPath = configPath + ".tmp";
+                    File.WriteAllText(tempPath, json);
+                    if (File.Exists(configPath)) {
+                        File.Replace(tempPath, configPath, configPath + ".old");
+                        try { File.Delete(configPath + ".old"); } catch { }
+                    } else {
+                        File.Move(tempPath, configPath);
+                    }
                 }
+            }
+            catch (UnauthorizedAccessException) {
+                System.Diagnostics.Debug.WriteLine("Access denied saving current map.");
+            }
+            catch (IOException ioex) {
+                System.Diagnostics.Debug.WriteLine($"IO Error saving current map: {ioex.Message}");
             }
             catch (Exception ex) {
                 MessageBox.Show($"Error saving map: {ex.Message}");

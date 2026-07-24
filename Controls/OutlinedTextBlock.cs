@@ -112,9 +112,9 @@ public class OutlinedTextBlock : FrameworkElement
       typeof(OutlinedTextBlock),
       new FrameworkPropertyMetadata(TextWrapping.NoWrap, OnFormattedTextUpdated));
 
-    private FormattedText _FormattedText;
-    private Geometry _TextGeometry;
-    private System.Windows.Media.Pen _Pen;
+    private FormattedText? _FormattedText;
+    private Geometry? _TextGeometry;
+    private System.Windows.Media.Pen _Pen = null!;
 
     public System.Windows.Media.Brush Fill
     {
@@ -165,9 +165,9 @@ public class OutlinedTextBlock : FrameworkElement
         set { SetValue(StrokeThicknessProperty, value); }
     }
 
-    public string Text
+    public string? Text
     {
-        get { return (string)GetValue(TextProperty); }
+        get { return (string?)GetValue(TextProperty); }
         set { SetValue(TextProperty, value); }
     }
 
@@ -203,12 +203,16 @@ public class OutlinedTextBlock : FrameworkElement
     protected override void OnRender(DrawingContext drawingContext) {
         EnsureGeometry();
 
-        drawingContext.DrawGeometry(null, _Pen, _TextGeometry);
-        drawingContext.DrawGeometry(Fill, null, _TextGeometry);
+        if (_TextGeometry != null) {
+            drawingContext.DrawGeometry(null, _Pen, _TextGeometry);
+            drawingContext.DrawGeometry(Fill, null, _TextGeometry);
+        }
     }
 
     protected override System.Windows.Size MeasureOverride(System.Windows.Size availableSize) {
         EnsureFormattedText();
+
+        if (_FormattedText == null) return new System.Windows.Size(0, 0);
 
         // constrain the formatted text according to the available size
 
@@ -227,9 +231,11 @@ public class OutlinedTextBlock : FrameworkElement
     protected override System.Windows.Size ArrangeOverride(System.Windows.Size finalSize) {
         EnsureFormattedText();
 
-        // update the formatted text with the final size
-        _FormattedText.MaxTextWidth = finalSize.Width;
-        _FormattedText.MaxTextHeight = Math.Max(0.0001d, finalSize.Height);
+        if (_FormattedText != null) {
+            // update the formatted text with the final size
+            _FormattedText.MaxTextWidth = finalSize.Width;
+            _FormattedText.MaxTextHeight = Math.Max(0.0001d, finalSize.Height);
+        }
 
         // need to re-generate the geometry now that the dimensions have changed
         _TextGeometry = null;
@@ -267,7 +273,8 @@ public class OutlinedTextBlock : FrameworkElement
           FlowDirection,
           new Typeface(FontFamily, FontStyle, FontWeight, FontStretch),
           FontSize,
-          System.Windows.Media.Brushes.Black);
+          System.Windows.Media.Brushes.Black,
+          VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
         UpdateFormattedText();
     }
@@ -295,6 +302,6 @@ public class OutlinedTextBlock : FrameworkElement
         }
 
         EnsureFormattedText();
-        _TextGeometry = _FormattedText.BuildGeometry(new System.Windows.Point(0, 0));
+        _TextGeometry = _FormattedText?.BuildGeometry(new System.Windows.Point(0, 0));
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace MMONavigator.Services;
 
@@ -10,7 +11,7 @@ public static class Scrubber {
     private const byte MaxCoordinateComponents = 4; 
     private const byte MinCoordinateComponents = 2;
     private const byte CoordinateCountForNorthUpSouth = 3;
-    private const byte DefaultY = 0;
+    private const double DefaultY = 0;
     private const byte XIndexInXZY = 0;
     private const byte XIndexInXY = 0;
     private const byte XIndexInYX = 1;
@@ -34,26 +35,32 @@ public static class Scrubber {
 
         double[] values = new double[parts.Length];
         for (int i = 0; i < parts.Length; i++) {
-            if (!double.TryParse(parts[i], out values[i])) return false;
+            // Use InvariantCulture to ensure consistent parsing regardless of system locale
+            if (!double.TryParse(parts[i], CultureInfo.InvariantCulture, out values[i])) return false;
         }
 
         if (coordinateOrder == "y x") {
+            if (values.Length < 2) return false;
             result = new CoordinateData(values[XIndexInYX], values[YIndexInYX], null, null);
             return true;
         }
 
         if (coordinateOrder == "y x z") {
+            if (values.Length < 2) return false;
             double zVal = values.Length > ZIndexInYXZ ? values[ZIndexInYXZ] : 0;
             result = new CoordinateData(values[XIndexInYXZ], values[YIndexInYXZ], zVal, null);
             return true;
         }
 
         if (coordinateOrder == "x y") {
+            if (values.Length < 2) return false;
             result = new CoordinateData(values[XIndexInXY], values[YIndexInXY], null, null);
             return true;
         }
 
         // Default "x z y d"
+        if (values.Length < 1) return false;
+        
         double x = values[XIndexInXZY];
         double y = DefaultY;
         double? z = null;
@@ -62,12 +69,14 @@ public static class Scrubber {
         //x z y and a possible fourth component of the direction (or facing)
         if (values.Length >= CoordinateCountForNorthUpSouth) {
             z = values[ZIndexInXZY];
+            // Safe access for YIndexInXZY (2) because values.Length >= 3
             y = values[YIndexInXZY];
             if (values.Length >= MaxCoordinateComponents) {
                 heading = values[DirectionIndexInIndexInXZYD];
             }
         }
         else if (values.Length == MinCoordinateComponents) {
+            // Safe access for YIndexInXY (1) because values.Length == 2
             y = values[YIndexInXY];
         }
 

@@ -11,7 +11,7 @@ public class HalfValueConverter : IValueConverter
         if (value is double d)
         {
             // Optionally pass a parameter to subtract an offset (e.g., "-40")
-            if (parameter != null && double.TryParse(parameter.ToString(), out double offset))
+            if (parameter != null && double.TryParse(parameter.ToString(), CultureInfo.InvariantCulture, out double offset))
             {
                 return (d / 2) + offset;
             }

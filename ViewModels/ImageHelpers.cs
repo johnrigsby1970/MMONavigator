@@ -108,13 +108,33 @@ public static class ImageHelpers {
 
     public static void SaveWriteableBitMap(string filename, BitmapSource image5)
     {
-        if (filename != string.Empty)
+        if (!string.IsNullOrEmpty(filename))
         {
-            using (FileStream stream5 = new FileStream(filename, FileMode.Create))
-            {
-                PngBitmapEncoder encoder5 = new PngBitmapEncoder();
-                encoder5.Frames.Add(BitmapFrame.Create(image5));
-                encoder5.Save(stream5);
+            try {
+                var directory = Path.GetDirectoryName(filename);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory)) {
+                    Directory.CreateDirectory(directory);
+                }
+
+                var tempFile = filename + ".tmp";
+                using (FileStream stream5 = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    PngBitmapEncoder encoder5 = new PngBitmapEncoder();
+                    encoder5.Frames.Add(BitmapFrame.Create(image5));
+                    encoder5.Save(stream5);
+                }
+
+                if (File.Exists(filename)) {
+                    File.Replace(tempFile, filename, filename + ".old");
+                    try { File.Delete(filename + ".old"); } catch { /* Ignore cleanup failure */ }
+                } else {
+                    File.Move(tempFile, filename);
+                }
+            }
+            catch (Exception ex) {
+                System.Diagnostics.Debug.WriteLine($"Error saving image to {filename}: {ex.Message}");
+                // Re-throw or handle as appropriate for the application's UX
+                throw;
             }
         }
     }

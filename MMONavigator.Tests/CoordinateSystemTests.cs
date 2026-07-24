@@ -79,7 +79,9 @@ public class CoordinateSystemTests
 
     private class MoqWatcherService : IWatcherService
     {
+#pragma warning disable CS0067
         public event EventHandler<string>? LocationUpdated;
+#pragma warning restore CS0067
         public void Start(AppSettings settings, IntPtr windowHandle) { }
         public void Stop() { }
         public void Dispose() { }

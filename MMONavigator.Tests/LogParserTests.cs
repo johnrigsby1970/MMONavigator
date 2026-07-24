@@ -92,10 +92,52 @@ public class LogParserTests
         string expected = "10 20 30 40";
 
         bool result = LogParser.TryParseLogLine(line, regexThatFails, out string coordinates);
-
         Assert.True(result);
         Assert.Equal(expected, coordinates);
     }
+
+    [Fact]
+    public void TryParseLogLine_EvilRegex_TimesOutAndUsesFallback()
+    {
+        // An "evil" regex that causes catastrophic backtracking on certain inputs
+        // Specifically, (a+)+$ on a string like "aaaaaaaaaaaaaaaaaaaaaaaaaaaa!"
+        string evilRegex = @"(a+)+$";
+        string line = "Your location is 10, 20, 30 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!";
+        string expectedFallback = "10 20 30";
+
+        bool result = LogParser.TryParseLogLine(line, evilRegex, out string coordinates);
+
+        // It should still return true because of the fallback mechanism
+        Assert.True(result);
+        Assert.Equal(expectedFallback, coordinates);
+    }
+
+    [Fact]
+    public void TryParseLogLine_EmptyLine_ReturnsFalse()
+    {
+        bool result = LogParser.TryParseLogLine("", ".*", out _);
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void TryParseLogLine_MarkerAtEnd_HandlesSafely()
+    {
+        // Marker at the very end of the line
+        string line = "Some text followed by Your Location is";
+        bool result = LogParser.TryParseLogLine(line, @"(\d+)", out _);
+        // Should not crash, and likely returns false as no coordinates follow
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void TryParseLogLine_MarkerAtEndExactly_HandlesSafely()
+    {
+        // This tests the IndexOf(..., lastIndex + 1) edge case if lastIndex + 1 == Length
+        string line = "Your Location is"; 
+        bool result = LogParser.TryParseLogLine(line, @"(\d+)", out _);
+        Assert.False(result);
+    }
+
     [Fact]
     public void TryParse_RespectsCoordinateOrder()
     {
@@ -203,7 +245,9 @@ public class LogParserTests
 
     private class MoqWatcherService : IWatcherService
     {
+#pragma warning disable CS0067
         public event EventHandler<string>? LocationUpdated;
+#pragma warning restore CS0067
         public void Start(AppSettings settings, IntPtr windowHandle) { }
         public void Stop() { }
         public void Dispose() { }

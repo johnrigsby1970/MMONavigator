@@ -618,7 +618,7 @@ public partial class EditableMapEllipse : UserControl {
     }
 
     void ApplyFontSizeInput() {
-        if (double.TryParse(FontSizeBox.Text, out double v) && v > 0)
+        if (double.TryParse(FontSizeBox.Text, System.Globalization.CultureInfo.InvariantCulture, out double v) && v > 0)
             FontSize = Math.Clamp(v, 6, 144);
         FontSizeBox.Text = ((int)FontSize).ToString();
     }

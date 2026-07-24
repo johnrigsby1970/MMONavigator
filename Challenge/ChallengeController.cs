@@ -1,4 +1,8 @@
-﻿namespace MMONavigator.Services;
+﻿using System;
+using System.Windows;
+using MMONavigator.Models;
+
+namespace MMONavigator.Services;
 
 public class ChallengeController {
     private DateTime lastTimestamp = DateTime.Now;
@@ -70,7 +74,7 @@ public class ChallengeController {
             double timeDelta = (currentTime - lastTimestamp).TotalSeconds;
 
             if (distance / timeDelta > MAX_RUN_SPEED) {
-                MessageBox.Show("Excessive displacement: Teleportation");
+                System.Windows.MessageBox.Show("Excessive displacement: Teleportation");
                 return;
             }
         }
@@ -94,6 +98,17 @@ public class ChallengeController {
     }
 
     public void ClearSystemClipboard() {
-        Clipboard.Clear();
+        try {
+            System.Windows.Clipboard.Clear();
+        }
+        catch (System.Runtime.InteropServices.COMException) {
+            // Clipboard might be locked by another process
+        }
+        catch (System.Threading.ThreadStateException) {
+            // Thread not in STA mode
+        }
+        catch (Exception) {
+            // Ignore other clipboard failures
+        }
     }
 }

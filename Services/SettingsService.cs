@@ -28,9 +28,21 @@ public class SettingsService : ISettingsService {
         try {
             if (File.Exists(_settingsPath)) {
                 var json = File.ReadAllText(_settingsPath);
-                var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
-                settings.MigrateLegacySettings();
-                return settings;
+                try {
+                    var settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                    settings.MigrateLegacySettings();
+                    return settings;
+                }
+                catch (JsonException ex) {
+                    System.Diagnostics.Debug.WriteLine($"JSON error loading settings: {ex.Message}");
+                    System.Windows.MessageBox.Show($"The settings file appears to be corrupted and could not be loaded. Default settings will be used.\n\nError: {ex.Message}", 
+                        "Settings Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    
+                    // Rename corrupted file so it doesn't keep failing and user can try to fix it
+                    try {
+                        File.Move(_settingsPath, _settingsPath + ".bak", true);
+                    } catch { /* Ignore failure to rename */ }
+                }
             }
         }
         catch (Exception ex) {
@@ -53,7 +65,9 @@ public class SettingsService : ISettingsService {
             var json = JsonSerializer.Serialize(settings);
             // If they closed while minimized, save it as 'Normal' so it's visible next time
             //clone it in case its being saved while running
+            if(string.IsNullOrWhiteSpace(json)) return;
             var clone = JsonSerializer.Deserialize<AppSettings>(json);
+            if(clone==null) return;
             if (clone.MainWindowPlacement?.State == WindowState.Minimized) {
                 clone.MainWindowPlacement.State = WindowState.Normal;
             }
@@ -63,7 +77,15 @@ public class SettingsService : ISettingsService {
             }
 
             json = JsonSerializer.Serialize(clone, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_settingsPath, json);
+            
+            // Atomic write to prevent file corruption
+            var tempPath = _settingsPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            if (File.Exists(_settingsPath)) {
+                File.Replace(tempPath, _settingsPath, _settingsPath + ".old");
+            } else {
+                File.Move(tempPath, _settingsPath);
+            }
         }
         catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
@@ -87,7 +109,18 @@ public class SettingsService : ISettingsService {
 
             if (File.Exists(_locationsPath)) {
                 var json = File.ReadAllText(_locationsPath);
-                return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
+                try {
+                    return JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
+                }
+                catch (JsonException ex) {
+                    System.Diagnostics.Debug.WriteLine($"JSON error loading locations: {ex.Message}");
+                    System.Windows.MessageBox.Show($"The locations file '{Path.GetFileName(_locationsPath)}' is corrupted and could not be loaded.\n\nError: {ex.Message}", 
+                        "Locations Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    
+                    try {
+                        File.Move(_locationsPath, _locationsPath + ".bak", true);
+                    } catch { /* Ignore */ }
+                }
             }
         }
         catch (Exception ex) {

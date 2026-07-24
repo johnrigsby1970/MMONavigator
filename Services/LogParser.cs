@@ -18,19 +18,25 @@ public static class LogParser {
 
         // 1. Try with user-defined regex on each "Your Location is" block, starting from the last one
         try {
-            var regex = new Regex(userRegex, RegexOptions.IgnoreCase);
+            var regex = new Regex(userRegex, RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(1000));
             
             // Find all indices of the marker
             var markerIndices = new List<int>();
             int lastIndex = -1;
-            while ((lastIndex = line.IndexOf(Marker, lastIndex + 1, StringComparison.OrdinalIgnoreCase)) != -1) {
+            while (lastIndex + 1 < line.Length && (lastIndex = line.IndexOf(Marker, lastIndex + 1, StringComparison.OrdinalIgnoreCase)) != -1) {
                 markerIndices.Add(lastIndex);
             }
 
             // Iterate backwards from the last marker
             for (int i = markerIndices.Count - 1; i >= 0; i--) {
                 int start = markerIndices[i];
-                int length = (i == markerIndices.Count - 1) ? line.Length - start : markerIndices[i + 1] - start;
+                int end = (i == markerIndices.Count - 1) ? line.Length : markerIndices[i + 1];
+                int length = end - start;
+                
+                if (start < 0 || start >= line.Length || length <= 0 || start + length > line.Length) {
+                    continue;
+                }
+                
                 string block = line.Substring(start, length);
 
                 var matches = regex.Matches(block);
@@ -57,7 +63,7 @@ public static class LogParser {
 
         // 2. Fallback for the default "Your location is" format
         int markerIndex = line.LastIndexOf(Marker, StringComparison.OrdinalIgnoreCase);
-        if (markerIndex >= 0) {
+        if (markerIndex >= 0 && markerIndex + Marker.Length <= line.Length) {
             string afterMarker = line.Substring(markerIndex + Marker.Length);
             var numMatches = Regex.Matches(afterMarker, @"-?\d+(?:\.\d+)?");
             if (numMatches.Count >= 2) {

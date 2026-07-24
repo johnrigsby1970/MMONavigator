@@ -34,35 +34,40 @@ public static class DragWindowBehavior {
         }
     }
 
-    private static System.Windows.Point _mouseOffset;
+    //private static System.Windows.Point _mouseOffset;
+#pragma warning disable CS0414 // Field is assigned but its value is never used
     private static bool _isDragging;
+#pragma warning restore CS0414 // Field is assigned but its value is never used
     private static System.Drawing.Point _lastMousePos;
-    private static System.Windows.Threading.DispatcherTimer _dragTimer;
+    private static System.Windows.Threading.DispatcherTimer? _dragTimer;
 
     private static void HandleMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         var element = (UIElement)sender;
         var window = Window.GetWindow(element);
-
-        _isDragging = true;
-        _lastMousePos = System.Windows.Forms.Cursor.Position;
-
-        // Create a high-frequency timer for the drag
-        _dragTimer = new System.Windows.Threading.DispatcherTimer();
-        _dragTimer.Interval = TimeSpan.FromMilliseconds(1); // Run as fast as possible
-        _dragTimer.Tick += (s, args) => PerformDrag(window);
-        _dragTimer.Start();
+        if (window != null) {
+            _isDragging = true;
+            _lastMousePos = System.Windows.Forms.Cursor.Position;
+            
+            // Create a high-frequency timer for the drag
+            _dragTimer = new System.Windows.Threading.DispatcherTimer {
+                Interval = TimeSpan.FromMilliseconds(1) // Run as fast as possible
+            };
+            _dragTimer.Tick += (s, args) => PerformDrag(window);
+            _dragTimer.Start();
+        }
     }
 
     private static void PerformDrag(Window window) {
         // If the left button is released, stop immediately
         if (System.Windows.Forms.Control.MouseButtons != System.Windows.Forms.MouseButtons.Left) {
-            _dragTimer.Stop();
+            _dragTimer?.Stop();
             return;
         }
 
         System.Drawing.Point currentMousePos = System.Windows.Forms.Cursor.Position;
 
         var source = System.Windows.PresentationSource.FromVisual(window);
+        if (source?.CompositionTarget == null) return;
         double dpiX = source.CompositionTarget.TransformToDevice.M11;
         double dpiY = source.CompositionTarget.TransformToDevice.M22;
 

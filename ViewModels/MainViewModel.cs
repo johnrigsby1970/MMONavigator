@@ -19,6 +19,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
+using System.Windows.Controls.Ribbon;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
@@ -125,9 +126,7 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
     }
-
-    private bool _isItemInListAndHasValue;
-
+    
     public bool IsItemInListAndHasValue => IsItemNotInList && !string.IsNullOrWhiteSpace(TargetCoordinates);
     
     private bool _isItemInList;
@@ -525,44 +524,96 @@ public class MainViewModel : INotifyPropertyChanged {
     public void LoadLocations() {
         var list = _settingsService.LoadLocations(Settings.SelectedProfile);
         Locations.Clear();
-        foreach (var item in list) {
-            item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
+
+        // 1. Scrub all coordinates recursively in the loaded list
+        void ProcessItems(List<LocationItem> items) {
+            foreach (var item in items) {
+                item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
+                if (item.Items != null) {
+                    ProcessItems(item.Items);
+                }
+            }
+        }
+        ProcessItems(list);
+
+        // 2. Flatten the list to get only 'leaf' locations (those that aren't folder nodes themselves)
+        // Folder nodes in the saved file are recognized by having an Items collection.
+        // We want to rebuild the hierarchy from scratch to avoid redundancy.
+        List<LocationItem> GetAllLeafLocations(IEnumerable<LocationItem> items) {
+            var leafItems = new List<LocationItem>();
+            foreach (var item in items) {
+                if (item.Items == null || item.Items.Count == 0) {
+                    // It's a location item
+                    leafItems.Add(item);
+                } else {
+                    // It's a folder node, get its children
+                    leafItems.AddRange(GetAllLeafLocations(item.Items));
+                }
+            }
+            return leafItems;
+        }
+
+        var flattenedLeafs = GetAllLeafLocations(list);
+
+        // 3. Rebuild the hierarchy based on the Header property of each leaf
+        foreach (var item in flattenedLeafs) {
             if (!string.IsNullOrWhiteSpace(item.Header)) {
-                if (Locations.Any(l => l.Header == item.Header)) {
-                    Locations.Single(l => l.Header == item.Header).Items.Add(item);
+                var group = Locations.FirstOrDefault(l => l.Header == item.Header);
+                if (group != null) {
+                    if (group.Items == null) {
+                        group.Items = new List<LocationItem>();
+                    }
+                    group.Items.Add(item);
                 }
                 else {
                     Locations.Add(new LocationItem
-                        { Header = item.Header, Name = item.Header, Items = new List<LocationItem>() { item } });
+                        { Header = item.Header, Name = item.Header, Items = new List<LocationItem> { item } });
                 }
             }
             else {
                 Locations.Add(item);
             }
         }
-        var sorted = Locations.OrderBy(l => l.Name).ToList();
-        foreach (var group in sorted.Where(x => x.Items != null).ToList()) {
-            group.Items = group.Items!.OrderBy(l => l.Name).ToList();
+        
+        // 4. Sort recursively
+        void SortItems(List<LocationItem> items) {
+            var sortedList = items.OrderBy(l => l.Name).ToList();
+            items.Clear();
+            items.AddRange(sortedList);
+            foreach (var item in items) {
+                if (item.Items != null) {
+                    SortItems(item.Items);
+                }
+            }
         }
-        Locations = new ObservableCollection<LocationItem>(sorted);
+
+        var rootSorted = Locations.OrderBy(l => l.Name).ToList();
+        foreach (var group in rootSorted.Where(x => x.Items != null)) {
+            SortItems(group.Items!);
+        }
+        
+        Locations = new ObservableCollection<LocationItem>(rootSorted);
         UpdateHasLocations();
         UpdateMapLocations();
     }
 
     public void SaveLocations() {
-        var temp = new List<LocationItem>();
-        foreach (var location in Locations) {
-            if (location.Items == null) {
-                temp.Add(location);
-            }
-            else {
-                foreach (var item in location.Items) {
-                    temp.Add(item);
+        // Flatten the locations to save only 'leaf' items.
+        // The hierarchy will be rebuilt from the 'Header' property during LoadLocations.
+        List<LocationItem> GetLeafLocations(IEnumerable<LocationItem> items) {
+            var leafs = new List<LocationItem>();
+            foreach (var item in items) {
+                if (item.Items == null || item.Items.Count == 0) {
+                    leafs.Add(item);
+                } else {
+                    leafs.AddRange(GetLeafLocations(item.Items));
                 }
             }
+            return leafs;
         }
 
-        _settingsService.SaveLocations(temp, Settings.SelectedProfile);
+        var flattened = GetLeafLocations(Locations);
+        _settingsService.SaveLocations(flattened, Settings.SelectedProfile);
     }
 
     private void AddLocation() {
@@ -570,7 +621,7 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void AddLocation(CoordinateData? customCoords) {
-        string scrubbedTarget;
+        string? scrubbedTarget;
         if (customCoords.HasValue) {
             var coords = customCoords.Value;
             if (Settings.SelectedProfile.CoordinateOrder == "y x") {
@@ -585,16 +636,29 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
         else {
-            scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
+            scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates) ? "" : Scrubber.ScrubEntry(TargetCoordinates);
         }
         
         if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
         var name = string.Empty;
         var group = string.Empty;
-        List<string> groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
-        var dialog = new DestinationDialog("", "", groups);
-        dialog.Owner = System.Windows.Application.Current.MainWindow;
+        
+        List<string> GetAllGroups(IEnumerable<LocationItem> items) {
+            var result = new List<string>();
+            foreach (var item in items) {
+                if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
+                    result.Add(item.Header);
+                    result.AddRange(GetAllGroups(item.Items));
+                }
+            }
+            return result;
+        }
+
+        List<string> groups = GetAllGroups(Locations).Distinct().ToList();
+        var dialog = new DestinationDialog("", "", groups) {
+            Owner = System.Windows.Application.Current.MainWindow
+        };
         dialog.ShowDialog(); 
 
         // Check your manual property instead of the built-in DialogResult
@@ -614,11 +678,23 @@ public class MainViewModel : INotifyPropertyChanged {
             Header = string.IsNullOrWhiteSpace(group) ? null : group,
         };
         if (!string.IsNullOrWhiteSpace(item.Header)) {
-            if (Locations.Any(l => l.Header == item.Header)) {
-                if (Locations.Single(l => l.Header == item.Header).Items == null) {
-                    Locations.Single(l => l.Header == item.Header).Items = [];
+            LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
+                foreach (var g in items) {
+                    if (g.Header == header) return g;
+                    if (g.Items != null) {
+                        var found = FindGroup(g.Items, header);
+                        if (found != null) return found;
+                    }
                 }
-                Locations.Single(l => l.Header == item.Header).Items!.Add(item);
+                return null;
+            }
+
+            var groupItem = FindGroup(Locations, item.Header);
+            if (groupItem != null) {
+                if (groupItem.Items == null) {
+                    groupItem.Items = [];
+                }
+                groupItem.Items.Add(item);
             }
             else {
                 Locations.Add(new LocationItem
@@ -632,6 +708,20 @@ public class MainViewModel : INotifyPropertyChanged {
         SelectedLocation = item;
         SaveLocations();
         LoadLocations();
+
+        // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
+        LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
+            foreach (var i in items) {
+                if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates && i.Header == target.Header) return i;
+                if (i.Items != null) {
+                    var found = FindSame(i.Items, target);
+                    if (found != null) return found;
+                }
+            }
+            return null;
+        }
+        SelectedLocation = FindSame(Locations, item);
+
         UpdateHasLocations();
         UpdateListStatus();
     }
@@ -641,7 +731,7 @@ public class MainViewModel : INotifyPropertyChanged {
 
         var name = SelectedLocation.Name;
         var group = SelectedLocation.Header;
-        var groups = Locations.Where(x => x.Items != null).Select(l => l.Header).ToList();
+        var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header)).Select(l => l.Header!).ToList();
         var dialog = new DestinationDialog(name, group, groups) {
             Owner = System.Windows.Application.Current.MainWindow
         };
@@ -661,7 +751,20 @@ public class MainViewModel : INotifyPropertyChanged {
             SaveLocations();
             LoadLocations();
             
-            TargetCoordinates = SelectedLocation.DisplayName;
+            // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
+            LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords, string? header) {
+                foreach (var i in items) {
+                    if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
+                    if (i.Items != null) {
+                        var found = FindSame(i.Items, name, coords, header);
+                        if (found != null) return found;
+                    }
+                }
+                return null;
+            }
+            SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates, dialog.Group);
+
+            TargetCoordinates = SelectedLocation?.DisplayName ?? "";
             OnPropertyChanged(nameof(TargetCoordinates));
             
             UpdateListStatus();
@@ -694,72 +797,34 @@ public class MainViewModel : INotifyPropertyChanged {
     
 
     private void RemoveLocation() {
-        var item = SelectedLocation;
-        var scrubbedTarget = string.Empty;
+        if (SelectedLocation == null) return;
 
-        if (item == null) {
-            scrubbedTarget = Scrubber.ScrubEntry(TargetCoordinates);
-        }
-        else {
-            scrubbedTarget = item.ScrubbedCoordinates;
-        }
+        var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{SelectedLocation.DisplayName}'?",
+            "Remove Location", MessageBoxButton.YesNo);
+        if (result != MessageBoxResult.Yes) return;
 
-        if (item != null) {
-            item = Locations.Where(x => x.Items == null).FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
-
-            if (item != null) {
-                var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
-                    "Remove Location", MessageBoxButton.YesNo);
-                if (result == MessageBoxResult.Yes) {
-                    Locations.Remove(item);
-                    SelectedLocation = null;
-                    TargetCoordinates = "";
-                    OnPropertyChanged(nameof(SelectedLocation));
-                    OnPropertyChanged(nameof(TargetCoordinates));
-                    SaveLocations();
-                    LoadLocations();
-                    UpdateHasLocations();
-                    UpdateListStatus();
-                }
-
-                return;
-            }
-
-            item = Locations.Where(x => x.Items != null).SelectMany(y => y.Items!)
-                .FirstOrDefault(l => l.ScrubbedCoordinates == scrubbedTarget);
-
-            if (item != null) {
-                var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{item.DisplayName}'?",
-                    "Remove Location", MessageBoxButton.YesNo);
-                if (result == MessageBoxResult.Yes) {
-                    foreach (var location in Locations.Where(x => x.Items == null)) {
-                        if (location == item) {
-                            Locations.Where(x => x.Items == null).ToList().Remove(location);
-                        }
+        bool RemoveRecursive(IList<LocationItem> items, LocationItem target) {
+            if (items.Remove(target)) return true;
+            foreach (var item in items) {
+                if (item.Items != null && RemoveRecursive(item.Items, target)) {
+                    if (item.Items.Count == 0) {
+                        items.Remove(item);
                     }
-
-                    foreach (var group in Locations.Where(x => x.Items != null).ToList()) {
-                        foreach (var location in group.Items!.ToList()) {
-                            if (item == location) {
-                                group.Items!.Remove(location);
-                            }
-                        }
-
-                        if (group.Items!.Count == 0) {
-                            Locations.Where(x => x.Items != null).ToList().Remove(group);
-                        }
-                    }
-
-                    SelectedLocation = null;
-                    TargetCoordinates = "";
-                    OnPropertyChanged(nameof(SelectedLocation));
-                    OnPropertyChanged(nameof(TargetCoordinates));
-                    SaveLocations();
-                    LoadLocations();
-                    UpdateHasLocations();
-                    UpdateListStatus();
+                    return true;
                 }
             }
+            return false;
+        }
+
+        if (RemoveRecursive(Locations, SelectedLocation)) {
+            SelectedLocation = null;
+            TargetCoordinates = "";
+            OnPropertyChanged(nameof(SelectedLocation));
+            OnPropertyChanged(nameof(TargetCoordinates));
+            SaveLocations();
+            LoadLocations();
+            UpdateHasLocations();
+            UpdateListStatus();
         }
     }
 

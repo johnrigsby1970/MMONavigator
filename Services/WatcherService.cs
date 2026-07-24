@@ -56,6 +56,9 @@ public class WatcherService : IWatcherService {
         catch (COMException) {
             // Clipboard might be locked by another process
         }
+        catch (ThreadStateException) {
+            // Thread not in STA mode
+        }
         catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"Error processing clipboard: {ex.Message}");
         }
@@ -68,8 +71,16 @@ public class WatcherService : IWatcherService {
         }
 
         try {
-            var directory = Path.GetDirectoryName(_settings.SelectedProfile.LogFilePath);
-            var fileName = Path.GetFileName(_settings.SelectedProfile.LogFilePath);
+            var fullPath = _settings.SelectedProfile.LogFilePath;
+            
+            // Basic path validation
+            if (fullPath.Length >= 260) {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Log file path is too long: {fullPath}");
+                return;
+            }
+
+            var directory = Path.GetDirectoryName(fullPath);
+            var fileName = Path.GetFileName(fullPath);
 
             if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName)) {
                 System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid path or filename: {directory} / {fileName}");
@@ -78,6 +89,8 @@ public class WatcherService : IWatcherService {
 
             if (!Directory.Exists(directory)) {
                 System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Directory does not exist: {directory}");
+                // We don't create the game's log directory, but we should be ready if it appears
+                // FileSystemWatcher can only be created for an existing directory.
                 return;
             }
 
@@ -87,10 +100,19 @@ public class WatcherService : IWatcherService {
             _fileWatcher.Created += OnFileChanged;
             _fileWatcher.Deleted += OnFileDeleted;
             _fileWatcher.Renamed += (s, e) => OnFileChanged(s, e);
+            _fileWatcher.Error += (s, e) => {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher error: {e.GetException().Message}");
+            };
             _fileWatcher.EnableRaisingEvents = true;
 
             InitializeFilePosition();
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher setup for: {_settings.SelectedProfile.LogFilePath}");
+            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher setup for: {fullPath}");
+        }
+        catch (UnauthorizedAccessException) {
+            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Access denied to log directory.");
+        }
+        catch (ArgumentException ex) {
+            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid log path argument: {ex.Message}");
         }
         catch (Exception ex) {
             System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Error setting up file watcher: {ex.Message}");
@@ -100,12 +122,22 @@ public class WatcherService : IWatcherService {
     private void InitializeFilePosition() {
         if (_settings == null) return;
         lock (_fileLock) {
-            if (File.Exists(_settings.SelectedProfile.LogFilePath)) {
-                using (var stream = new FileStream(_settings.SelectedProfile.LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                    _lastFilePosition = stream.Length;
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Initial file position: {_lastFilePosition}");
+            try {
+                if (File.Exists(_settings.SelectedProfile.LogFilePath)) {
+                    using (var stream = new FileStream(_settings.SelectedProfile.LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                        _lastFilePosition = stream.Length;
+                        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Initial file position: {_lastFilePosition}");
+                    }
+                } else {
+                    _lastFilePosition = 0;
                 }
-            } else {
+            }
+            catch (IOException ex) {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] IOException during initialization: {ex.Message}");
+                _lastFilePosition = 0;
+            }
+            catch (UnauthorizedAccessException) {
+                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Access denied during initialization.");
                 _lastFilePosition = 0;
             }
         }

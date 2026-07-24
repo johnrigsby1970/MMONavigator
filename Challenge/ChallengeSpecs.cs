@@ -2,7 +2,7 @@
 
 public class ChallengeSpecs {
     public string? ParentId { get; set; }
-    public string LocationId { get; set; }
+    public required string LocationId { get; set; }
     public int? OrderNumber { get; set; }
     public bool IsOrdered { get; set; }
     public List<string> PreRequisites { get; set; } = [];

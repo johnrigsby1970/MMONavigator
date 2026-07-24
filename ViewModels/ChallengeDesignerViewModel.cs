@@ -10,6 +10,13 @@ using MMONavigator.Services;
 namespace MMONavigator.ViewModels;
 
 public class ChallengeDesignerViewModel : INotifyPropertyChanged {
+    private ChallengeOverview? _challengeOVerview;
+    public ChallengeOverview? ChallengeOverview {
+        get => _challengeOVerview;
+        set {
+            SetField(ref _challengeOVerview, value);
+        }
+    }
 
     // ── Tree ────────────────────────────────────────────────────────────────
     public ObservableCollection<ChallengeNodeViewModel> RootNodes { get; set; } = [];
@@ -94,9 +101,14 @@ public class ChallengeDesignerViewModel : INotifyPropertyChanged {
             
             if (openFileDialog.ShowDialog() == true) {
                 CurrentFileName = openFileDialog.FileName;
-                var json = File.ReadAllText(CurrentFileName);
-                var tempList = JsonSerializer.Deserialize<List<ChallengeNodeViewModel>>(json);
-                RootNodes = new ObservableCollection<ChallengeNodeViewModel>(tempList);
+                if (!string.IsNullOrWhiteSpace(CurrentFileName)) {
+                    var json = File.ReadAllText(CurrentFileName);
+                    var tempList = JsonSerializer.Deserialize<List<ChallengeNodeViewModel>>(json);
+                    if (tempList != null) {
+                        RootNodes = new ObservableCollection<ChallengeNodeViewModel>(tempList);
+                    }
+                }
+
                 RefreshNodeCount();
             }
             StatusMessage = "Challenge design file opened.";
@@ -111,16 +123,24 @@ public class ChallengeDesignerViewModel : INotifyPropertyChanged {
             var dialog = new Microsoft.Win32.SaveFileDialog {
                 Title = "Download Selected File",
                 InitialDirectory = Path.Combine(Helpers.NativeMethods.AppFolder(), "challenges"),
-                FileName = Path.GetFileName(CurrentFileName), // Default file name
                 DefaultDirectory =  Path.Combine(Helpers.NativeMethods.AppFolder(), "challenges"),
                 DefaultExt = ".qst", // Default file extension
                 Filter = "Challenge files (*.qst;*.json)|*.qst;*.json|All files (*.*)|*.*" // Filter files by extension
             };
+
+            if (!string.IsNullOrWhiteSpace(CurrentFileName) ) {
+                var currentFileName = Path.GetFileName(CurrentFileName);
+                if (!string.IsNullOrWhiteSpace(currentFileName) ) {
+                    dialog.FileName = currentFileName;// Default file name
+                }
+            }
             
             if (dialog.ShowDialog() == true) {
                 var filename = dialog.FileName;
-                var json = JsonSerializer.Serialize<List<ChallengeNodeViewModel>>(RootNodes.ToList());
-                File.WriteAllText(filename, json);
+                if (!string.IsNullOrEmpty(filename)) {
+                    var json = JsonSerializer.Serialize<List<ChallengeNodeViewModel>>(RootNodes.ToList());
+                    File.WriteAllText(filename, json);
+                }
             }
             StatusMessage = "Challenge design file saved.";
         }

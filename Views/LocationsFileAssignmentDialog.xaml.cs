@@ -9,10 +9,11 @@ using System.Windows.Interop;
 using MMONavigator.Controls;
 using MMONavigator.Models;
 using MMONavigator.Services;
+using MessageBox = System.Windows.Forms.MessageBox;
 
 namespace MMONavigator.Views;
 
-public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropertyChanged {
+public partial class LocationsFileAssignmentDialog : ChildWindow {
     public LocationsFileAssignmentDialog(GameProfile profile) {
         InitializeComponent();
         DataContext = this;
@@ -72,7 +73,7 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
 
     private void OpenFileButton_Click(object sender, RoutedEventArgs e) {
         IsDialogActive = true;
-        Window helperWindow = null;
+        Window? helperWindow = null;
 
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
@@ -84,7 +85,7 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
                 DefaultExt = ".json", // Default file extension
                 Filter = "Locations (*.json)|*.json;|All files (*.*)|*.*" // Filter files by extension
             };
-            
+
             // Use the native interop handle to ensure the dialog 
             // feels 'attached' to the helper
             var helper = new WindowInteropHelper(helperWindow);
@@ -131,11 +132,11 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
         if (string.IsNullOrWhiteSpace(LocationsPath)) return;
 
         IsDialogActive = true;
-        Window helperWindow = null;
-        
+        Window? helperWindow = null;
+
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
-            
+
             // Configure open file dialog box
             var dialog = new Microsoft.Win32.SaveFileDialog {
                 Title = "Download Selected File",
@@ -148,7 +149,7 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
             // Use the native interop handle to ensure the dialog 
             // feels 'attached' to the helper
             var helper = new WindowInteropHelper(helperWindow);
-            
+
             // Show the open file dialog box
             var result = dialog.ShowDialog();
 
@@ -178,7 +179,8 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
             LocationsPath = Path.Combine(Helpers.NativeMethods.AppFolder(), "locations.json");
         }
 
-        var message = $"Use the locations stored in '{LocationsPath}'.\r\n\r\nDo you want to use the locations stored in this file?";
+        var message =
+            $"Use the locations stored in '{LocationsPath}'.\r\n\r\nDo you want to use the locations stored in this file?";
         const string caption = "Confirm File Assignment";
         const MessageBoxButton buttons = MessageBoxButton.YesNo;
         const MessageBoxImage icon = MessageBoxImage.Question;
@@ -211,46 +213,52 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
         LocationsPath = path;
 
         if (!File.Exists(path)) return;
-        
-        var json = File.ReadAllText(path);
-        var list = JsonSerializer.Deserialize<List<LocationItem>>(json) ?? new List<LocationItem>();
 
-        Locations.Clear();
-        foreach (var item in list) {
-            item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
-            if (!string.IsNullOrWhiteSpace(item.Header)) {
-                if (Locations.Any(l => l.Header == item.Header)) {
-                    if (Locations.Single(l => l.Header == item.Header).Items == null) {
-                        Locations.Single(l => l.Header == item.Header).Items = new List<LocationItem>();
+        try {
+            var json = File.ReadAllText(path);
+            var list = JsonSerializer.Deserialize<List<LocationItem>>(json);
+            if (list == null) {
+                list = new List<LocationItem>();
+            }
+
+            Locations.Clear();
+            foreach (var item in list) {
+                item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
+                if (!string.IsNullOrWhiteSpace(item.Header)) {
+                    if (Locations.Any(l => l.Header == item.Header)) {
+                        if (Locations.Single(l => l.Header == item.Header).Items == null) {
+                            Locations.Single(l => l.Header == item.Header).Items = new List<LocationItem>();
+                        }
+
+                        Locations.Single(l => l.Header == item.Header).Items!.Add(item);
                     }
-
-                    Locations.Single(l => l.Header == item.Header).Items!.Add(item);
+                    else {
+                        Locations.Add(new LocationItem
+                            { Header = item.Header, Name = item.Header, Items = new List<LocationItem>() { item } });
+                    }
                 }
                 else {
-                    Locations.Add(new LocationItem
-                        { Header = item.Header, Name = item.Header, Items = new List<LocationItem>() { item } });
+                    Locations.Add(item);
                 }
             }
-            else {
-                Locations.Add(item);
-            }
-        }
 
-        OnPropertyChanged(nameof(LocationsPath));
-        OnPropertyChanged(nameof(Locations));
+            OnPropertyChanged(nameof(LocationsPath));
+            OnPropertyChanged(nameof(Locations));
+        }
+        catch (Exception ex) {
+            MessageBox.Show($"Error loading locations: {ex.Message}. Make sure you are picking a file that contains locations originally created by this program.");
+        }
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) {
         //See notes.txt
         IsConfirmed = true;
         ManualDialogResult = true;
-        Hide(); 
-        
+        Hide();
+
         // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
+        Dispatcher.BeginInvoke(new Action(() => { Close(); }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
     public bool IsConfirmed { get; private set; }
@@ -259,25 +267,11 @@ public partial class LocationsFileAssignmentDialog : ChildWindow, INotifyPropert
         //See notes.txt
         IsConfirmed = false;
         ManualDialogResult = false;
-        Hide(); 
+        Hide();
 
         // Close the window after a tiny delay so the UI loop finishes 
         // processing the 'Hide' message before the OS-level 'Close' message.
-        Dispatcher.BeginInvoke(new Action(() => {
-            Close();
-        }), System.Windows.Threading.DispatcherPriority.Background);
+        Dispatcher.BeginInvoke(new Action(() => { Close(); }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
 }

@@ -9,7 +9,7 @@ using MMONavigator.Models;
 
 namespace MMONavigator.Views;
 
-public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyChanged {
+public partial class WatcherConfigurationDialog : ChildWindow {
     private readonly AppSettings _settings;
     private GameProfile? _currentProfile;
     private bool _isUpdatingUI;
@@ -291,7 +291,7 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e) {
         IsDialogActive = true;
-        Window helperWindow = null;
+        Window? helperWindow = null;
         
         try {
             ConfigureDialogToHaveAValidOwner(this, out helperWindow);
@@ -371,16 +371,4 @@ public partial class WatcherConfigurationDialog : ChildWindow, INotifyPropertyCh
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
 }

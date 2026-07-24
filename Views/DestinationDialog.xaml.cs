@@ -6,7 +6,7 @@ using MMONavigator.Controls;
 
 namespace MMONavigator.Views;
 
-public sealed partial class DestinationDialog : ChildWindow, INotifyPropertyChanged {
+public sealed partial class DestinationDialog : ChildWindow {
     public string Answer => InputTextBox.Text;
     public string Group => GroupTextBox.Text;
 
@@ -27,14 +27,14 @@ public sealed partial class DestinationDialog : ChildWindow, INotifyPropertyChan
         InputTextBox.SelectAll();
     }
 
-    private ObservableCollection<string> _groups;
-    public ObservableCollection<string> Groups {
+    private ObservableCollection<string>? _groups;
+    public ObservableCollection<string>? Groups {
         get => _groups;
         set => SetField(ref _groups, value);
     }
     
-    private string _selectedGroup;
-    public string SelectedGroup {
+    private string? _selectedGroup;
+    public string? SelectedGroup {
         get => _selectedGroup;
         set => SetField(ref _selectedGroup, value);
     }
@@ -67,16 +67,4 @@ public sealed partial class DestinationDialog : ChildWindow, INotifyPropertyChan
         }), System.Windows.Threading.DispatcherPriority.Background);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
 }

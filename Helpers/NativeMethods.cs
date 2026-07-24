@@ -82,9 +82,21 @@ public static class NativeMethods {
     }
     
     public static string AppFolder() {
-        string exePath = Process.GetCurrentProcess().MainModule.FileName;
-        string exeFolder = Path.GetDirectoryName(exePath);   
-        return exeFolder;
+        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        string folder = Path.Combine(appData, "MMONavigator");
+        if (!Directory.Exists(folder)) {
+            Directory.CreateDirectory(folder);
+        }
+        return folder;
+    }
+    
+    public static string BaseFolder() {
+        string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+        if (string.IsNullOrEmpty(exePath)) {
+            return AppDomain.CurrentDomain.BaseDirectory;
+        }
+        string? exeFolder = Path.GetDirectoryName(exePath);
+        return exeFolder ?? AppDomain.CurrentDomain.BaseDirectory;
     }
     
     public static void SetClickThrough(IntPtr hwnd, bool isClickThrough)

@@ -122,8 +122,8 @@ public static class DrawMapHelpers {
                                             args.BoxBorderColor != System.Windows.Media.Colors.Transparent;
 
                     if (shouldDrawBackground || shouldDrawBorder) {
-                        GraphicsPath bgPath = null;
-                        GraphicsPath borderPath = null;
+                        GraphicsPath? bgPath = null;
+                        GraphicsPath? borderPath = null;
 
                         if (hasRoundedCorners) {
                             bgPath = GetRoundedRectPath(boxBounds, args.CornerRadius);
@@ -138,7 +138,9 @@ public static class DrawMapHelpers {
 
                                 using (System.Drawing.Brush bgBrush = new SolidBrush(gdiBgColor)) {
                                     if (hasRoundedCorners) {
-                                        g.FillPath(bgBrush, bgPath);
+                                        if (bgPath != null) {
+                                            g.FillPath(bgBrush, bgPath);
+                                        }
                                     }
                                     else {
                                         g.FillRectangle(bgBrush, boxBounds);

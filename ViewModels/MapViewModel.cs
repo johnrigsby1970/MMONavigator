@@ -884,6 +884,14 @@ public class MapViewModel : INotifyPropertyChanged {
                     calibrated = true;
                 }
             }
+            catch (JsonException jex) {
+                Debug.WriteLine($"JSON error loading map config: {jex.Message}");
+                System.Windows.MessageBox.Show($"The map configuration file for '{Path.GetFileName(imagePath)}' is corrupted and could not be loaded. It will be recalibrated.\n\nError: {jex.Message}", 
+                    "Map Configuration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Settings.ImagePath = imagePath;
+                Settings.IsCalibrated = false;
+                calibrated = false;
+            }
             catch (Exception ex) {
                 Debug.WriteLine($"Error loading map image config: {ex.Message}");
                 Settings.ImagePath = imagePath;
@@ -1248,6 +1256,13 @@ public class MapViewModel : INotifyPropertyChanged {
             }
 
             double scale = dPixel / dReal;
+
+            // Apply a safe limit to the scale factor to prevent WPF layout overflows
+            // A scale of 10,000 pixels per game unit is extremely high and should be sufficient.
+            if (scale > 10000) {
+                return (0, 0, Visibility.Collapsed);
+            }
+
             double angleReal = Math.Atan2(dy, dx);
             double anglePixel = Math.Atan2(dpy, dpx);
             double rotation = anglePixel - angleReal;
@@ -1389,6 +1404,14 @@ public class MapViewModel : INotifyPropertyChanged {
             }
 
             double scale = dReal / dPixel;
+
+            // Apply a safe limit to the scale factor. 
+            // 10,000 game units per pixel is extremely large (one pixel jump = 10km).
+            if (scale > 10000) {
+                HoverCoordinatesLabel = string.Empty;
+                return;
+            }
+
             double angleReal = Math.Atan2(dy, dx);
             double anglePixel = Math.Atan2(dpy, dpx);
             double rotation = angleReal - anglePixel;
@@ -1452,6 +1475,12 @@ public class MapViewModel : INotifyPropertyChanged {
             }
 
             double scale = dReal / dPixel;
+
+            // Apply a safe limit to the scale factor.
+            if (scale > 10000) {
+                return null;
+            }
+
             double angleReal = Math.Atan2(dy, dx);
             double anglePixel = Math.Atan2(dpy, dpx);
             double rotation = angleReal - anglePixel;
@@ -1504,9 +1533,9 @@ public class MapViewModel : INotifyPropertyChanged {
         }
     }
     
-    public void SaveMapImage()
-    {
-        string originalPath = Settings.ImagePath;
+    public void SaveMapImage() {
+        if (Settings == null || !string.IsNullOrWhiteSpace( Settings.ImagePath)) return;
+        string originalPath = Settings.ImagePath!;
     
         if (File.Exists(originalPath))
         {
@@ -1577,8 +1606,10 @@ public class MapViewModel : INotifyPropertyChanged {
             CreateNewDrawMap(imagePath);
             _drawModeNeedsCalibration = true;
         }
-        
-        BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(MapImage);
+
+        if (MapImage != null) {
+            BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(MapImage);
+        }
 
         IsDrawModeActive = true;
         StartDrawAutoSave();
@@ -1613,10 +1644,20 @@ public class MapViewModel : INotifyPropertyChanged {
             if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
             var configPath = Path.Combine(mapsDir,
                 Path.GetFileNameWithoutExtension(_settings.ImagePath) + ".json");
-            File.WriteAllText(configPath, JsonSerializer.Serialize(_settings));
+            
+            var json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
+            
+            // Atomic write for map configuration
+            var tempPath = configPath + ".tmp";
+            File.WriteAllText(tempPath, json);
+            if (File.Exists(configPath)) {
+                File.Replace(tempPath, configPath, configPath + ".old");
+            } else {
+                File.Move(tempPath, configPath);
+            }
         }
         catch (Exception ex) {
-            Logger.LogError("Error saving draw map", ex);
+            Debug.WriteLine($"Error saving draw map: {ex.Message}");
         }
     }
 
