@@ -1,79 +1,81 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Threading;
 using MMONavigator.Controls;
 
 namespace MMONavigator.Views;
 
 public sealed partial class DestinationDialog : ChildWindow {
-    public string Answer => InputTextBox.Text;
-    public string Group => GroupTextBox.Text;
-
-    public DestinationDialog(string? defaultAnswer = "", string? defaultGroup = "", List<string>? groups = null) {
-        InitializeComponent();
-        DataContext = this;
-        InputTextBox.Text = defaultAnswer ?? "";
-        GroupTextBox.Text = defaultGroup;
-
-        Groups = new ObservableCollection<string>();
-        if (groups != null) {
-            foreach (var group in groups) {
-                Groups.Add(group);
-            }
-        }
-
-        InputTextBox.Focus();
-        InputTextBox.SelectAll();
-    }
+    public string Answer => InputTextBox?.Text ?? string.Empty;
+    public string Group => GroupTextBox?.Text ?? string.Empty;
 
     private ObservableCollection<string>? _groups;
-
     public ObservableCollection<string>? Groups {
         get => _groups;
         set => SetField(ref _groups, value);
     }
 
     private string? _selectedGroup;
-
     public string? SelectedGroup {
         get => _selectedGroup;
         set => SetField(ref _selectedGroup, value);
     }
+    
+    public DestinationDialog(string? defaultAnswer = "", string? defaultGroup = "", List<string>? groups = null) {
+        InitializeComponent();
+        DataContext = this;
 
-    public bool IsConfirmed { get; private set; }
+        InputTextBox.Text = defaultAnswer ?? string.Empty;
+        GroupTextBox.Text = defaultGroup ?? string.Empty;
+
+        Groups = groups != null 
+            ? new ObservableCollection<string>(groups) 
+            : new ObservableCollection<string>();
+
+        // Defer focus and text selection until the control layout pass completes
+        Loaded -= OnDialogLoaded;
+        Loaded += OnDialogLoaded;
+    }
+
+    private void OnDialogLoaded(object sender, RoutedEventArgs e) {
+        Loaded -= OnDialogLoaded;
+
+        try {
+            Dispatcher.BeginInvoke(new Action(() => {
+                InputTextBox.Focus();
+                InputTextBox.SelectAll();
+            }), DispatcherPriority.Loaded);
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Failed to set focus on InputTextBox during DestinationDialog load.");
+        }
+    }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) {
         try {
-            //See notes.txt
             IsConfirmed = true;
             ManualDialogResult = true;
-            Hide();
-
-            // Close the window after a tiny delay so the UI loop finishes 
-            // processing the 'Hide' message before the OS-level 'Close' message.
-            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
-                System.Windows.Threading.DispatcherPriority.Background);
+            
+            // Inherited from ChildWindow
+            SafeCloseDialog();
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]OkButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error handling OkButton_Click in DestinationDialog.");
         }
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
         try {
-            //See notes.txt
             IsConfirmed = false;
             ManualDialogResult = false;
-            Hide();
-
-            // Close the window after a tiny delay so the UI loop finishes 
-            // processing the 'Hide' message before the OS-level 'Close' message.
-            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
-                System.Windows.Threading.DispatcherPriority.Background);
+            
+            // Inherited from ChildWindow
+            SafeCloseDialog();
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]CancelButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error handling CancelButton_Click in DestinationDialog.");
         }
     }
 }

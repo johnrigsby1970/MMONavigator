@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using MMONavigator.ViewModels;
 
 namespace MMONavigator.Views;
@@ -17,6 +16,7 @@ public partial class ChallengeDesignerWindow : Window {
             ViewModel.SelectedNode = e.NewValue as ChallengeNodeViewModel;
         }
         catch (Exception ex) {
+            Log.Error(ex, "Failed to set SelectedNode in ChallengeTree for value {NewValue}", e.NewValue);
             System.Diagnostics.Debug.WriteLine(
                 $"[DEBUG_LOG]ChallengeTree_SelectedItemChanged error: {ex.Message}");
         }

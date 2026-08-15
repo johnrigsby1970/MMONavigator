@@ -132,6 +132,8 @@ public static class ImageHelpers {
                 }
             }
             catch (Exception ex) {
+                Log.Information("Initialization wizard cancelled. Shutting down.");
+
                 System.Diagnostics.Debug.WriteLine($"Error saving image to {filename}: {ex.Message}");
                 // Re-throw or handle as appropriate for the application's UX
                 throw;

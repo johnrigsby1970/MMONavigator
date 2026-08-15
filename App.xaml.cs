@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using System.IO;
 using System.Windows;
-using System.Windows.Threading;
 using MMONavigator.Helpers;
+using Serilog.Events;
+using MessageBox = System.Windows.MessageBox;
 
 namespace MMONavigator;
 
@@ -25,102 +25,141 @@ namespace MMONavigator;
 /// Interaction logic for App.xaml
 /// </summary>
 public partial class App : System.Windows.Application {
-    
     protected override void OnStartup(StartupEventArgs e) {
-        // Migrate data from installation folder to AppData if needed
-        MigrateData();
-
-        // Disable hardware acceleration for this process
-        System.Windows.Media.RenderOptions.ProcessRenderMode = 
-            System.Windows.Interop.RenderMode.SoftwareOnly;
-        
         base.OnStartup(e);
         
-        // 1. Catches unhandled exceptions on the main UI thread
-        this.DispatcherUnhandledException += App_DispatcherUnhandledException;
-
-        // 2. Catches unhandled exceptions on background worker/Task threads
-        AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-
-        // 3. Catches unhandled exceptions in unobserved async Tasks
-        TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
-    }
-
-    private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
-    {
-        LogCrash(e.Exception);
+        // 1. Initialize Sentry FIRST so it catches any startup failures
+        SentrySdk.Init(o =>
+        {
+            o.Dsn = "https://7e437a24c753c741be86020237e35c01@o4511910567149568.ingest.us.sentry.io/4511910578683904";
         
-        // Prevent the app from crashing!
-        e.Handled = true;
+            // Essential for WPF / desktop applications
+            o.IsGlobalModeEnabled = true;
 
-        System.Windows.MessageBox.Show("An unexpected error occurred, but the app recovered. Check the crash log for details.", 
-            "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            o.SampleRate = 1.0f;        // Capture 100% of crashes
+            o.TracesSampleRate = 0.0;   // Disable performance tracing (focused purely on crashes)
+
+#if DEBUG
+        o.Debug = true;
+        o.Environment = "development";
+#else
+            o.Debug = false;
+            o.Environment = "production";
+#endif
+        });
+        
+        // 1. Initialize logging first
+        LogConfig.Initialize();
+
+        Log.Write(LogEventLevel.Debug, "Hello Sentry");
+        
+        
+        // 2. Wire up global exception safety nets
+        SetupGlobalExceptionHandling();
+        
+        // 3. Log session startup details
+        Log.Information("{AppName} session started. OS: {OSVersion}, Version: {AppVersion}", 
+            Constants.AppName,
+            Environment.OSVersion, 
+            System.Reflection.Assembly.GetExecutingAssembly().GetName().Version);
+        
+        // 4. Run directory migration
+        Methods.MigrateAppDataIfNeeded(); 
     }
 
-    private void CurrentDomain_UnhandledException(object? sender, UnhandledExceptionEventArgs e)
-    {
-        if (e.ExceptionObject is Exception ex)
-        {
-            LogCrash(ex);
-        }
-    }
-
-    private void TaskScheduler_UnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        LogCrash(e.Exception);
-        e.SetObserved(); // Prevents process termination on older framework behavior
-    }
-
-    private void LogCrash(Exception ex)
-    {
-        try
-        {
-            string logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "YourAppName", "crash_log.txt");
-            Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
-            File.AppendAllText(logPath, $"[{DateTime.Now}] {ex}\n\n");
-        }
-        catch { /* Fallback if logging fails */ }
+    protected override void OnExit(ExitEventArgs e) {
+        Log.Information("{AppName} shutting down normally.", Constants.AppName);
+        Log.CloseAndFlush();
+        base.OnExit(e);
     }
     
-    private void MigrateData() {
+    /// <summary>
+    /// Forcibly re-enables MainWindow at the Win32 level if a modal crash left it disabled.
+    /// </summary>
+    public static void ForceUnlockMainWindow() {
         try {
-            string source = NativeMethods.BaseFolder();
-            string destination = NativeMethods.AppFolder();
+            if (Current.MainWindow != null) {
+                var helper = new System.Windows.Interop.WindowInteropHelper(Current.MainWindow);
+                if (helper.Handle != IntPtr.Zero) {
+                    // 1. Re-enable Win32 mouse/keyboard input to MainWindow
+                    NativeMethods.EnableWindow(helper.Handle, true);
 
-            if (source == destination) return;
-
-            string[] filesToMigrate = { "settings.json", "locations.json" };
-            foreach (string fileName in filesToMigrate) {
-                string sourceFile = Path.Combine(source, fileName);
-                string destFile = Path.Combine(destination, fileName);
-
-                if (File.Exists(sourceFile) && !File.Exists(destFile)) {
-                    File.Copy(sourceFile, destFile);
-                }
-            }
-
-            // Migrate folders
-            string[] foldersToMigrate = { "maps", "challenges" };
-            foreach (string folderName in foldersToMigrate) {
-                string sourceDir = Path.Combine(source, folderName);
-                string destDir = Path.Combine(destination, folderName);
-
-                if (Directory.Exists(sourceDir)) {
-                    if (!Directory.Exists(destDir)) {
-                        Directory.CreateDirectory(destDir);
-                    }
-
-                    foreach (string file in Directory.GetFiles(sourceDir)) {
-                        string destFile = Path.Combine(destDir, Path.GetFileName(file));
-                        if (!File.Exists(destFile)) {
-                            File.Copy(file, destFile);
-                        }
-                    }
+                    // 2. Force MainWindow to the foreground
+                    NativeMethods.SetForegroundWindow(helper.Handle);
+                    
+                    // 3. Ensure Topmost status is reapplied if needed
+                    Current.MainWindow.Topmost = true;
                 }
             }
         }
-        catch {
-            // Best effort migration
+        catch (Exception ex) {
+            Log.Error(ex, "Error in ForceUnlockMainWindow during emergency recovery.");
         }
+    }
+    
+    private void SetupGlobalExceptionHandling() {
+        // 1. Unhandled WPF UI Thread Exceptions (App stays alive)
+        DispatcherUnhandledException += (s, e) => {
+            // SPECIAL CASE: Check if the crash happened during modal/dialog teardown
+            if (e.Exception is NullReferenceException && e.Exception.StackTrace?.Contains("DoDialogHide") == true) {
+                Log.Error(e.Exception, "Caught modal DoDialogHide crash! Forcibly unlocking MainWindow.");
+
+                // Recover MainWindow input state so the app doesn't freeze in a beep loop
+                ForceUnlockMainWindow();
+
+                // Mark exception as handled silently without showing a MessageBox
+                e.Handled = true;
+                return;
+            }
+
+            // GENERAL CASE: Standard unhandled UI exceptions
+            Log.Error(e.Exception, "Unhandled UI dispatcher exception.");
+
+            // Do NOT call Log.CloseAndFlush() here because e.Handled = true keeps Serilog running!
+            MessageBox.Show(
+                $"An unexpected UI error occurred: {e.Exception?.Message ?? "Unknown error"}",
+                "Unexpected Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error
+            );
+
+            // Keep app alive for recoverable UI errors
+            e.Handled = true;
+        };
+
+        // 2. Critical AppDomain / Non-UI Thread Crashes (App WILL terminate)
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => {
+            var ex = e.ExceptionObject as Exception;
+            string errorDetails = ex?.ToString() ?? e.ExceptionObject?.ToString() ?? "Unknown exception";
+
+            Log.Fatal(ex, "Unhandled AppDomain exception. Terminating: {IsTerminating}. Details: {Details}",
+                e.IsTerminating, errorDetails);
+
+            // Synchronously flush Serilog because process termination is imminent
+            Log.CloseAndFlush();
+
+            if (e.IsTerminating) {
+                string userMessage =
+                    $"A critical error occurred and the application must close:\n\n{ex?.Message ?? "Unknown error"}";
+
+                // Safely show dialog on UI Thread if coming from a background thread
+                if (Current != null && Current.Dispatcher.CheckAccess() == false) {
+                    Current.Dispatcher.Invoke(() => {
+                        MessageBox.Show(userMessage, "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
+                else {
+                    MessageBox.Show(userMessage, "Critical Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        };
+
+        // 3. Unobserved Async Task Exceptions
+        TaskScheduler.UnobservedTaskException += (s, e) => {
+            Log.Error(e.Exception, "Unobserved task exception caught.");
+
+            // Prevent background task failures from tearing down process
+            e.SetObserved();
+        };
     }
 }

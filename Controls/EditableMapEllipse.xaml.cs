@@ -4,15 +4,15 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using MMONavigator.Helpers;
 using MMONavigator.Models;
 using Color = System.Windows.Media.Color;
+using FontFamily = System.Windows.Media.FontFamily;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
 using UserControl = System.Windows.Controls.UserControl;
-using FontFamily = System.Windows.Media.FontFamily;
-using MMONavigator.Helpers;
 
 namespace MMONavigator.Controls;
 
@@ -67,11 +67,15 @@ public partial class EditableMapEllipse : UserControl {
 
     public EditableMapEllipse() {
         InitializeComponent();
-        SizeChanged += (_, _) => UpdateHandlePositions();
+        SizeChanged -= OnControlSizeChanged;
+        SizeChanged += OnControlSizeChanged;
+        Loaded -= OnLoaded;
         Loaded += OnLoaded;
         State = EditableMapTextState.Edit;
     }
-
+    private void OnControlSizeChanged(object sender, SizeChangedEventArgs e) {
+        UpdateHandlePositions();
+    }
     // ═════════════════════════════════════════════════════════════════
     // Dependency Properties
     // ═════════════════════════════════════════════════════════════════
@@ -250,213 +254,278 @@ public partial class EditableMapEllipse : UserControl {
     }
 
     // ═════════════════════════════════════════════════════════════════
-    // Visual state builders
+    // Visual State Builders
     // ═════════════════════════════════════════════════════════════════
 
     void RebuildBackgroundBrush() {
-        var c = BoxBackgroundColor;
-        c.A = (byte)Math.Round(Math.Clamp(BoxBackgroundOpacity, 0, 1) * 255);
-        BackgroundEllipse.Fill = new SolidColorBrush(c);
+        try {
+            var c = BoxBackgroundColor;
+            c.A = (byte)Math.Round(Math.Clamp(BoxBackgroundOpacity, 0, 1) * 255);
+            BackgroundEllipse.Fill = new SolidColorBrush(c);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error rebuilding background brush in EditableMapEllipse.");
+        }
     }
 
     void RebuildBorderBrush() {
-        var c = BoxBorderColor;
-        c.A = (byte)Math.Round(Math.Clamp(BoxBorderOpacity, 0, 1) * 255);
-        BackgroundEllipse.Stroke = new SolidColorBrush(c);
-        BackgroundEllipse.StrokeThickness = BoxBorderThickness;
+        try {
+            var c = BoxBorderColor;
+            c.A = (byte)Math.Round(Math.Clamp(BoxBorderOpacity, 0, 1) * 255);
+            BackgroundEllipse.Stroke = new SolidColorBrush(c);
+            BackgroundEllipse.StrokeThickness = BoxBorderThickness;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error rebuilding border brush in EditableMapEllipse.");
+        }
     }
 
     void ApplyFontProperties() {
-        FontWeight = IsBold ? FontWeights.Bold : FontWeights.Normal;
-        FontStyle = IsItalic ? FontStyles.Italic : FontStyles.Normal;
+        try {
+            FontWeight = IsBold ? FontWeights.Bold : FontWeights.Normal;
+            FontStyle = IsItalic ? FontStyles.Italic : FontStyles.Normal;
 
-        var pad = new Thickness(TextPadding);
-        var deco = IsUnderline ? TextDecorations.Underline : null;
+            var pad = new Thickness(TextPadding);
+            var deco = IsUnderline ? TextDecorations.Underline : null;
 
-        EditBox.Padding = pad;
-        EditBox.TextDecorations = deco;
-        DisplayBlock.Padding = pad;
-        DisplayBlock.TextDecorations = deco;
+            EditBox.Padding = pad;
+            EditBox.TextDecorations = deco;
+            DisplayBlock.Padding = pad;
+            DisplayBlock.TextDecorations = deco;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error applying font properties in EditableMapEllipse.");
+        }
     }
 
     void UpdateSwatchColors() {
         if (!IsLoaded) return;
-        var textColor = (Foreground as SolidColorBrush)?.Color ?? Color.FromRgb(255, 255, 255);
-        TextColorSwatch.Background = new SolidColorBrush(textColor);
 
-        var bgOpaque = BoxBackgroundColor;
-        BoxBgColorSwatch.Background = bgOpaque.A == 0
-            ? CreateCheckerBrush()
-            : new SolidColorBrush(bgOpaque);
+        try {
+            var textColor = (Foreground as SolidColorBrush)?.Color ?? Color.FromRgb(255, 255, 255);
+            TextColorSwatch.Background = new SolidColorBrush(textColor);
 
-        if (bgOpaque.A == 0) {
-            BoxOpacitySlider.Value = 0;
+            var bgOpaque = BoxBackgroundColor;
+            BoxBgColorSwatch.Background = bgOpaque.A == 0
+                ? CreateCheckerBrush()
+                : new SolidColorBrush(bgOpaque);
+
+            if (bgOpaque.A == 0) {
+                BoxOpacitySlider.Value = 0;
+            }
+
+            BorderColorSwatch.Background = BoxBorderColor.A == 0
+                ? CreateCheckerBrush()
+                : new SolidColorBrush(BoxBorderColor);
         }
-
-        BorderColorSwatch.Background = BoxBorderColor.A == 0
-            ? CreateCheckerBrush()
-            : new SolidColorBrush(BoxBorderColor);
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating swatch colors in EditableMapEllipse.");
+        }
     }
 
     void UpdateAlignmentButtons() {
         if (!IsLoaded) return;
-        AlignLeftBtn.IsChecked = TextAlign == TextAlignment.Left;
-        AlignCenterBtn.IsChecked = TextAlign == TextAlignment.Center;
-        AlignRightBtn.IsChecked = TextAlign == TextAlignment.Right;
-        AlignJustifyBtn.IsChecked = TextAlign == TextAlignment.Justify;
+        try {
+            AlignLeftBtn.IsChecked = TextAlign == TextAlignment.Left;
+            AlignCenterBtn.IsChecked = TextAlign == TextAlignment.Center;
+            AlignRightBtn.IsChecked = TextAlign == TextAlignment.Right;
+            AlignJustifyBtn.IsChecked = TextAlign == TextAlignment.Justify;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating alignment buttons in EditableMapEllipse.");
+        }
     }
 
     void UpdateInverseScale() {
-        double s = 1.0 / Math.Max(0.01, ZoomLevel);
-        ToolbarInverseScale.ScaleX = s;
-        ToolbarInverseScale.ScaleY = s;
+        try {
+            double s = 1.0 / Math.Max(0.01, ZoomLevel);
+            ToolbarInverseScale.ScaleX = s;
+            ToolbarInverseScale.ScaleY = s;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating inverse scale in EditableMapEllipse.");
+        }
     }
 
     public EditableMapTextState State {
         get => _state;
         set {
-            _state = value;
-            if (value == EditableMapTextState.Edit) {
-                DisplayBlock.Visibility = Visibility.Collapsed;
-                EditBox.Visibility = Visibility.Visible;
-                ToolbarContainer.Visibility = Visibility.Visible;
-                TextContainer.IsHitTestVisible = false;
-                ForceFocusOnTextBox();
+            try {
+                _state = value;
+                if (value == EditableMapTextState.Edit) {
+                    DisplayBlock.Visibility = Visibility.Collapsed;
+                    EditBox.Visibility = Visibility.Visible;
+                    ToolbarContainer.Visibility = Visibility.Visible;
+                    TextContainer.IsHitTestVisible = false;
+                    ForceFocusOnTextBox();
+                }
+                else {
+                    DisplayBlock.Text = EditBox.Text;
+                    EditBox.Visibility = Visibility.Collapsed;
+                    DisplayBlock.Visibility = Visibility.Visible;
+                    ToolbarContainer.Visibility = Visibility.Collapsed;
+                    TextContainer.IsHitTestVisible = true;
+                    ColorPickerPopup.IsOpen = false;
+                }
             }
-            else {
-                DisplayBlock.Text = EditBox.Text;
-                EditBox.Visibility = Visibility.Collapsed;
-                DisplayBlock.Visibility = Visibility.Visible;
-                ToolbarContainer.Visibility = Visibility.Collapsed;
-                TextContainer.IsHitTestVisible = true;
-                ColorPickerPopup.IsOpen = false;
+            catch (Exception ex) {
+                Log.Error(ex, "Error setting EditableMapEllipse state to '{State}'.", value);
             }
         }
     }
 
     private void ForceFocusOnTextBox() {
         Dispatcher.BeginInvoke(new Action(() => {
-            var window = Window.GetWindow(this);
-            if (window != null && !window.IsActive) {
-                window.Activate();
-            }
+            try {
+                var window = Window.GetWindow(this);
+                if (window != null && !window.IsActive) {
+                    window.Activate();
+                }
 
-            var scope = FocusManager.GetFocusScope(this);
-            FocusManager.SetFocusedElement(scope, EditBox);
+                var scope = FocusManager.GetFocusScope(this);
+                FocusManager.SetFocusedElement(scope, EditBox);
 
-            EditBox.Focus();
-            bool success = Keyboard.Focus(EditBox) == EditBox;
+                EditBox.Focus();
+                bool success = Keyboard.Focus(EditBox) == EditBox;
 
-            if (!success) {
-                Dispatcher.BeginInvoke(new Action(() => {
-                    EditBox.Focus();
-                    Keyboard.Focus(EditBox);
+                if (!success) {
+                    Dispatcher.BeginInvoke(new Action(() => {
+                        try {
+                            EditBox.Focus();
+                            Keyboard.Focus(EditBox);
+                            EditBox.SelectAll();
+                        }
+                        catch (Exception ex) {
+                            Log.Warning(ex, "Retry focus on EditBox failed.");
+                        }
+                    }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
+                else {
                     EditBox.SelectAll();
-                }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
             }
-            else {
-                EditBox.SelectAll();
+            catch (Exception ex) {
+                Log.Error(ex, "Error executing ForceFocusOnTextBox.");
             }
         }), System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     void OnLoaded(object sender, RoutedEventArgs e) {
-        if (double.IsNaN(Width)) Width = ActualWidth;
-        if (double.IsNaN(Height)) Height = ActualHeight;
+        try {
+            if (double.IsNaN(Width)) Width = ActualWidth;
+            if (double.IsNaN(Height)) Height = ActualHeight;
 
-        if (!string.IsNullOrEmpty(InitialText))
-            EditBox.Text = InitialText;
+            if (!string.IsNullOrEmpty(InitialText))
+                EditBox.Text = InitialText;
 
-        foreach (var name in FontNames)
-            FontFamilyCombo.Items.Add(name);
+            foreach (var name in FontNames)
+                FontFamilyCombo.Items.Add(name);
 
-        var currentFont = FontFamily?.Source ?? "Segoe UI";
-        var fi = FontNames.ToList().FindIndex(n =>
-            string.Equals(n, currentFont, StringComparison.OrdinalIgnoreCase));
-        FontFamilyCombo.SelectedIndex = fi >= 0 ? fi : 0;
+            var currentFont = FontFamily?.Source ?? "Segoe UI";
+            var fi = FontNames.ToList().FindIndex(n =>
+                string.Equals(n, currentFont, StringComparison.OrdinalIgnoreCase));
+            FontFamilyCombo.SelectedIndex = fi >= 0 ? fi : 0;
 
-        FontSizeBox.Text = ((int)FontSize).ToString();
+            FontSizeBox.Text = ((int)FontSize).ToString();
 
-        FontSizeBox.PreviewMouseLeftButtonDown += TextBox_PreviewMouseLeftButtonDown;
-        EditBox.PreviewMouseLeftButtonDown += TextBox_PreviewMouseLeftButtonDown;
+            FontSizeBox.PreviewMouseLeftButtonDown += TextBox_PreviewMouseLeftButtonDown;
+            EditBox.PreviewMouseLeftButtonDown += TextBox_PreviewMouseLeftButtonDown;
 
-        PopulateColorPicker();
-        RebuildBackgroundBrush();
-        RebuildBorderBrush();
-        ApplyFontProperties();
-        UpdateSwatchColors();
-        UpdateAlignmentButtons();
-        UpdateInverseScale();
-        UpdateHandlePositions();
+            PopulateColorPicker();
+            RebuildBackgroundBrush();
+            RebuildBorderBrush();
+            ApplyFontProperties();
+            UpdateSwatchColors();
+            UpdateAlignmentButtons();
+            UpdateInverseScale();
+            UpdateHandlePositions();
 
-        TextPaddingSlider.Value = TextPadding;
-        BorderThicknessSlider.Value = BoxBorderThickness;
-        BorderOpacitySlider.Value = BoxBorderOpacity;
+            TextPaddingSlider.Value = TextPadding;
+            BorderThicknessSlider.Value = BoxBorderThickness;
+            BorderOpacitySlider.Value = BoxBorderOpacity;
 
-        Dispatcher.BeginInvoke(new Action(() => {
-            var window = Window.GetWindow(this);
-            if (window != null) {
-                var helper = new System.Windows.Interop.WindowInteropHelper(window);
-                if (helper.Handle != IntPtr.Zero) {
-                    NativeMethods.SetForegroundWindow(helper.Handle);
+            Dispatcher.BeginInvoke(new Action(() => {
+                try {
+                    var window = Window.GetWindow(this);
+                    if (window != null) {
+                        var helper = new System.Windows.Interop.WindowInteropHelper(window);
+                        if (helper.Handle != IntPtr.Zero) {
+                            NativeMethods.SetForegroundWindow(helper.Handle);
+                        }
+                    }
+
+                    var scope = FocusManager.GetFocusScope(this);
+                    FocusManager.SetFocusedElement(scope, EditBox);
+                    EditBox.Focus();
+                    Keyboard.Focus(EditBox);
+                    EditBox.SelectAll();
                 }
-            }
-
-            var scope = FocusManager.GetFocusScope(this);
-            FocusManager.SetFocusedElement(scope, EditBox);
-            EditBox.Focus();
-            Keyboard.Focus(EditBox);
-            EditBox.SelectAll();
-        }), System.Windows.Threading.DispatcherPriority.Background);
+                catch (Exception ex) {
+                    Log.Warning(ex, "Error setting foreground and focus during EditableMapEllipse OnLoaded.");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling OnLoaded in EditableMapEllipse.");
+        }
     }
 
     void TextBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         if (sender is System.Windows.Controls.TextBox textBox) {
-            if (Mouse.Captured != null) {
-                Mouse.Capture(null);
+            try {
+                if (Mouse.Captured != null) {
+                    Mouse.Capture(null);
+                }
+
+                if (BackgroundEllipse.IsMouseCaptured) {
+                    BackgroundEllipse.ReleaseMouseCapture();
+                }
+
+                textBox.Focus();
+                Keyboard.Focus(textBox);
+
+                if (textBox == EditBox && string.Equals(EditBox.Text, "New Text")) {
+                    EditBox.SelectAll();
+                    e.Handled = true;
+                }
             }
-
-            if (BackgroundEllipse.IsMouseCaptured) {
-                BackgroundEllipse.ReleaseMouseCapture();
-            }
-
-            textBox.Focus();
-            Keyboard.Focus(textBox);
-
-            if (textBox == EditBox && string.Equals(EditBox.Text, "New Text")) {
-                EditBox.SelectAll();
-                e.Handled = true;
-                return;
+            catch (Exception ex) {
+                Log.Error(ex, "Error in TextBox_PreviewMouseLeftButtonDown.");
             }
         }
     }
 
     void UpdateHandlePositions() {
-        double w = ActualWidth;
-        double h = ActualHeight;
+        try {
+            double w = ActualWidth;
+            double h = ActualHeight;
 
-        PlaceHandle(NwHandle, -HandleHalf, -HandleHalf);
-        PlaceHandle(NHandle, w / 2 - HandleHalf, -HandleHalf);
-        PlaceHandle(NeHandle, w - HandleHalf, -HandleHalf);
-        PlaceHandle(EHandle, w - HandleHalf, h / 2 - HandleHalf);
-        PlaceHandle(SeHandle, w - HandleHalf, h - HandleHalf);
-        PlaceHandle(SHandle, w / 2 - HandleHalf, h - HandleHalf);
-        PlaceHandle(SwHandle, -HandleHalf, h - HandleHalf);
-        PlaceHandle(WHandle, -HandleHalf, h / 2 - HandleHalf);
+            PlaceHandle(NwHandle, -HandleHalf, -HandleHalf);
+            PlaceHandle(NHandle, w / 2 - HandleHalf, -HandleHalf);
+            PlaceHandle(NeHandle, w - HandleHalf, -HandleHalf);
+            PlaceHandle(EHandle, w - HandleHalf, h / 2 - HandleHalf);
+            PlaceHandle(SeHandle, w - HandleHalf, h - HandleHalf);
+            PlaceHandle(SHandle, w / 2 - HandleHalf, h - HandleHalf);
+            PlaceHandle(SwHandle, -HandleHalf, h - HandleHalf);
+            PlaceHandle(WHandle, -HandleHalf, h / 2 - HandleHalf);
 
-        RotationConnectorLine.X1 = w / 2;
-        RotationConnectorLine.Y1 = 0;
-        RotationConnectorLine.X2 = w / 2;
-        RotationConnectorLine.Y2 = -RotationConnectorLen;
+            RotationConnectorLine.X1 = w / 2;
+            RotationConnectorLine.Y1 = 0;
+            RotationConnectorLine.X2 = w / 2;
+            RotationConnectorLine.Y2 = -RotationConnectorLen;
 
-        Canvas.SetLeft(RotationHandle, w / 2 - RotationHandleRadius);
-        Canvas.SetTop(RotationHandle, -RotationConnectorLen - RotationHandleRadius * 2);
+            Canvas.SetLeft(RotationHandle, w / 2 - RotationHandleRadius);
+            Canvas.SetTop(RotationHandle, -RotationConnectorLen - RotationHandleRadius * 2);
 
-        Canvas.SetLeft(StampButton, w + 6);
-        Canvas.SetTop(StampButton, h / 2 - StampButtonSize / 2);
+            Canvas.SetLeft(StampButton, w + 6);
+            Canvas.SetTop(StampButton, h / 2 - StampButtonSize / 2);
 
-        Canvas.SetLeft(ToolbarContainer, 0);
-        Canvas.SetTop(ToolbarContainer, h + 6);
+            Canvas.SetLeft(ToolbarContainer, 0);
+            Canvas.SetTop(ToolbarContainer, h + 6);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating handle positions in EditableMapEllipse.");
+        }
     }
 
     static void PlaceHandle(Thumb t, double x, double y) {
@@ -464,24 +533,27 @@ public partial class EditableMapEllipse : UserControl {
         Canvas.SetTop(t, y);
     }
     
-    void Border_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
+    void Border_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         if (e.ClickCount == 2) return;
-        if (_state == EditableMapTextState.Edit && e.OriginalSource is ScrollViewer)
-        {
+        if (_state == EditableMapTextState.Edit && e.OriginalSource is ScrollViewer) {
             return;
         }
 
         var parent = ParentCanvas;
         if (parent == null) return;
 
-        _isDragging       = true;
-        _dragOriginScreen = e.GetPosition(parent);
-        _dragOriginLeft   = Canvas.GetLeft(this);
-        _dragOriginTop    = Canvas.GetTop(this);
-    
-        BackgroundEllipse.CaptureMouse();
-        e.Handled = true;
+        try {
+            _isDragging = true;
+            _dragOriginScreen = e.GetPosition(parent);
+            _dragOriginLeft = Canvas.GetLeft(this);
+            _dragOriginTop = Canvas.GetTop(this);
+
+            BackgroundEllipse.CaptureMouse();
+            e.Handled = true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in Border_PreviewMouseLeftButtonDown.");
+        }
     }
 
     void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
@@ -497,42 +569,69 @@ public partial class EditableMapEllipse : UserControl {
         var parent = ParentCanvas;
         if (parent == null) return;
 
-        _isDragging = true;
-        _dragOriginScreen = e.GetPosition(parent);
-        _dragOriginLeft = Canvas.GetLeft(this);
-        _dragOriginTop = Canvas.GetTop(this);
-        BackgroundEllipse.CaptureMouse();
-        e.Handled = true;
+        try {
+            _isDragging = true;
+            _dragOriginScreen = e.GetPosition(parent);
+            _dragOriginLeft = Canvas.GetLeft(this);
+            _dragOriginTop = Canvas.GetTop(this);
+            BackgroundEllipse.CaptureMouse();
+            e.Handled = true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in Border_MouseLeftButtonDown.");
+        }
     }
 
     void Border_MouseMove(object sender, MouseEventArgs e) {
         if (!_isDragging) return;
         var parent = ParentCanvas;
         if (parent == null) return;
-        var pos = e.GetPosition(parent);
-        Canvas.SetLeft(this, _dragOriginLeft + pos.X - _dragOriginScreen.X);
-        Canvas.SetTop(this, _dragOriginTop + pos.Y - _dragOriginScreen.Y);
+
+        try {
+            var pos = e.GetPosition(parent);
+            Canvas.SetLeft(this, _dragOriginLeft + pos.X - _dragOriginScreen.X);
+            Canvas.SetTop(this, _dragOriginTop + pos.Y - _dragOriginScreen.Y);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in Border_MouseMove.");
+        }
     }
 
     void Border_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
         if (!_isDragging) return;
-        _isDragging = false;
-        BackgroundEllipse.ReleaseMouseCapture();
-        e.Handled = true;
+
+        try {
+            _isDragging = false;
+            BackgroundEllipse.ReleaseMouseCapture();
+            e.Handled = true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in Border_MouseLeftButtonUp.");
+        }
     }
 
     void EditBox_KeyDown(object sender, KeyEventArgs e) {
-        if (e.Key == Key.Escape) {
-            State = EditableMapTextState.Display;
-            Keyboard.ClearFocus();
-            e.Handled = true;
+        try {
+            if (e.Key == Key.Escape) {
+                State = EditableMapTextState.Display;
+                Keyboard.ClearFocus();
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in EditBox_KeyDown.");
         }
     }
 
     void DisplayBlock_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        if (e.ClickCount == 2) {
-            State = EditableMapTextState.Edit;
-            e.Handled = true;
+        try {
+            if (e.ClickCount == 2) {
+                State = EditableMapTextState.Edit;
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in DisplayBlock_MouseLeftButtonDown.");
         }
     }
 
@@ -561,21 +660,26 @@ public partial class EditableMapEllipse : UserControl {
         ApplyResize(e.HorizontalChange, 0, anchorRight: true, anchorBottom: false);
 
     void ApplyResize(double dx, double dy, bool anchorRight, bool anchorBottom) {
-        if (anchorRight) {
-            double newW = Math.Max(MinBoxSize, Width - dx);
-            double usedDx = Width - newW;
-            Width = newW;
-            Canvas.SetLeft(this, Canvas.GetLeft(this) + usedDx);
-        }
-        else if (dx != 0) Width = Math.Max(MinBoxSize, Width + dx);
+        try {
+            if (anchorRight) {
+                double newW = Math.Max(MinBoxSize, Width - dx);
+                double usedDx = Width - newW;
+                Width = newW;
+                Canvas.SetLeft(this, Canvas.GetLeft(this) + usedDx);
+            }
+            else if (dx != 0) Width = Math.Max(MinBoxSize, Width + dx);
 
-        if (anchorBottom) {
-            double newH = Math.Max(MinBoxSize, Height - dy);
-            double usedDy = Height - newH;
-            Height = newH;
-            Canvas.SetTop(this, Canvas.GetTop(this) + usedDy);
+            if (anchorBottom) {
+                double newH = Math.Max(MinBoxSize, Height - dy);
+                double usedDy = Height - newH;
+                Height = newH;
+                Canvas.SetTop(this, Canvas.GetTop(this) + usedDy);
+            }
+            else if (dy != 0) Height = Math.Max(MinBoxSize, Height + dy);
         }
-        else if (dy != 0) Height = Math.Max(MinBoxSize, Height + dy);
+        catch (Exception ex) {
+            Log.Error(ex, "Error applying resize transform in EditableMapEllipse.");
+        }
     }
 
     void RotationHandle_DragStarted(object sender, DragStartedEventArgs e) { }
@@ -583,9 +687,15 @@ public partial class EditableMapEllipse : UserControl {
     void RotationHandle_DragDelta(object sender, DragDeltaEventArgs e) {
         var parent = ParentCanvas;
         if (parent == null) return;
-        var center = TransformToAncestor(parent).Transform(new Point(ActualWidth / 2, ActualHeight / 2));
-        var mouse = Mouse.GetPosition(parent);
-        RotationAngle = Math.Atan2(mouse.X - center.X, -(mouse.Y - center.Y)) * (180.0 / Math.PI);
+
+        try {
+            var center = TransformToAncestor(parent).Transform(new Point(ActualWidth / 2, ActualHeight / 2));
+            var mouse = Mouse.GetPosition(parent);
+            RotationAngle = Math.Atan2(mouse.X - center.X, -(mouse.Y - center.Y)) * (180.0 / Math.PI);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating rotation angle in EditableMapEllipse.");
+        }
     }
 
     void FontFamilyCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) {
@@ -593,7 +703,8 @@ public partial class EditableMapEllipse : UserControl {
         try {
             FontFamily = new FontFamily(name);
         }
-        catch {
+        catch (Exception ex) {
+            Log.Warning(ex, "Failed to apply font family '{FontName}'.", name);
         }
     }
 
@@ -602,18 +713,28 @@ public partial class EditableMapEllipse : UserControl {
     }
 
     void FontSizeBox_KeyDown(object sender, KeyEventArgs e) {
-        if (e.Key == Key.Enter) {
-            ApplyFontSizeInput();
-            Keyboard.ClearFocus();
-            this.Focus();
-            e.Handled = true;
+        try {
+            if (e.Key == Key.Enter) {
+                ApplyFontSizeInput();
+                Keyboard.ClearFocus();
+                Focus();
+                e.Handled = true;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in FontSizeBox_KeyDown.");
         }
     }
 
     void FontSizeBox_LostFocus(object sender, RoutedEventArgs e) {
-        ApplyFontSizeInput();
-        if (sender is System.Windows.Controls.TextBox tb) {
-            tb.SelectionLength = 0;
+        try {
+            ApplyFontSizeInput();
+            if (sender is System.Windows.Controls.TextBox tb) {
+                tb.SelectionLength = 0;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in FontSizeBox_LostFocus.");
         }
     }
 
@@ -624,14 +745,19 @@ public partial class EditableMapEllipse : UserControl {
     }
 
     void AlignBtn_Click(object sender, RoutedEventArgs e) {
-        if (sender is ToggleButton btn && btn.Tag is string tag) {
-            TextAlign = tag switch {
-                "Center" => TextAlignment.Center,
-                "Right" => TextAlignment.Right,
-                "Justify" => TextAlignment.Justify,
-                _ => TextAlignment.Left,
-            };
-            UpdateAlignmentButtons();
+        try {
+            if (sender is ToggleButton btn && btn.Tag is string tag) {
+                TextAlign = tag switch {
+                    "Center" => TextAlignment.Center,
+                    "Right" => TextAlignment.Right,
+                    "Justify" => TextAlignment.Justify,
+                    _ => TextAlignment.Left,
+                };
+                UpdateAlignmentButtons();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in AlignBtn_Click.");
         }
     }
 
@@ -646,25 +772,30 @@ public partial class EditableMapEllipse : UserControl {
     }
 
     void PopulateColorPicker() {
-        ColorSwatchPanel.Children.Clear();
-        foreach (var color in ColorPalette) {
-            bool isTransparent = color.A == 0;
-            var cell = new Border {
-                Width = 22,
-                Height = 22,
-                Margin = new Thickness(1),
-                CornerRadius = new CornerRadius(2),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
-                BorderThickness = new Thickness(1),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Background = isTransparent
-                    ? CreateCheckerBrush()
-                    : new SolidColorBrush(color),
-                ToolTip = isTransparent ? "Transparent" : $"#{color.R:X2}{color.G:X2}{color.B:X2}",
-            };
-            var captured = color;
-            cell.MouseLeftButtonDown += (_, _) => ApplyPickedColor(captured);
-            ColorSwatchPanel.Children.Add(cell);
+        try {
+            ColorSwatchPanel.Children.Clear();
+            foreach (var color in ColorPalette) {
+                bool isTransparent = color.A == 0;
+                var cell = new Border {
+                    Width = 22,
+                    Height = 22,
+                    Margin = new Thickness(1),
+                    CornerRadius = new CornerRadius(2),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
+                    BorderThickness = new Thickness(1),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                    Background = isTransparent
+                        ? CreateCheckerBrush()
+                        : new SolidColorBrush(color),
+                    ToolTip = isTransparent ? "Transparent" : $"#{color.R:X2}{color.G:X2}{color.B:X2}",
+                };
+                var captured = color;
+                cell.MouseLeftButtonDown += (_, _) => ApplyPickedColor(captured);
+                ColorSwatchPanel.Children.Add(cell);
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error populating color picker in EditableMapEllipse.");
         }
     }
 
@@ -706,132 +837,158 @@ public partial class EditableMapEllipse : UserControl {
     }
 
     void ApplyPickedColor(Color color) {
-        ColorPickerPopup.IsOpen = false;
+        try {
+            ColorPickerPopup.IsOpen = false;
 
-        switch (_colorTarget) {
-            case "Text":
-                Foreground = new SolidColorBrush(color);
-                UpdateSwatchColors();
-                break;
+            switch (_colorTarget) {
+                case "Text":
+                    Foreground = new SolidColorBrush(color);
+                    UpdateSwatchColors();
+                    break;
 
-            case "BoxBg":
-                BoxBackgroundColor = color;
-                break;
+                case "BoxBg":
+                    BoxBackgroundColor = color;
+                    break;
 
-            case "Border":
-                BoxBorderColor = color;
-                if (BoxBorderThickness < 0.5) {
-                    BoxBorderThickness = 1.0;
-                    BorderThicknessSlider.Value = 1.0;
-                }
-
-                break;
+                case "Border":
+                    BoxBorderColor = color;
+                    if (BoxBorderThickness < 0.5) {
+                        BoxBorderThickness = 1.0;
+                        BorderThicknessSlider.Value = 1.0;
+                    }
+                    break;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error applying picked color in EditableMapEllipse.");
         }
     }
 
     void StampButton_Click(object sender, RoutedEventArgs e) {
-        ColorPickerPopup.IsOpen = false;
-        var parent = ParentCanvas;
-        if (parent == null) return;
+        try {
+            ColorPickerPopup.IsOpen = false;
+            var parent = ParentCanvas;
+            if (parent == null) return;
 
-        var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName) ?? FindDescendantByType<System.Windows.Controls.Image>(parent);
-        if (mapImage == null || mapImage.Source is not BitmapSource bitmapSource) return;
+            var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName) ?? FindDescendantByType<System.Windows.Controls.Image>(parent);
+            if (mapImage == null || mapImage.Source is not BitmapSource bitmapSource) {
+                Log.Warning("StampButton_Click: Unable to locate valid target map image or BitmapSource.");
+                return;
+            }
 
-        double myCanvasX = Canvas.GetLeft(this);
-        double myCanvasY = Canvas.GetTop(this);
+            double myCanvasX = Canvas.GetLeft(this);
+            double myCanvasY = Canvas.GetTop(this);
 
-        double imageCanvasX = Canvas.GetLeft(mapImage);
-        double imageCanvasY = Canvas.GetTop(mapImage);
+            double imageCanvasX = Canvas.GetLeft(mapImage);
+            double imageCanvasY = Canvas.GetTop(mapImage);
 
-        if (double.IsNaN(myCanvasX)) myCanvasX = this.TransformToAncestor(parent).Transform(new Point(0, 0)).X;
-        if (double.IsNaN(myCanvasY)) myCanvasY = this.TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
-        if (double.IsNaN(imageCanvasX))
-            imageCanvasX = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).X;
-        if (double.IsNaN(imageCanvasY))
-            imageCanvasY = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
+            if (double.IsNaN(myCanvasX)) myCanvasX = TransformToAncestor(parent).Transform(new Point(0, 0)).X;
+            if (double.IsNaN(myCanvasY)) myCanvasY = TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
+            if (double.IsNaN(imageCanvasX))
+                imageCanvasX = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).X;
+            if (double.IsNaN(imageCanvasY))
+                imageCanvasY = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
 
-        double relativeX = myCanvasX - imageCanvasX;
-        double relativeY = myCanvasY - imageCanvasY;
+            double relativeX = myCanvasX - imageCanvasX;
+            double relativeY = myCanvasY - imageCanvasY;
 
-        double pixelWidthRatio = (double)bitmapSource.PixelWidth / mapImage.ActualWidth;
-        double pixelHeightRatio = (double)bitmapSource.PixelHeight / mapImage.ActualHeight;
+            // Prevent division-by-zero if ActualWidth/ActualHeight haven't rendered yet
+            double actualImageW = mapImage.ActualWidth > 0 ? mapImage.ActualWidth : 1.0;
+            double actualImageH = mapImage.ActualHeight > 0 ? mapImage.ActualHeight : 1.0;
 
-        double burnX = relativeX * pixelWidthRatio;
-        double burnY = relativeY * pixelHeightRatio;
+            double pixelWidthRatio = (double)bitmapSource.PixelWidth / actualImageW;
+            double pixelHeightRatio = (double)bitmapSource.PixelHeight / actualImageH;
 
-        double burnWidth = ActualWidth * pixelWidthRatio;
-        double burnHeight = ActualHeight * pixelHeightRatio;
-        double burnFontSize = FontSize * pixelWidthRatio;
+            double burnX = relativeX * pixelWidthRatio;
+            double burnY = relativeY * pixelHeightRatio;
 
-        var textColor = (Foreground as SolidColorBrush)?.Color ?? Color.FromRgb(255, 255, 255);
+            double burnWidth = ActualWidth * pixelWidthRatio;
+            double burnHeight = ActualHeight * pixelHeightRatio;
+            double burnFontSize = FontSize * pixelWidthRatio;
 
-        var args = new MapTextStampEventArgs {
-            Text = EditBox.Text,
-            X = burnX,
-            Y = burnY,
-            Width = burnWidth,
-            Height = burnHeight,
-            RotationAngle = RotationAngle,
-            FontFamilyName = FontFamily?.Source ?? "Segoe UI",
-            FontSize = burnFontSize,
-            IsBold = IsBold,
-            IsItalic = IsItalic,
-            IsUnderline = IsUnderline,
-            TextColor = textColor,
-            TextOpacity = TextOpacity,
-            TextPadding = TextPadding * pixelWidthRatio,
-            TextAlignment = TextAlign,
-            BackgroundColor = BoxBackgroundColor,
-            BackgroundOpacity = BoxBackgroundOpacity,
-            BoxBorderColor = BoxBorderColor,
-            BoxBorderOpacity = BoxBorderOpacity,
-            BoxBorderThickness = BoxBorderThickness * pixelWidthRatio,
-            CornerRadius = new CornerRadius(0),
-            IsEllipse = true,
-            EllipseMargin = 15 * pixelWidthRatio
-        };
+            var textColor = (Foreground as SolidColorBrush)?.Color ?? Color.FromRgb(255, 255, 255);
 
-        Stamped?.Invoke(this, args);
-        parent.Children.Remove(this);
+            var args = new MapTextStampEventArgs {
+                Text = EditBox.Text,
+                X = burnX,
+                Y = burnY,
+                Width = burnWidth,
+                Height = burnHeight,
+                RotationAngle = RotationAngle,
+                FontFamilyName = FontFamily?.Source ?? "Segoe UI",
+                FontSize = burnFontSize,
+                IsBold = IsBold,
+                IsItalic = IsItalic,
+                IsUnderline = IsUnderline,
+                TextColor = textColor,
+                TextOpacity = TextOpacity,
+                TextPadding = TextPadding * pixelWidthRatio,
+                TextAlignment = TextAlign,
+                BackgroundColor = BoxBackgroundColor,
+                BackgroundOpacity = BoxBackgroundOpacity,
+                BoxBorderColor = BoxBorderColor,
+                BoxBorderOpacity = BoxBorderOpacity,
+                BoxBorderThickness = BoxBorderThickness * pixelWidthRatio,
+                CornerRadius = new CornerRadius(0),
+                IsEllipse = true,
+                EllipseMargin = 15 * pixelWidthRatio
+            };
+
+            Stamped?.Invoke(this, args);
+            parent.Children.Remove(this);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling StampButton_Click in EditableMapEllipse.");
+        }
     }
 
     private static T? FindDescendantByName<T>(DependencyObject element, string name) where T : DependencyObject {
-        int count = VisualTreeHelper.GetChildrenCount(element);
-        for (int i = 0; i < count; i++) {
-            var child = VisualTreeHelper.GetChild(element, i);
-            if (child is T tElement && child is FrameworkElement fe && fe.Name == name) {
-                return tElement;
-            }
+        if (element == null) return null;
 
-            var result = FindDescendantByName<T>(child, name);
-            if (result != null) return result;
+        try {
+            int count = VisualTreeHelper.GetChildrenCount(element);
+            for (int i = 0; i < count; i++) {
+                var child = VisualTreeHelper.GetChild(element, i);
+                if (child is T tElement && child is FrameworkElement fe && fe.Name == name) {
+                    return tElement;
+                }
+
+                var result = FindDescendantByName<T>(child, name);
+                if (result != null) return result;
+            }
+        }
+        catch (Exception ex) {
+            Log.Debug(ex, "Error in FindDescendantByName while searching for '{Name}'.", name);
         }
 
         return null;
     }
-    
-    private static T? FindDescendantByType<T>(DependencyObject element) where T : DependencyObject
-    {
-        int count = VisualTreeHelper.GetChildrenCount(element);
-        for (int i = 0; i < count; i++)
-        {
-            var child = VisualTreeHelper.GetChild(element, i);
-            if (child is T tElement)
-            {
-                return tElement;
-            }
 
-            var result = FindDescendantByType<T>(child);
-            if (result != null) return result;
+    private static T? FindDescendantByType<T>(DependencyObject element) where T : DependencyObject {
+        if (element == null) return null;
+
+        try {
+            int count = VisualTreeHelper.GetChildrenCount(element);
+            for (int i = 0; i < count; i++) {
+                var child = VisualTreeHelper.GetChild(element, i);
+                if (child is T tElement) {
+                    return tElement;
+                }
+
+                var result = FindDescendantByType<T>(child);
+                if (result != null) return result;
+            }
         }
+        catch (Exception ex) {
+            Log.Debug(ex, "Error in FindDescendantByType.");
+        }
+
         return null;
     }
-
 
     Canvas? ParentCanvas => VisualTreeHelper.GetParent(this) as Canvas;
-    
-    public System.Windows.Controls.Image? TargetImage
-    {
+
+    public System.Windows.Controls.Image? TargetImage {
         get => (System.Windows.Controls.Image?)GetValue(TargetImageProperty);
         set => SetValue(TargetImageProperty, value);
     }

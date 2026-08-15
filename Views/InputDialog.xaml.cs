@@ -10,68 +10,68 @@ public partial class InputDialog : ChildWindow {
     public InputDialog(string question, string title, string defaultAnswer = "") {
         InitializeComponent();
         DataContext = this;
-        Title = title;
-        PromptLabel.Text = question;
-        InputTextBox.Text = defaultAnswer;
-        InputTextBox.Focus();
-        InputTextBox.SelectAll();
-    }
 
-    public bool IsConfirmed { get; private set; }
-
-    private void OkButton_Click(object sender, RoutedEventArgs e) {
         try {
-            //See notes.txt
-            IsConfirmed = true;
-            ManualDialogResult = true;
-            Hide();
-
-            // Close the window after a tiny delay so the UI loop finishes 
-            // processing the 'Hide' message before the OS-level 'Close' message.
-            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
-                System.Windows.Threading.DispatcherPriority.Background);
+            Title = title ?? string.Empty;
+            PromptLabel.Text = question ?? string.Empty;
+            InputTextBox.Text = defaultAnswer ?? string.Empty;
+            
+            // Set initial focus and select all text so the user can immediately type over the default
+            InputTextBox.Focus();
+            InputTextBox.SelectAll();
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]OkButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error initializing InputDialog controls.");
         }
+    }
+
+    private void OkButton_Click(object sender, RoutedEventArgs e) {
+        ConfirmAndClose();
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e) {
-        try {
-            //See notes.txt
-            IsConfirmed = false;
-            ManualDialogResult = false;
-            Hide();
-
-            // Close the window after a tiny delay so the UI loop finishes 
-            // processing the 'Hide' message before the OS-level 'Close' message.
-            Dispatcher.BeginInvoke(new Action(() => { Close(); }),
-                System.Windows.Threading.DispatcherPriority.Background);
-        }
-        catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]CancelButton_Click error: {ex.Message}");
-        }
+        CancelAndClose();
     }
 
     private void InputTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
         try {
             if (e.Key == Key.Enter) {
-                //See notes.txt
-                IsConfirmed = true;
-                ManualDialogResult = true;
-                Hide();
-
-                // Close the window after a tiny delay so the UI loop finishes 
-                // processing the 'Hide' message before the OS-level 'Close' message.
-                Dispatcher.BeginInvoke(new Action(() => { Close(); }),
-                    System.Windows.Threading.DispatcherPriority.Background);
+                ConfirmAndClose();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape) {
+                CancelAndClose();
+                e.Handled = true;
             }
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]InputTextBox_KeyDown error: {ex.Message}");
+            Log.Error(ex, "Error handling InputTextBox_KeyDown in InputDialog.");
+        }
+    }
+
+    private void ConfirmAndClose() {
+        try {
+            IsConfirmed = true;
+            ManualDialogResult = true;
+                
+            // Inherited from ChildWindow
+            SafeCloseDialog();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error confirming and closing InputDialog.");
+        }
+    }
+
+    private void CancelAndClose() {
+        try {
+            IsConfirmed = false;
+            ManualDialogResult = false;
+                
+            // Inherited from ChildWindow
+            SafeCloseDialog();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error canceling and closing InputDialog.");
         }
     }
 }

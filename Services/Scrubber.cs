@@ -27,61 +27,67 @@ public static class Scrubber {
 
     public static bool TryParse(string? input, string coordinateOrder, out CoordinateData result) {
         result = default;
-        var scrubbed = ScrubEntry(input);
-        if (string.IsNullOrWhiteSpace(scrubbed)) return false;
-
-        var parts = scrubbed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < MinCoordinateComponents) return false;
-
-        double[] values = new double[parts.Length];
-        for (int i = 0; i < parts.Length; i++) {
-            // Use InvariantCulture to ensure consistent parsing regardless of system locale
-            if (!double.TryParse(parts[i], CultureInfo.InvariantCulture, out values[i])) return false;
-        }
-
-        if (coordinateOrder == "y x") {
-            if (values.Length < 2) return false;
-            result = new CoordinateData(values[XIndexInYX], values[YIndexInYX], null, null);
-            return true;
-        }
-
-        if (coordinateOrder == "y x z") {
-            if (values.Length < 2) return false;
-            double zVal = values.Length > ZIndexInYXZ ? values[ZIndexInYXZ] : 0;
-            result = new CoordinateData(values[XIndexInYXZ], values[YIndexInYXZ], zVal, null);
-            return true;
-        }
-
-        if (coordinateOrder == "x y") {
-            if (values.Length < 2) return false;
-            result = new CoordinateData(values[XIndexInXY], values[YIndexInXY], null, null);
-            return true;
-        }
-
-        // Default "x z y d"
-        if (values.Length < 1) return false;
         
-        double x = values[XIndexInXZY];
-        double y = DefaultY;
-        double? z = null;
-        double? heading = null;
-    
-        //x z y and a possible fourth component of the direction (or facing)
-        if (values.Length >= CoordinateCountForNorthUpSouth) {
-            z = values[ZIndexInXZY];
-            // Safe access for YIndexInXZY (2) because values.Length >= 3
-            y = values[YIndexInXZY];
-            if (values.Length >= MaxCoordinateComponents) {
-                heading = values[DirectionIndexInIndexInXZYD];
-            }
-        }
-        else if (values.Length == MinCoordinateComponents) {
-            // Safe access for YIndexInXY (1) because values.Length == 2
-            y = values[YIndexInXY];
-        }
+        try {
+            var scrubbed = ScrubEntry(input);
+            if (string.IsNullOrWhiteSpace(scrubbed)) return false;
 
-        result = new CoordinateData(x, y, z, heading);
-        return true;
+            var parts = scrubbed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < MinCoordinateComponents) return false;
+
+            double[] values = new double[parts.Length];
+            for (int i = 0; i < parts.Length; i++) {
+                if (!double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])) {
+                    return false;
+                }
+            }
+
+            if (coordinateOrder == "y x") {
+                if (values.Length < 2) return false;
+                result = new CoordinateData(values[XIndexInYX], values[YIndexInYX], null, null);
+                return true;
+            }
+
+            if (coordinateOrder == "y x z") {
+                if (values.Length < 2) return false;
+                double zVal = values.Length > ZIndexInYXZ ? values[ZIndexInYXZ] : 0;
+                result = new CoordinateData(values[XIndexInYXZ], values[YIndexInYXZ], zVal, null);
+                return true;
+            }
+
+            if (coordinateOrder == "x y") {
+                if (values.Length < 2) return false;
+                result = new CoordinateData(values[XIndexInXY], values[YIndexInXY], null, null);
+                return true;
+            }
+
+            // Default "x z y d"
+            if (values.Length < MinCoordinateComponents) return false;
+            
+            double x = values[XIndexInXZY];
+            double y = DefaultY;
+            double? z = null;
+            double? heading = null;
+        
+            if (values.Length >= CoordinateCountForNorthUpSouth) {
+                z = values[ZIndexInXZY];
+                y = values[YIndexInXZY];
+                
+                if (values.Length >= MaxCoordinateComponents) {
+                    heading = values[DirectionIndexInIndexInXZYD];
+                }
+            }
+            else if (values.Length == MinCoordinateComponents) {
+                y = values[YIndexInXY];
+            }
+
+            result = new CoordinateData(x, y, z, heading);
+            return true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Unexpected exception parsing coordinate input string '{Input}' with order '{Order}'.", input, coordinateOrder);
+            return false;
+        }
     }
     
     public static string? ScrubEntry(string? value) {
@@ -113,9 +119,8 @@ public static class Scrubber {
             return string.Join(" ", numbers);
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine($"Error scrubbing entry: {ex.Message}");
+            Log.Error(ex, "Error scrubbing coordinate string entry '{Value}'.", value);
             return value;
         }
     }
-    
 }

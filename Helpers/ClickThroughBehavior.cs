@@ -1,149 +1,193 @@
-﻿using MMONavigator.ViewModels;
+﻿using System.Windows;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Threading;
+using MMONavigator.ViewModels;
 
 namespace MMONavigator.Helpers;
 
-using System.Windows;
-using System.Windows.Input;
-using System.Runtime.InteropServices;
-using System.Windows.Interop;
-using System.Windows.Threading;
-
 public static class ClickThroughBehavior {
-    // Win32 constants
-    private const int GWL_EXSTYLE = -20;
-    private const int WS_EX_NOACTIVATE = 0x08000000;
-
-    [DllImport("user32.dll")]
-    private static extern int GetWindowLong(IntPtr hwnd, int index);
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
-
     public static readonly DependencyProperty IsEnabledProperty =
-        DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(ClickThroughBehavior),
+        DependencyProperty.RegisterAttached(
+            "IsEnabled", 
+            typeof(bool), 
+            typeof(ClickThroughBehavior),
             new PropertyMetadata(false, OnIsEnabledChanged));
 
-    public static void SetIsEnabled(UIElement element, bool value) => element.SetValue(IsEnabledProperty, value);
-    public static bool GetIsEnabled(UIElement element) => (bool)element.GetValue(IsEnabledProperty);
+    public static void SetIsEnabled(UIElement element, bool value) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        element.SetValue(IsEnabledProperty, value);
+    }
+
+    public static bool GetIsEnabled(UIElement element) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        return (bool)element.GetValue(IsEnabledProperty);
+    }
 
     private static void OnIsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
-        if (d is UIElement element) {
-            if ((bool)e.NewValue) {
+        if (d is not UIElement element) return;
+
+        try {
+            bool newValue = (bool)e.NewValue;
+
+            if (newValue) {
+                // RoutedEventHandler (object, RoutedEventArgs)
+                
+                element.GotFocus -= HandleGotFocus;
+                element.LostFocus -= HandleLostFocus;
                 element.GotFocus += HandleGotFocus;
                 element.LostFocus += HandleLostFocus;
-                // Re-add this specifically for Map/Non-Focusable areas
-                element.PreviewMouseDown += HandleGotFocus;
+
+                // MouseEventHandler (object, MouseEventArgs)
+                element.MouseEnter -= HandleMouseEnter;
+                element.MouseLeave -= HandleMouseLeave;
                 element.MouseEnter += HandleMouseEnter;
                 element.MouseLeave += HandleMouseLeave;
+
+                // MouseButtonEventHandler (object, MouseButtonEventArgs)
+                element.PreviewMouseDown -= HandlePreviewMouseDown;
+                element.PreviewMouseDown += HandlePreviewMouseDown;
+
+                Log.Debug("ClickThroughBehavior attached to {ElementType}.", element.GetType().Name);
             }
             else {
                 element.GotFocus -= HandleGotFocus;
-                element.LostFocus -= HandleLostFocus;// Re-add this specifically for Map/Non-Focusable areas
-                element.PreviewMouseDown -= HandleGotFocus;
+                element.LostFocus -= HandleLostFocus;
                 element.MouseEnter -= HandleMouseEnter;
                 element.MouseLeave -= HandleMouseLeave;
+                element.PreviewMouseDown -= HandlePreviewMouseDown;
+
+                Log.Debug("ClickThroughBehavior detached from {ElementType}.", element.GetType().Name);
             }
         }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling IsEnabledChanged in ClickThroughBehavior.");
+        }
     }
-    private static void HandleMouseEnter(object sender, MouseEventArgs e)
-    {
+
+    private static void HandleMouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
         // When the mouse enters the element, disable the "Click-Through"
         // so the window becomes interactive again.
-        if (sender is UIElement element)
-        {
-            SetClickThroughStyle(element, false);
+        if (sender is UIElement element) {
+            SetClickThroughStyle(element, enableClickThrough: false);
         }
     }
 
-    private static void HandleMouseLeave(object sender, MouseEventArgs e)
-    {
+    private static void HandleMouseLeave(object sender, System.Windows.Input.MouseEventArgs e) {
+        if (sender is UIElement element) {
+            SetClickThroughStyle(element, enableClickThrough: true);
+        }
+    }
+
+    private static void HandlePreviewMouseDown(object sender, MouseButtonEventArgs e) {
         // When the mouse leaves the area, re-enable the "Click-Through"
         // so the window becomes "ghost-like" again.
-        if (sender is UIElement element)
-        {
-            SetClickThroughStyle(element, true);
+        if (sender is UIElement element) {
+            HandleGotFocus(element, e);
         }
     }
-    
-    private static void SetClickThroughStyle(UIElement element, bool enableClickThrough)
-    {
-        var window = Window.GetWindow(element);
-        if (window == null) return;
 
-        IntPtr hwnd = new WindowInteropHelper(window).Handle;
-        int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    private static void SetClickThroughStyle(UIElement element, bool enableClickThrough) {
+        try {
+            var window = Window.GetWindow(element);
+            if (window == null) return;
 
-        if (enableClickThrough)
-        {
-            // Add the WS_EX_NOACTIVATE style
-            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
+            IntPtr hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero) return;
+
+            int extendedStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
+
+            if (enableClickThrough) {
+                // Add the WS_EX_NOACTIVATE style
+                NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle | NativeMethods.WS_EX_NOACTIVATE);
+            }
+            else {
+                // Remove the WS_EX_NOACTIVATE style
+                NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
+            }
         }
-        else
-        {
-            // Remove the WS_EX_NOACTIVATE style
-            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
+        catch (Exception ex) {
+            Log.Error(ex, "Error setting click-through style (Enable={Enable}).", enableClickThrough);
         }
     }
 
     private static void HandleGotFocus(object sender, RoutedEventArgs e) {
-        var element = (UIElement)sender;
-        var window = Window.GetWindow(element);
-        if (window == null) return;
+        try {
+            if (sender is not UIElement element) return;
+            var window = Window.GetWindow(element);
+            if (window == null) return;
 
-        var hwnd = new WindowInteropHelper(window).Handle;
-        int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            IntPtr hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero) return;
 
-        // Remove the NOACTIVATE style to allow interaction
-        SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
-        window.Activate();
+            int extendedStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
+
+            NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
+            window.Activate();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling GotFocus in ClickThroughBehavior.");
+        }
     }
 
     private static void HandleLostFocus(object sender, RoutedEventArgs e) {
-        if (sender is FrameworkElement fe) {
-            // Define a timer to delay the style application. 
+        if (sender is not FrameworkElement fe) return;
+
+        try {
+            //Define a timer to delay the style application. 
             //Adding a short delay (e.g., 50–100ms) in HandleLostFocus prevents "flicker."
             //It gives the WPF focus-change cycle a moment to settle so you don't accidentally
             //re-enable "Click-Through" mode while the user is simply moving the cursor
             //between two controls that implement this same logic (textbox and expander of a combobox).
             DispatcherTimer timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
 
-            timer.Tick += (s, args) => {
+            EventHandler tickHandler = null!;
+            tickHandler = (s, args) => {
+                timer.Tick -= tickHandler; // Unhook listener to avoid Dispatcher memory leaks
                 timer.Stop();
-                
-                // Safety Check: Is focus still inside this window?
-                var window = Window.GetWindow(fe);
-                if (window == null) return;
-            
-                // If the user clicked another control in the SAME window, 
-                // don't turn on click-through.
-                if (FocusManager.GetFocusedElement(window) != null) return;
-                
-                // Because DataContext is inherited, fe.DataContext will correctly 
-                // point to your _viewModel even if it's set on the parent Grid.
-                if (fe.DataContext is MainViewModel vm) {
-                    IntPtr hwnd = new WindowInteropHelper(window).Handle;
-                    int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
 
-                    // Directly using your logic
-                    if (vm.Settings.KeyboardClickThrough) {
-                        SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
+                try {
+                    var window = Window.GetWindow(fe);
+                    if (window == null) return;
+
+                    // Safety Check: Is focus still inside this window?
+                    if (FocusManager.GetFocusedElement(window) != null) return;
+
+                    if (fe.DataContext is MainViewModel vm) {
+                        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+                        if (hwnd == IntPtr.Zero) return;
+
+                        int extendedStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
+
+                        if (vm.Settings.KeyboardClickThrough) {
+                            NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle | NativeMethods.WS_EX_NOACTIVATE);
+                        }
+                        else {
+                            NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle & ~NativeMethods.WS_EX_NOACTIVATE);
+                        }
                     }
-                    else {
-                        SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle & ~WS_EX_NOACTIVATE);
-                    }
+                }
+                catch (Exception ex) {
+                    Log.Error(ex, "Error processing delayed LostFocus click-through update.");
                 }
             };
 
+            timer.Tick += tickHandler;
             timer.Start();
         }
+        catch (Exception ex) {
+            Log.Error(ex, "Error initializing LostFocus timer in ClickThroughBehavior.");
+        }
     }
-    
-    public static void ForceBackgroundFocus(IntPtr backgroundHwnd)
-    {
-        // Explicitly set focus back to the target application
-        if (backgroundHwnd != IntPtr.Zero)
-        {
-            Helpers.NativeMethods.SetForegroundWindow(backgroundHwnd);
+
+    public static void ForceBackgroundFocus(IntPtr backgroundHwnd) {
+        try {
+            if (backgroundHwnd != IntPtr.Zero) {
+                NativeMethods.SetForegroundWindow(backgroundHwnd);
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error setting foreground window to HWND {Hwnd}.", backgroundHwnd);
         }
     }
 }

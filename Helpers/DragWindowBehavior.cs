@@ -1,89 +1,72 @@
-﻿using System.Runtime.InteropServices;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 
 namespace MMONavigator.Helpers;
 
 public static class DragWindowBehavior {
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
-
     public static readonly DependencyProperty IsEnabledProperty =
-        DependencyProperty.RegisterAttached("IsEnabled", typeof(bool), typeof(DragWindowBehavior),
+        DependencyProperty.RegisterAttached(
+            "IsEnabled", 
+            typeof(bool), 
+            typeof(DragWindowBehavior),
             new PropertyMetadata(false, OnIsEnabledChanged));
 
-    public static bool GetIsEnabled(UIElement element) => (bool)element.GetValue(IsEnabledProperty);
-    public static void SetIsEnabled(UIElement element, bool value) => element.SetValue(IsEnabledProperty, value);
+    public static bool GetIsEnabled(UIElement element) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        return (bool)element.GetValue(IsEnabledProperty);
+    }
+
+    public static void SetIsEnabled(UIElement element, bool value) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        element.SetValue(IsEnabledProperty, value);
+    }
 
     private static void OnIsEnabledChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
-        if (d is UIElement element && (bool)e.NewValue) {
-            if ((bool)e.NewValue) {
-                // Use Preview event instead of standard bubbling event
+        if (d is not UIElement element) return;
+
+        try {
+            bool newValue = (bool)e.NewValue;
+
+            if (newValue) {
+                element.PreviewMouseLeftButtonDown -= HandleMouseLeftButtonDown;
                 element.PreviewMouseLeftButtonDown += HandleMouseLeftButtonDown;
-                //element.PreviewMouseMove += HandleMouseMove;
-                element.PreviewMouseLeftButtonUp += HandleMouseLeftButtonUp;
+                Log.Debug("DragWindowBehavior attached to {ElementType}.", element.GetType().Name);
             }
             else {
                 element.PreviewMouseLeftButtonDown -= HandleMouseLeftButtonDown;
-                //element.PreviewMouseMove -= HandleMouseMove;
-                element.PreviewMouseLeftButtonUp -= HandleMouseLeftButtonUp;
+                Log.Debug("DragWindowBehavior detached from {ElementType}.", element.GetType().Name);
             }
         }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling IsEnabledChanged in DragWindowBehavior.");
+        }
     }
-
-    //private static System.Windows.Point _mouseOffset;
-#pragma warning disable CS0414 // Field is assigned but its value is never used
-    private static bool _isDragging;
-#pragma warning restore CS0414 // Field is assigned but its value is never used
-    private static System.Drawing.Point _lastMousePos;
-    private static System.Windows.Threading.DispatcherTimer? _dragTimer;
 
     private static void HandleMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-        var element = (UIElement)sender;
-        var window = Window.GetWindow(element);
-        if (window != null) {
-            _isDragging = true;
-            _lastMousePos = System.Windows.Forms.Cursor.Position;
-            
-            // Create a high-frequency timer for the drag
-            _dragTimer = new System.Windows.Threading.DispatcherTimer {
-                Interval = TimeSpan.FromMilliseconds(1) // Run as fast as possible
-            };
-            _dragTimer.Tick += (s, args) => PerformDrag(window);
-            _dragTimer.Start();
+        if (sender is not UIElement element) return;
+
+        try {
+            var window = Window.GetWindow(element);
+            if (window == null) {
+                Log.Warning("DragWindowBehavior: Unable to locate parent Window for element {ElementType}.", element.GetType().Name);
+                return;
+            }
+
+            // Ensure we only initiate drag when clicking primaryMouseButton directly
+            if (e.ButtonState == MouseButtonState.Pressed) {
+                Log.Verbose("Initiating DragMove for window '{Title}'.", window.Title);
+                
+                // Native WPF DragMove hands off window movement directly to the OS window manager loop,
+                // eliminating high-CPU DispatcherTimer polling loops and WinForms Cursor dependencies.
+                window.DragMove();
+            }
         }
-    }
-
-    private static void PerformDrag(Window window) {
-        // If the left button is released, stop immediately
-        if (System.Windows.Forms.Control.MouseButtons != System.Windows.Forms.MouseButtons.Left) {
-            _dragTimer?.Stop();
-            return;
+        catch (InvalidOperationException) {
+            // DragMove throws an InvalidOperationException if called when the left mouse button isn't down.
+            Log.Debug("DragMove invoked outside of valid mouse button press state.");
         }
-
-        System.Drawing.Point currentMousePos = System.Windows.Forms.Cursor.Position;
-
-        var source = System.Windows.PresentationSource.FromVisual(window);
-        if (source?.CompositionTarget == null) return;
-        double dpiX = source.CompositionTarget.TransformToDevice.M11;
-        double dpiY = source.CompositionTarget.TransformToDevice.M22;
-
-        double deltaX = (currentMousePos.X - _lastMousePos.X) / dpiX;
-        double deltaY = (currentMousePos.Y - _lastMousePos.Y) / dpiY;
-
-        window.Left += deltaX;
-        window.Top += deltaY;
-
-        _lastMousePos = currentMousePos;
-    }
-
-    private static void HandleMouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
-        if (_dragTimer != null) {
-            _dragTimer.Stop();
-            _dragTimer = null;
+        catch (Exception ex) {
+            Log.Error(ex, "Unexpected error executing DragWindowBehavior on element.");
         }
     }
 }

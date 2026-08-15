@@ -152,15 +152,22 @@
               Visibility="{Binding UIVisibility}"
               Focusable="False">
 
-            <Menu Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <Menu Background="Transparent" HorizontalAlignment="Left" VerticalAlignment="Center"
+                  MenuItem.SubmenuOpened="Menu_SubmenuOpened"
+                  MenuItem.SubmenuClosed="Menu_SubmenuClosed">
                 <MenuItem Header="_File" Foreground="White">
-                    <MenuItem Header="_Pick Image" Click="PickImage_Click" Foreground="Black" />
-                    <MenuItem Header="_Load Map" Click="LoadMap_Click" Foreground="Black" />
+                    <!-- Creates a map from an uncalibrated image file -->
+                    <MenuItem Header="_New Map from Image File..." Click="PickImage_Click" Foreground="Black"
+                              InputGestureText="Ctrl+N" ToolTip="Import an image file (PNG/JPG) and calibrate it." />
+
+                    <!-- Opens a saved, already-configured map with .json data -->
+                    <MenuItem Header="_Open Saved Map..." Click="LoadMap_Click" Foreground="Black"
+                              InputGestureText="Ctrl+O" ToolTip="Open a map you previously saved." />
+
                     <Separator />
-                    <MenuItem Header="_Save Map" Click="SaveMap_Click"
-                              IsEnabled="{Binding Settings.IsCalibrated}" Foreground="Black" />
-                    <Separator />
-                    <MenuItem Header="Start _Drawing..." Click="StartDrawMode_Click" Foreground="Black">
+
+                    <!-- Generates a map dynamically via position logs -->
+                    <MenuItem Header="Create _Live Map by Walking..." Click="StartDrawMode_Click" Foreground="Black">
                         <MenuItem.Style>
                             <Style TargetType="MenuItem">
                                 <Setter Property="Visibility" Value="Visible" />
@@ -172,7 +179,9 @@
                             </Style>
                         </MenuItem.Style>
                     </MenuItem>
-                    <MenuItem Header="Stop Drawing" Click="StopDrawMode_Click" Foreground="Black">
+
+                    <!-- Toggle off draw mode -->
+                    <MenuItem Header="Stop Live Drawing" Click="StopDrawMode_Click" Foreground="Black">
                         <MenuItem.Style>
                             <Style TargetType="MenuItem">
                                 <Setter Property="Visibility" Value="Collapsed" />
@@ -184,17 +193,36 @@
                             </Style>
                         </MenuItem.Style>
                     </MenuItem>
+
+                    <Separator />
+
+                    <!-- Saves calibration and state for current map -->
+                    <MenuItem Header="_Save Current Map" Click="SaveMap_Click"
+                              IsEnabled="{Binding Settings.IsCalibrated}" Foreground="Black"
+                              InputGestureText="Ctrl+S" />
                 </MenuItem>
             </Menu>
 
-            <Button Style="{StaticResource CalibrationButtonStyle}"
-                    Content="Calibrate" Click="Calibrate_Click"
+            <Button Content="Calibrate" Click="Calibrate_Click"
                     Margin="0,2,5,2"
                     Padding="5,2"
                     HorizontalAlignment="Right"
                     Width="70"
                     Focusable="False"
-                    ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates." />
+                    ToolTip="Map two positions on the image to locations in the game by their X/Y coordinates.">
+                <Button.Style>
+                    <!-- Inherit from your existing CalibrationButtonStyle -->
+                    <Style TargetType="Button" BasedOn="{StaticResource CalibrationButtonStyle}">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <!-- Hide when Draw Mode is active -->
+                            <DataTrigger Binding="{Binding IsDrawModeActive}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
 
             <!-- <Button Style="{StaticResource PrimaryButtonStyle}" Content="Pick Image" Click="PickImage_Click" -->
             <!--         Margin="5,2,5,2" Padding="5,2" Focusable="False" -->
@@ -242,62 +270,74 @@
 
                 <!-- 0: White (default) -->
                 <Border x:Name="DrawColorBox0" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="0" Focusable="False">
+                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="0"
+                        Focusable="False">
                     <Rectangle Fill="White" Focusable="False" />
                 </Border>
                 <!-- 1: Dodger Blue -->
                 <Border x:Name="DrawColorBox1" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="1" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="1"
+                        Focusable="False">
                     <Rectangle Fill="DodgerBlue" Focusable="False" />
                 </Border>
                 <!-- 2: Green -->
                 <Border x:Name="DrawColorBox2" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="2" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="2"
+                        Focusable="False">
                     <Rectangle Fill="Green" Focusable="False" />
                 </Border>
                 <!-- 3: Cyan -->
                 <Border x:Name="DrawColorBox3" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="3" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="3"
+                        Focusable="False">
                     <Rectangle Fill="Cyan" Focusable="False" />
                 </Border>
                 <!-- 4: Brown -->
                 <Border x:Name="DrawColorBox4" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="4" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="4"
+                        Focusable="False">
                     <Rectangle Fill="#A52A2A" Focusable="False" />
                 </Border>
                 <!-- 5: Tan -->
                 <Border x:Name="DrawColorBox5" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="5" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="5"
+                        Focusable="False">
                     <Rectangle Fill="Tan" Focusable="False" />
                 </Border>
                 <!-- 6: Yellow -->
                 <Border x:Name="DrawColorBox6" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="6" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="6"
+                        Focusable="False">
                     <Rectangle Fill="Yellow" Focusable="False" />
                 </Border>
                 <!-- 7: Orange -->
                 <Border x:Name="DrawColorBox7" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="7" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="7"
+                        Focusable="False">
                     <Rectangle Fill="Orange" Focusable="False" />
                 </Border>
                 <!-- 8: Purple -->
                 <Border x:Name="DrawColorBox8" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="8" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="8"
+                        Focusable="False">
                     <Rectangle Fill="Purple" Focusable="False" />
                 </Border>
                 <!-- 9: Red -->
                 <Border x:Name="DrawColorBox9" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="9" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="9"
+                        Focusable="False">
                     <Rectangle Fill="Red" Focusable="False" />
                 </Border>
                 <!-- 10: Black -->
                 <Border x:Name="DrawColorBox10" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="10" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="10"
+                        Focusable="False">
                     <Rectangle Fill="Black" Focusable="False" />
                 </Border>
                 <!-- 11: Gray -->
                 <Border x:Name="DrawColorBox11" Width="18" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="11" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawColor_Click" Tag="11"
+                        Focusable="False">
                     <Rectangle Fill="Gray" Focusable="False" />
                 </Border>
                 <!-- 12: Transparent -->
@@ -317,32 +357,37 @@
 
                 <!-- Size: 2px (only shown when default radius >= 5) -->
                 <Border x:Name="DrawSizeBoxSmall" Width="28" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="-1" Focusable="False"
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="-1"
+                        Focusable="False"
                         Visibility="{Binding DrawShowSmallBrush, Converter={StaticResource BooleanToVisibilityConverter}}">
                     <TextBlock Text="2px" FontSize="10" Foreground="White" HorizontalAlignment="Center"
                                VerticalAlignment="Center" Focusable="False" />
                 </Border>
                 <!-- Size: Default -->
                 <Border x:Name="DrawSizeBoxDefault" Width="40" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="0" Focusable="False">
+                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="0"
+                        Focusable="False">
                     <TextBlock Text="Default" FontSize="10" Foreground="White" HorizontalAlignment="Center"
                                VerticalAlignment="Center" Focusable="False" />
                 </Border>
                 <!-- Size: +3 -->
                 <Border x:Name="DrawSizeBoxPlus3" Width="28" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="1" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="1"
+                        Focusable="False">
                     <TextBlock Text="+3" FontSize="10" Foreground="White" HorizontalAlignment="Center"
                                VerticalAlignment="Center" Focusable="False" />
                 </Border>
                 <!-- Size: +5 -->
                 <Border x:Name="DrawSizeBoxPlus5" Width="28" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="2" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="2"
+                        Focusable="False">
                     <TextBlock Text="+5" FontSize="10" Foreground="White" HorizontalAlignment="Center"
                                VerticalAlignment="Center" Focusable="False" />
                 </Border>
                 <!-- Size: +10 -->
                 <Border x:Name="DrawSizeBoxPlus10" Width="28" Height="18" Margin="1,0" BorderThickness="2"
-                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="3" Focusable="False">
+                        BorderBrush="Transparent" Cursor="Hand" MouseLeftButtonDown="DrawSize_Click" Tag="3"
+                        Focusable="False">
                     <TextBlock Text="+10" FontSize="10" Foreground="White" HorizontalAlignment="Center"
                                VerticalAlignment="Center" Focusable="False" />
                 </Border>
@@ -368,7 +413,7 @@
 
                 <!-- Divider -->
                 <Rectangle Width="1" Height="16" Fill="#666666" Margin="6,0" VerticalAlignment="Center" />
-                
+
                 <!-- Add text button -->
                 <!-- <Button x:Name="DrawModeAddText" Width="34" Height="18" Margin="1,0" BorderThickness="2" -->
                 <!--         BorderBrush="Transparent" Cursor="Hand" Click="DrawModeAddText_Click" -->
@@ -376,7 +421,7 @@
                 <!--     <TextBlock Text="Add Text" FontSize="10" Foreground="White" HorizontalAlignment="Center" -->
                 <!--                VerticalAlignment="Center" Focusable="False" /> -->
                 <!-- </Button> -->
-                
+
                 <Button x:Name="DrawModeAddText" Style="{StaticResource CalibrationButtonStyle}"
                         Content="Add Text Box" Click="DrawModeAddText_Click"
                         Margin="1,0"
@@ -385,7 +430,7 @@
                         Width="90"
                         Focusable="False"
                         ToolTip="Add text with box to map" />
-                
+
                 <Button x:Name="DrawModeAddCircle" Style="{StaticResource CalibrationButtonStyle}"
                         Content="Add Text Circle" Click="DrawModeAddCircle_Click"
                         Margin="1,0"
@@ -394,7 +439,7 @@
                         Width="90"
                         Focusable="False"
                         ToolTip="Add text with circle to map" />
-                
+
                 <Button x:Name="DrawModeAddEllipse" Style="{StaticResource CalibrationButtonStyle}"
                         Content="Add Ellipse" Click="DrawModeAddEllipse_Click"
                         Margin="1,0"
@@ -403,7 +448,7 @@
                         Width="70"
                         Focusable="False"
                         ToolTip="Add ellipse to map" />
-                
+
             </StackPanel>
         </Border>
 
@@ -654,7 +699,8 @@
                                Visibility="{Binding ShowBreadcrumb, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </Grid>
                     <!-- Position Marker -->
-                    <Ellipse x:Name="PulseCircle" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Stroke="Yellow" StrokeThickness="2"
+                    <Ellipse x:Name="PulseCircle" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}"
+                             Stroke="Yellow" StrokeThickness="2"
                              Visibility="{Binding CurrentPositionMarkerVisibility}"
                              Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
                              Margin="{Binding MarkerMargin}" RenderTransformOrigin="0.5,0.5" Focusable="False"
@@ -697,7 +743,8 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <Ellipse x:Name="PositionMarker" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Fill="Red" Stroke="White"
+                    <Ellipse x:Name="PositionMarker" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}"
+                             Fill="Red" Stroke="White"
                              StrokeThickness="1"
                              Visibility="{Binding CurrentPositionMarkerVisibility}"
                              Canvas.Left="{Binding MarkerX}" Canvas.Top="{Binding MarkerY}"
@@ -721,7 +768,8 @@
                     </Path>
 
                     <!-- Destination Marker -->
-                    <Ellipse x:Name="DestinationPulseCircle" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Stroke="Purple"
+                    <Ellipse x:Name="DestinationPulseCircle" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}"
+                             Stroke="Purple"
                              StrokeThickness="2"
                              Visibility="{Binding TargetMarkerVisibility}"
                              Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
@@ -765,7 +813,8 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <Ellipse x:Name="DestinationMarker" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" Fill="Yellow" Stroke="Black"
+                    <Ellipse x:Name="DestinationMarker" Width="{Binding MarkerSize}" Height="{Binding MarkerSize}"
+                             Fill="Yellow" Stroke="Black"
                              StrokeThickness="1"
                              Visibility="{Binding TargetMarkerVisibility}"
                              Canvas.Left="{Binding TargetMarkerX}" Canvas.Top="{Binding TargetMarkerY}"
@@ -903,14 +952,16 @@
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
-                                    <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Collapsed" />
+                                    <Condition
+                                        Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                                        Value="Collapsed" />
                                 </MultiDataTrigger.Conditions>
                                 <Setter Property="Visibility" Value="Visible" />
                             </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Canvas.Style>
-                
+
                 <Border Background="#80000000"
                         CornerRadius="3"
                         Padding="5,2"
@@ -919,7 +970,7 @@
                         Canvas.Left="{Binding StickyLeftPosition}"
                         Canvas.Top="{Binding StickyTopPosition}"
                         IsHitTestVisible="False">
-                    
+
                     <StackPanel
                         Orientation="Horizontal"
                         Margin="0,0,0,0"
@@ -1038,44 +1089,270 @@
                        VerticalAlignment="Bottom"
                        IsHitTestVisible="False" />
             <!-- Watermark Layer -->
-            <TextBlock Text="NOT CALIBRATED"
-                       FontSize="40"
-                       Foreground="Gold"
-                       Opacity="0.3"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       IsHitTestVisible="False">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False"
+                        MaxWidth="500"
+                        Margin="20">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <!-- Default to Collapsed -->
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <DataTrigger
-                                Binding="{Binding Settings.IsCalibrated}" Value="False">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
+                            <!-- Show ONLY when: Map IS loaded AND NOT calibrated AND NOT in Draw Mode -->
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding Settings.IsCalibrated}" Value="True" />
-                                    <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Visible" />
+                                    <!-- NullToVisibilityConverter returns Collapsed when MapImage is NOT null -->
+                                    <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Collapsed" />
+                                    <Condition Binding="{Binding Settings.IsCalibrated}" Value="False" />
+                                    <!-- Bound directly to MapViewModel.IsDrawModeActive -->
+                                    <Condition Binding="{Binding IsDrawModeActive}" Value="False" />
                                 </MultiDataTrigger.Conditions>
-                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Setter Property="Visibility" Value="Visible" />
                             </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
-                </TextBlock.Style>
-            </TextBlock>
+                </StackPanel.Style>
+
+                <!-- Large Header -->
+                <TextBlock Text="NOT CALIBRATED"
+                           FontSize="40"
+                           FontWeight="Bold"
+                           Foreground="Gold"
+                           Opacity="0.4"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,8" />
+
+                <!-- Helper Subtitle -->
+<Border Background="#252526"
+        BorderBrush="#3E3E42"
+        BorderThickness="1"
+        CornerRadius="8"
+        Padding="20"
+        MaxWidth="480"
+        HorizontalAlignment="Center"
+        VerticalAlignment="Center">
+    
+    <StackPanel>
+        <!-- Large Header -->
+        <TextBlock Text="MAP NOT CALIBRATED"
+                   FontSize="14"
+                   FontWeight="Bold"
+                   Foreground="Gold"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,12" />
+
+        <!-- Subtitle -->
+        <TextBlock Text="This image needs to be aligned with game coordinates before real-time position tracking can begin."
+                   FontSize="12"
+                   Foreground="#CCCCCC"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   LineHeight="16"
+                   Margin="0,0,0,16" />
+
+        <Separator Background="#3E3E42" Margin="0,0,0,16" />
+
+        <!-- Quick Steps -->
+        <Grid Margin="0,0,0,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Step 1 -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold" Margin="0,0,8,8" />
+            <TextBlock Grid.Row="0" Grid.Column="1" 
+                       Text="Click the 'Calibrate' button in the top menu bar." 
+                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+            <!-- Step 2 -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold" Margin="0,0,8,0" />
+            <TextBlock Grid.Row="1" Grid.Column="1" 
+                       Text="Pick two spots on the map and type in your in-game /loc coordinates for each." 
+                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
+        </Grid>
+
+        <!-- Tip / Action Callout -->
+        <Border Background="#1E1E1E" 
+                BorderBrush="#333333" 
+                BorderThickness="1" 
+                CornerRadius="4" 
+                Padding="10,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock Text="🎯 " FontSize="12" VerticalAlignment="Center" />
+                <TextBlock Text="Tip: Choose two points far apart on the map for maximum accuracy."
+                           FontSize="11"
+                           Foreground="#888888"
+                           FontStyle="Italic"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</Border>
+
+            </StackPanel>
 
             <!-- Watermark Layer -->
-            <TextBlock Text="LOAD MAP"
-                       FontSize="40"
-                       Foreground="LightGray"
-                       Opacity="1"
-                       Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       IsHitTestVisible="False">
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        IsHitTestVisible="False"
+                        MaxWidth="500"
+                        Margin="20">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <!-- Default to Collapsed -->
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <!-- Show ONLY when: Map IS loaded AND it is NOT calibrated AND Draw Mode IS active -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <!-- NullToVisibilityConverter returns Collapsed when MapImage is NOT null -->
+                                    <Condition
+                                        Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                                        Value="Collapsed" />
+                                    <Condition Binding="{Binding Settings.IsCalibrated}" Value="False" />
+                                    <Condition Binding="{Binding IsDrawModeActive}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <!-- Large Header -->
+                <TextBlock Text="DRAW MODE"
+                           FontSize="40"
+                           FontWeight="Bold"
+                           Foreground="LightGray"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,12" />
 
-            </TextBlock>
+                <!-- Hint Subtitle -->
+                <StackPanel MaxWidth="460" Margin="10">
+                    <TextBlock Text="You are centered on a new map."
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               TextAlignment="Center"
+                               Margin="0,0,0,8" />
+
+                    <TextBlock FontSize="12"
+                               Foreground="#B0B0B0"
+                               LineHeight="18"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap">
+                        <Run Text="Keep your " />
+                        <Run FontWeight="Bold" Foreground="Gold" Text="/loc" />
+                        <Run Text=" macro running as you move. Where you walk defines open space, while hitting boundaries creates walls. Use different brush colors for edges and roads. The map expands as you move to the edge as long as you are running the macro. You can go out of bounds." />
+                    </TextBlock>
+
+                    <TextBlock FontSize="11.5"
+                               Foreground="#888888"
+                               FontStyle="Italic"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Margin="0,10,0,0">
+                        Tip: Switch to the <Run Foreground="White">Transparent (∅)</Run> color to pause drawing without stopping your macro.
+                    </TextBlock>
+                </StackPanel>
+
+            </StackPanel>
+
+            <!-- Watermark Layer -->
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                        IsHitTestVisible="False"
+                        MaxWidth="500"
+                        Margin="20">
+
+                <!-- Large Header -->
+                <TextBlock Text="LOAD MAP"
+                           FontSize="40"
+                           FontWeight="Bold"
+                           Foreground="LightGray"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,12" />
+
+                <!-- Hint Subtitle -->
+                <Border Background="#252526"
+                        BorderBrush="#3E3E42"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        MaxWidth="480"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+
+                    <StackPanel>
+                        <!-- Large Header -->
+                        <TextBlock Text="LOAD A ZONE MAP"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="LightGray"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12" />
+
+                        <!-- Subtitle -->
+                        <TextBlock Text="To track your character, import an image of the zone map you want to explore."
+                                   FontSize="12"
+                                   Foreground="#CCCCCC"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   LineHeight="16"
+                                   Margin="0,0,0,16" />
+
+                        <Separator Background="#3E3E42" Margin="0,0,0,16" />
+
+                        <!-- Steps -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Step 1 -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,8" />
+                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                       Text="Go to File → New Map from Image File... and select your map image."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                            <!-- Step 2 -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,0" />
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Text="Set two calibration points using in-game coordinates so your position syncs automatically."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
+                        </Grid>
+
+                        <!-- Tip / Shortcut Box -->
+                        <Border Background="#1E1E1E"
+                                BorderBrush="#333333"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,8">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="🗺️ " FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="Tip: Already configured a map? Use File → Open Saved Map..."
+                                           FontSize="11"
+                                           Foreground="#888888"
+                                           FontStyle="Italic"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
         </Grid>
         <!-- Opacity Slider -->
         <Border Grid.Row="4"

@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Collections.ObjectModel;
-using System.Windows.Controls.Ribbon;
+using System.Windows.Threading;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
@@ -28,7 +29,7 @@ using MMONavigator.Views;
 
 namespace MMONavigator.ViewModels;
 
-public class MainViewModel : INotifyPropertyChanged {
+public class MainViewModel : INotifyPropertyChanged, IDisposable {
     private readonly ISettingsService _settingsService;
     private readonly IWatcherService _watcherService;
     private const double ProximityDistanceThreshold = 100;
@@ -39,7 +40,7 @@ public class MainViewModel : INotifyPropertyChanged {
     private const double HeadingToleranceFair = 6.0;
     private const double MovementThreshold = 1.0;
     private CoordinateData? _lastCoordinateData;
-
+    private DispatcherTimer? _saveDebounceTimer;
     private bool _hasLocations;
 
     public bool HasLocations {
@@ -107,7 +108,6 @@ public class MainViewModel : INotifyPropertyChanged {
             if (_isSelected != value) {
                 _isSelected = value;
                 OnPropertyChanged();
-                // Add logic here to track the single selected item in the main ViewModel
             }
         }
     }
@@ -120,9 +120,7 @@ public class MainViewModel : INotifyPropertyChanged {
             if (_isExpanded != value) {
                 _isExpanded = value;
                 OnPropertyChanged();
-                // Add logic here to track the single selected item in the main ViewModel
-                // Check if it's actually in the visual tree
-                System.Diagnostics.Debug.WriteLine($"Popup is open: {_isExpanded}");
+                Log.Debug("Popup expanded state changed: {IsExpanded}", _isExpanded);
             }
         }
     }
@@ -198,7 +196,7 @@ public class MainViewModel : INotifyPropertyChanged {
     public AppSettings Settings {
         get => _settings;
         set {
-            AppSettings oldSettings = _settings; // Explicitly capture the current backing field
+            AppSettings oldSettings = _settings;
             if (SetField(ref _settings, value)) {
                 SwapSettingsSubscriptions(oldSettings, value);
             }
@@ -217,9 +215,10 @@ public class MainViewModel : INotifyPropertyChanged {
         }
 
         if (newSettings != null) {
+            newSettings.PropertyChanged -= Settings_PropertyChanged;
             newSettings.PropertyChanged += Settings_PropertyChanged;
             foreach (var profile in newSettings.Profiles) {
-                profile.PropertyChanged -= Profile_PropertyChanged; // Prevent double subscription
+                profile.PropertyChanged -= Profile_PropertyChanged;
                 profile.PropertyChanged += Profile_PropertyChanged;
                 
                 profile.MapSettings.PropertyChanged -= MapSettings_PropertyChanged;
@@ -461,12 +460,40 @@ public class MainViewModel : INotifyPropertyChanged {
             }
         }
     }
-
+    private void OnLocationUpdated(object? sender, string coords) {
+        CurrentCoordinates = coords;
+    }
+    public void Dispose() {
+        FlushPendingSave();
+        if (_watcherService != null) {
+            _watcherService.LocationUpdated -= OnLocationUpdated;
+        }
+    }
+    
+    public void FlushPendingSave() {
+        // If a save was debounced/pending, stop the timer cleanly and save synchronously on exit
+        if (_saveDebounceTimer != null && _saveDebounceTimer.IsEnabled) {
+            StopSaveTimer();
+            try {
+                _settingsService.SaveSettings(Settings);
+            }
+            catch (Exception ex) {
+                Log.Error(ex, "Error flushing settings during cleanup.");
+            }
+        }
+    }
+    
     public MainViewModel(ISettingsService settingsService, IWatcherService watcherService) {
-        _settingsService = settingsService;
-        _watcherService = watcherService;
-        _watcherService.LocationUpdated += (s, coords) => CurrentCoordinates = coords;
+        _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
+        _watcherService = watcherService ?? throw new ArgumentNullException(nameof(watcherService));
+        
+        // Prevent duplicate subscriptions before subscribing
+        _watcherService.LocationUpdated -= OnLocationUpdated;
+        _watcherService.LocationUpdated += OnLocationUpdated;
+        
+        this.PropertyChanged -= ViewModel_PropertyChanged;
         this.PropertyChanged += ViewModel_PropertyChanged;
+        
         SwapSettingsSubscriptions(null, _settings);
         LoadSettings();
         LoadLocations();
@@ -485,13 +512,13 @@ public class MainViewModel : INotifyPropertyChanged {
         });
         BuyMeACoffeeCommand = new RelayCommand(_ => {
             try {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+                Process.Start(new ProcessStartInfo {
                     FileName = "https://buymeacoffee.com/johnrigsby",
                     UseShellExecute = true
                 });
             }
             catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"Error opening URL: {ex.Message}");
+                Log.Error(ex, "Error launching BuyMeACoffee URL.");
             }
         });
     }
@@ -500,11 +527,21 @@ public class MainViewModel : INotifyPropertyChanged {
 
     public void StartWatcher(IntPtr windowHandle) {
         _lastWindowHandle = windowHandle;
-        _watcherService.Start(Settings, windowHandle);
+        try {
+            _watcherService.Start(Settings, windowHandle);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Failed to start WatcherService.");
+        }
     }
 
     public void StopWatcher() {
-        _watcherService.Stop();
+        try {
+            _watcherService.Stop();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Failed to stop WatcherService.");
+        }
     }
 
     public void HandleClipboardUpdate() {
@@ -514,106 +551,164 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     public void LoadSettings() {
-        Settings = _settingsService.LoadSettings();
+        try {
+            Settings = _settingsService.LoadSettings();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error loading settings in MainViewModel.");
+        }
     }
 
     public void SaveSettings() {
-        _settingsService.SaveSettings(Settings);
+        try {
+            // Must be called on the UI thread to manage the DispatcherTimer safely
+            if (!System.Windows.Application.Current.Dispatcher.CheckAccess()) {
+                System.Windows.Application.Current.Dispatcher.Invoke(SaveSettings);
+                return;
+            }
+
+            // 1. Unhook and stop any existing timer
+            StopSaveTimer();
+
+            // 2. Safely initialize and subscribe with a named handler
+            _saveDebounceTimer = new DispatcherTimer {
+                Interval = TimeSpan.FromMilliseconds(500)
+            };
+
+            _saveDebounceTimer.Tick += SaveDebounceTimer_Tick;
+            _saveDebounceTimer.Start();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error initializing debounced SaveSettings.");
+        }
     }
 
+    private void SaveDebounceTimer_Tick(object? sender, EventArgs e) {
+        // Cleanly unhook immediately so a queued tick can never re-enter
+        StopSaveTimer();
+
+        // Snapshot settings on UI thread
+        var settingsSnapshot = Settings;
+
+        // Offload disk IO to background thread
+        Task.Run(() => {
+            try {
+                _settingsService.SaveSettings(settingsSnapshot);
+            }
+            catch (Exception ex) {
+                Log.Error(ex, "Error saving settings in debounced background task.");
+            }
+        });
+    }
+
+    private void StopSaveTimer() {
+        if (_saveDebounceTimer != null) {
+            _saveDebounceTimer.Stop();
+            _saveDebounceTimer.Tick -= SaveDebounceTimer_Tick;
+            _saveDebounceTimer = null;
+        }
+    }
+    
     public void LoadLocations() {
-        var list = _settingsService.LoadLocations(Settings.SelectedProfile);
-        Locations.Clear();
+        try {
+            var list = _settingsService.LoadLocations(Settings.SelectedProfile);
+            Locations.Clear();
 
-        // 1. Scrub all coordinates recursively in the loaded list
-        void ProcessItems(List<LocationItem> items) {
-            foreach (var item in items) {
-                item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
-                if (item.Items != null) {
-                    ProcessItems(item.Items);
-                }
-            }
-        }
-        ProcessItems(list);
-
-        // 2. Flatten the list to get only 'leaf' locations (those that aren't folder nodes themselves)
-        // Folder nodes in the saved file are recognized by having an Items collection.
-        // We want to rebuild the hierarchy from scratch to avoid redundancy.
-        List<LocationItem> GetAllLeafLocations(IEnumerable<LocationItem> items) {
-            var leafItems = new List<LocationItem>();
-            foreach (var item in items) {
-                if (item.Items == null || item.Items.Count == 0) {
-                    // It's a location item
-                    leafItems.Add(item);
-                } else {
-                    // It's a folder node, get its children
-                    leafItems.AddRange(GetAllLeafLocations(item.Items));
-                }
-            }
-            return leafItems;
-        }
-
-        var flattenedLeafs = GetAllLeafLocations(list);
-
-        // 3. Rebuild the hierarchy based on the Header property of each leaf
-        foreach (var item in flattenedLeafs) {
-            if (!string.IsNullOrWhiteSpace(item.Header)) {
-                var group = Locations.FirstOrDefault(l => l.Header == item.Header);
-                if (group != null) {
-                    if (group.Items == null) {
-                        group.Items = new List<LocationItem>();
+            void ProcessItems(List<LocationItem> items) {
+                foreach (var item in items) {
+                    item.ScrubbedCoordinates = Scrubber.ScrubEntry(item.Coordinates);
+                    if (item.Items != null) {
+                        ProcessItems(item.Items);
                     }
-                    group.Items.Add(item);
+                }
+            }
+            ProcessItems(list);
+
+            // 2. Flatten the list to get only 'leaf' locations (those that aren't folder nodes themselves)
+            // Folder nodes in the saved file are recognized by having an Items collection.
+            // We want to rebuild the hierarchy from scratch to avoid redundancy.
+            List<LocationItem> GetAllLeafLocations(IEnumerable<LocationItem> items) {
+                var leafItems = new List<LocationItem>();
+                foreach (var item in items) {
+                    if (item.Items == null || item.Items.Count == 0) {
+                        // It's a location item
+                        leafItems.Add(item);
+                    } else {
+                        // It's a folder node, get its children
+                        leafItems.AddRange(GetAllLeafLocations(item.Items));
+                    }
+                }
+                return leafItems;
+            }
+
+            var flattenedLeafs = GetAllLeafLocations(list);
+
+            // 3. Rebuild the hierarchy based on the Header property of each leaf
+            foreach (var item in flattenedLeafs) {
+                if (!string.IsNullOrWhiteSpace(item.Header)) {
+                    var group = Locations.FirstOrDefault(l => l.Header == item.Header);
+                    if (group != null) {
+                        group.Items ??= new List<LocationItem>();
+                        group.Items.Add(item);
+                    }
+                    else {
+                        Locations.Add(new LocationItem
+                            { Header = item.Header, Name = item.Header, Items = new List<LocationItem> { item } });
+                    }
                 }
                 else {
-                    Locations.Add(new LocationItem
-                        { Header = item.Header, Name = item.Header, Items = new List<LocationItem> { item } });
+                    Locations.Add(item);
                 }
             }
-            else {
-                Locations.Add(item);
-            }
-        }
-        
-        // 4. Sort recursively
-        void SortItems(List<LocationItem> items) {
-            var sortedList = items.OrderBy(l => l.Name).ToList();
-            items.Clear();
-            items.AddRange(sortedList);
-            foreach (var item in items) {
-                if (item.Items != null) {
-                    SortItems(item.Items);
-                }
-            }
-        }
 
-        var rootSorted = Locations.OrderBy(l => l.Name).ToList();
-        foreach (var group in rootSorted.Where(x => x.Items != null)) {
-            SortItems(group.Items!);
+            // 4. Sort recursively
+            void SortItems(List<LocationItem> items) {
+                var sortedList = items.OrderBy(l => l.Name).ToList();
+                items.Clear();
+                items.AddRange(sortedList);
+                foreach (var item in items) {
+                    if (item.Items != null) {
+                        SortItems(item.Items);
+                    }
+                }
+            }
+
+            var rootSorted = Locations.OrderBy(l => l.Name).ToList();
+            foreach (var group in rootSorted.Where(x => x.Items != null)) {
+                SortItems(group.Items!);
+            }
+
+            Locations = new ObservableCollection<LocationItem>(rootSorted);
+            UpdateHasLocations();
+            UpdateMapLocations();
         }
-        
-        Locations = new ObservableCollection<LocationItem>(rootSorted);
-        UpdateHasLocations();
-        UpdateMapLocations();
+        catch (Exception ex) {
+            Log.Error(ex, "Error loading locations in MainViewModel.");
+        }
     }
 
     public void SaveLocations() {
-        // Flatten the locations to save only 'leaf' items.
-        // The hierarchy will be rebuilt from the 'Header' property during LoadLocations.
-        List<LocationItem> GetLeafLocations(IEnumerable<LocationItem> items) {
-            var leafs = new List<LocationItem>();
-            foreach (var item in items) {
-                if (item.Items == null || item.Items.Count == 0) {
-                    leafs.Add(item);
-                } else {
-                    leafs.AddRange(GetLeafLocations(item.Items));
+        try {
+            // Flatten the locations to save only 'leaf' items.
+            // The hierarchy will be rebuilt from the 'Header' property during LoadLocations.
+            List<LocationItem> GetLeafLocations(IEnumerable<LocationItem> items) {
+                var leafs = new List<LocationItem>();
+                foreach (var item in items) {
+                    if (item.Items == null || item.Items.Count == 0) {
+                        leafs.Add(item);
+                    } else {
+                        leafs.AddRange(GetLeafLocations(item.Items));
+                    }
                 }
+                return leafs;
             }
-            return leafs;
-        }
 
-        var flattened = GetLeafLocations(Locations);
-        _settingsService.SaveLocations(flattened, Settings.SelectedProfile);
+            var flattened = GetLeafLocations(Locations);
+            _settingsService.SaveLocations(flattened, Settings.SelectedProfile);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error saving locations in MainViewModel.");
+        }
     }
 
     private void AddLocation() {
@@ -621,210 +716,219 @@ public class MainViewModel : INotifyPropertyChanged {
     }
 
     private void AddLocation(CoordinateData? customCoords) {
-        string? scrubbedTarget;
-        if (customCoords.HasValue) {
-            var coords = customCoords.Value;
-            if (Settings.SelectedProfile.CoordinateOrder == "y x") {
-                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
-            } else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
-                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
-            } else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
-                scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
-            } else {
-                // Default x z y d
-                scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
-            }
-        }
-        else {
-            scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates) ? "" : Scrubber.ScrubEntry(TargetCoordinates);
-        }
-        
-        if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
-
-        var name = string.Empty;
-        var group = string.Empty;
-        
-        List<string> GetAllGroups(IEnumerable<LocationItem> items) {
-            var result = new List<string>();
-            foreach (var item in items) {
-                if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
-                    result.Add(item.Header);
-                    result.AddRange(GetAllGroups(item.Items));
+        try {
+            string? scrubbedTarget;
+            if (customCoords.HasValue) {
+                var coords = customCoords.Value;
+                if (Settings.SelectedProfile.CoordinateOrder == "y x") {
+                    scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
+                } else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
+                    scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
+                } else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
+                    scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
+                } else {
+                    // Default x z y d
+                    scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
                 }
             }
-            return result;
-        }
+            else {
+                scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates) ? "" : Scrubber.ScrubEntry(TargetCoordinates);
+            }
 
-        List<string> groups = GetAllGroups(Locations).Distinct().ToList();
-        var dialog = new DestinationDialog("", "", groups) {
-            Owner = System.Windows.Application.Current.MainWindow
-        };
-        dialog.ShowDialog(); 
+            if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
-        // Check your manual property instead of the built-in DialogResult
-        if (dialog.ManualDialogResult == true)
-        {
-            name = dialog.Answer;
-            group = dialog.Group;
-        }
-        else {
-            return;
-        }
+            var name = string.Empty;
+            var group = string.Empty;
 
-        var item = new LocationItem {
-            Name = string.IsNullOrWhiteSpace(name) ? null : name,
-            Coordinates = scrubbedTarget,
-            ScrubbedCoordinates = scrubbedTarget,
-            Header = string.IsNullOrWhiteSpace(group) ? null : group,
-        };
-        if (!string.IsNullOrWhiteSpace(item.Header)) {
-            LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
-                foreach (var g in items) {
-                    if (g.Header == header) return g;
-                    if (g.Items != null) {
-                        var found = FindGroup(g.Items, header);
+            List<string> GetAllGroups(IEnumerable<LocationItem> items) {
+                var result = new List<string>();
+                foreach (var item in items) {
+                    if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
+                        result.Add(item.Header);
+                        result.AddRange(GetAllGroups(item.Items));
+                    }
+                }
+                return result;
+            }
+
+            List<string> groups = GetAllGroups(Locations).Distinct().ToList();
+            var dialog = new DestinationDialog("", "", groups) {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            dialog.ShowDialog(); 
+
+            // Check your manual property instead of the built-in DialogResult
+            if (dialog.ManualDialogResult == true) {
+                name = dialog.Answer;
+                group = dialog.Group;
+            }
+            else {
+                return;
+            }
+
+            var item = new LocationItem {
+                Name = string.IsNullOrWhiteSpace(name) ? null : name,
+                Coordinates = scrubbedTarget,
+                ScrubbedCoordinates = scrubbedTarget,
+                Header = string.IsNullOrWhiteSpace(group) ? null : group,
+            };
+
+            if (!string.IsNullOrWhiteSpace(item.Header)) {
+                LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
+                    foreach (var g in items) {
+                        if (g.Header == header) return g;
+                        if (g.Items != null) {
+                            var found = FindGroup(g.Items, header);
+                            if (found != null) return found;
+                        }
+                    }
+                    return null;
+                }
+
+                var groupItem = FindGroup(Locations, item.Header);
+                if (groupItem != null) {
+                    groupItem.Items ??= new List<LocationItem>();
+                    groupItem.Items.Add(item);
+                }
+                else {
+                    Locations.Add(new LocationItem
+                        { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
+                }
+            }
+            else {
+                Locations.Add(item);
+            }
+
+            SelectedLocation = item;
+            SaveLocations();
+            LoadLocations();
+
+            // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
+            LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
+                foreach (var i in items) {
+                    if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates && i.Header == target.Header) return i;
+                    if (i.Items != null) {
+                        var found = FindSame(i.Items, target);
                         if (found != null) return found;
                     }
                 }
                 return null;
             }
+            SelectedLocation = FindSame(Locations, item);
 
-            var groupItem = FindGroup(Locations, item.Header);
-            if (groupItem != null) {
-                if (groupItem.Items == null) {
-                    groupItem.Items = [];
-                }
-                groupItem.Items.Add(item);
-            }
-            else {
-                Locations.Add(new LocationItem
-                    { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
-            }
+            UpdateHasLocations();
+            UpdateListStatus();
         }
-        else {
-            Locations.Add(item);
+        catch (Exception ex) {
+            Log.Error(ex, "Error adding location.");
         }
-
-        SelectedLocation = item;
-        SaveLocations();
-        LoadLocations();
-
-        // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
-        LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
-            foreach (var i in items) {
-                if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates && i.Header == target.Header) return i;
-                if (i.Items != null) {
-                    var found = FindSame(i.Items, target);
-                    if (found != null) return found;
-                }
-            }
-            return null;
-        }
-        SelectedLocation = FindSame(Locations, item);
-
-        UpdateHasLocations();
-        UpdateListStatus();
     }
 
     private void EditLocation() {
         if (SelectedLocation == null) return;
 
-        var name = SelectedLocation.Name;
-        var group = SelectedLocation.Header;
-        var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header)).Select(l => l.Header!).ToList();
-        var dialog = new DestinationDialog(name, group, groups) {
-            Owner = System.Windows.Application.Current.MainWindow
-        };
-        // Set the owner to the MainWindow BEFORE calling ShowDialog()
-        // You can access the MainWindow via Application.Current.MainWindow
-        dialog.Owner = System.Windows.Application.Current.MainWindow;
-        dialog.ShowDialog(); 
-
-        // Check your manual property instead of the built-in DialogResult
-        if (dialog.ManualDialogResult == true)
-        {
-            SelectedLocation.Name = dialog.Answer;
-            SelectedLocation.Header = dialog.Group;
-
-            OnPropertyChanged(nameof(SelectedLocation));
-            OnPropertyChanged(nameof(Locations));
-            SaveLocations();
-            LoadLocations();
+        try {
+            var name = SelectedLocation.Name;
+            var group = SelectedLocation.Header;
+            var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header)).Select(l => l.Header!).ToList();
             
-            // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
-            LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords, string? header) {
-                foreach (var i in items) {
-                    if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
-                    if (i.Items != null) {
-                        var found = FindSame(i.Items, name, coords, header);
-                        if (found != null) return found;
+            var dialog = new DestinationDialog(name, group, groups) {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            dialog.ShowDialog(); 
+
+            // Check your manual property instead of the built-in DialogResult
+            if (dialog.ManualDialogResult == true) {
+                SelectedLocation.Name = dialog.Answer;
+                SelectedLocation.Header = dialog.Group;
+
+                OnPropertyChanged(nameof(SelectedLocation));
+                OnPropertyChanged(nameof(Locations));
+                SaveLocations();
+                LoadLocations();
+
+                // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
+                LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords, string? header) {
+                    foreach (var i in items) {
+                        if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
+                        if (i.Items != null) {
+                            var found = FindSame(i.Items, name, coords, header);
+                            if (found != null) return found;
+                        }
                     }
+                    return null;
                 }
-                return null;
-            }
-            SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates, dialog.Group);
+                SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates, dialog.Group);
 
-            TargetCoordinates = SelectedLocation?.DisplayName ?? "";
-            OnPropertyChanged(nameof(TargetCoordinates));
-            
-            UpdateListStatus();
+                TargetCoordinates = SelectedLocation?.DisplayName ?? "";
+                OnPropertyChanged(nameof(TargetCoordinates));
+                
+                UpdateListStatus();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error editing location.");
         }
     }
     
     private void SelectLocationFile() {
-        var dialog = new LocationsFileAssignmentDialog(_settings.SelectedProfile) {
-            Owner = System.Windows.Application.Current.MainWindow
-        };
-        // Set the owner to the MainWindow BEFORE calling ShowDialog()
-        // You can access the MainWindow via Application.Current.MainWindow
-        dialog.Owner = System.Windows.Application.Current.MainWindow;
-        dialog.ShowDialog(); 
+        try {
+            var dialog = new LocationsFileAssignmentDialog(_settings.SelectedProfile) {
+                Owner = System.Windows.Application.Current.MainWindow
+            };
+            dialog.ShowDialog(); 
 
-        // Check your manual property instead of the built-in DialogResult
-        if (dialog.ManualDialogResult == true)
-        {
-            _settings.SelectedProfile.LastLocationsFile = dialog.LocationsPath??"";
-            OnPropertyChanged(nameof(SelectedLocation));
-            OnPropertyChanged(nameof(Locations));
-            OnPropertyChanged(nameof(TargetCoordinates));
-            SaveSettings();
-            LoadLocations();
-            UpdateHasLocations();
-            UpdateListStatus();
+            // Check your manual property instead of the built-in DialogResult
+            if (dialog.ManualDialogResult == true) {
+                _settings.SelectedProfile.LastLocationsFile = dialog.LocationsPath ?? "";
+                OnPropertyChanged(nameof(SelectedLocation));
+                OnPropertyChanged(nameof(Locations));
+                OnPropertyChanged(nameof(TargetCoordinates));
+                SaveSettings();
+                LoadLocations();
+                UpdateHasLocations();
+                UpdateListStatus();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error selecting location file.");
         }
     }
-    
-    
 
     private void RemoveLocation() {
         if (SelectedLocation == null) return;
 
-        var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{SelectedLocation.DisplayName}'?",
-            "Remove Location", MessageBoxButton.YesNo);
-        if (result != MessageBoxResult.Yes) return;
+        try {
+            var result = System.Windows.MessageBox.Show($"Are you sure you want to remove '{SelectedLocation.DisplayName}'?",
+                "Remove Location", MessageBoxButton.YesNo);
+            if (result != MessageBoxResult.Yes) return;
 
-        bool RemoveRecursive(IList<LocationItem> items, LocationItem target) {
-            if (items.Remove(target)) return true;
-            foreach (var item in items) {
-                if (item.Items != null && RemoveRecursive(item.Items, target)) {
-                    if (item.Items.Count == 0) {
-                        items.Remove(item);
+            bool RemoveRecursive(IList<LocationItem> items, LocationItem target) {
+                if (items.Remove(target)) return true;
+                foreach (var item in items) {
+                    if (item.Items != null && RemoveRecursive(item.Items, target)) {
+                        if (item.Items.Count == 0) {
+                            items.Remove(item);
+                        }
+                        return true;
                     }
-                    return true;
                 }
+                return false;
             }
-            return false;
-        }
 
-        if (RemoveRecursive(Locations, SelectedLocation)) {
-            SelectedLocation = null;
-            TargetCoordinates = "";
-            OnPropertyChanged(nameof(SelectedLocation));
-            OnPropertyChanged(nameof(TargetCoordinates));
-            SaveLocations();
-            LoadLocations();
-            UpdateHasLocations();
-            UpdateListStatus();
+            if (RemoveRecursive(Locations, SelectedLocation)) {
+                SelectedLocation = null;
+                TargetCoordinates = "";
+                OnPropertyChanged(nameof(SelectedLocation));
+                OnPropertyChanged(nameof(TargetCoordinates));
+                SaveLocations();
+                LoadLocations();
+                UpdateHasLocations();
+                UpdateListStatus();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error removing location.");
         }
     }
 
@@ -885,13 +989,13 @@ public class MainViewModel : INotifyPropertyChanged {
             if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var target)) {
                 DestinationTooltip = FormatTooltip(target);
                 DestinationVisibility = Visibility.Visible;
-                if (_mapViewModel != null) {
+                if (_mapViewModel != null && !Nullable.Equals(_mapViewModel.TargetPosition, target)) {
                     _mapViewModel.TargetPosition = target;
                 }
             }
             else {
                 DestinationVisibility = Visibility.Hidden;
-                if (_mapViewModel != null) {
+                if (_mapViewModel != null && _mapViewModel.TargetPosition != null) {
                     _mapViewModel.TargetPosition = null;
                 }
                 return;
@@ -921,7 +1025,7 @@ public class MainViewModel : INotifyPropertyChanged {
                           $" {Convert.ToInt32(distance)}m";
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine($"Error showing direction: {ex.Message}");
+            Log.Error(ex, "Error calculating direction in ShowDirection.");
             GoDirection = string.Empty;
         }
     }
@@ -989,33 +1093,37 @@ public class MainViewModel : INotifyPropertyChanged {
     private void UpdateMapLocations() {
         if (_mapViewModel == null) return;
 
-        var existingLocations = _mapViewModel.Locations.ToList();
-        var newFlattened = new List<MapLocation>();
-        foreach (var loc in Locations) {
-            AddLocationToMap(loc, newFlattened);
-        }
-
-        // If the count is different, it's easier to just reset (this happens when adding/loading)
-        if (existingLocations.Count != newFlattened.Count) {
-            _mapViewModel.Locations = new ObservableCollection<MapLocation>(newFlattened);
-        }
-        else {
-            // Try to update in place to preserve UI elements and ToolTips
-            bool changed = false;
-            for (int i = 0; i < newFlattened.Count; i++) {
-                if (existingLocations[i].Coordinates != newFlattened[i].Coordinates ||
-                    existingLocations[i].DisplayName != newFlattened[i].DisplayName) {
-                    changed = true;
-                    break;
-                }
+        try {
+            var existingLocations = _mapViewModel.Locations.ToList();
+            var newFlattened = new List<MapLocation>();
+            foreach (var loc in Locations) {
+                AddLocationToMap(loc, newFlattened);
             }
 
-            if (changed) {
+            if (existingLocations.Count != newFlattened.Count) {
                 _mapViewModel.Locations = new ObservableCollection<MapLocation>(newFlattened);
             }
+            else {
+                // Try to update in place to preserve UI elements and ToolTips
+                bool changed = false;
+                for (int i = 0; i < newFlattened.Count; i++) {
+                    if (existingLocations[i].Coordinates != newFlattened[i].Coordinates ||
+                        existingLocations[i].DisplayName != newFlattened[i].DisplayName) {
+                        changed = true;
+                        break;
+                    }
+                }
+
+                if (changed) {
+                    _mapViewModel.Locations = new ObservableCollection<MapLocation>(newFlattened);
+                }
+            }
+            
+            _mapViewModel.UpdateMarkers();
         }
-        
-        _mapViewModel.UpdateMarkers();
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating map locations.");
+        }
     }
 
     private void AddLocationToMap(LocationItem item, List<MapLocation> flattened) {
@@ -1027,80 +1135,89 @@ public class MainViewModel : INotifyPropertyChanged {
         else {
             flattened.Add(new MapLocation {
                 DisplayName = item.Name ?? string.Empty,
-                Tooltip = item.DisplayName, // Contains Name and Coordinates
+                Tooltip = item.DisplayName,
                 Coordinates = item.ScrubbedCoordinates ?? string.Empty
             });
         }
     }
 
     private void OpenAbout() {
-        var aboutWindow = new About();
-        aboutWindow.Show();
+        try {
+            var aboutWindow = new About();
+            aboutWindow.Show();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error opening About window.");
+        }
     }
     
     private void OpenMap() {
-        if (_mapWindow == null || !System.Windows.Application.Current.Windows.OfType<MapWindow>().Any()) {
-            _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings, _settingsService)
-                {
-                    CoordinateSystem = Settings.SelectedProfile.CoordinateSystem,
-                    CurrentCoordinatesLabel = CurrentCoordinates
-                };
-            if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var currentPos)) {
-                _mapViewModel.CurrentPosition = currentPos;
-            } else {
-                _mapViewModel.CurrentPosition = null;
-            }
-
-            var targetInput = TargetCoordinates ?? string.Empty;
-            var coordinatesToParse = targetInput;
-            if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
-                coordinatesToParse = SelectedLocation.Coordinates;
-            }
-
-            if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var targetPos)) {
-                _mapViewModel.TargetPosition = targetPos;
-            }
-            else {
-                _mapViewModel.TargetPosition = null;
-            }
-            UpdateMapLocations();
-            _mapWindow = new MapWindow(_mapViewModel);
-            _mapViewModel.DestinationSelected += coords => {
-                string formatted;
-                if (Settings.SelectedProfile.CoordinateOrder == "y x") {
-                    formatted = $"{coords.Y:F1}, {coords.X:F1}";
-                } else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
-                    formatted = $"{coords.Y:F1}, {coords.X:F1}, {coords.Z ?? 0:F1}";
-                } else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
-                    formatted = $"{coords.X:F1}, {coords.Y:F1}";
+        try {
+            if (_mapWindow == null || !System.Windows.Application.Current.Windows.OfType<MapWindow>().Any()) {
+                _mapViewModel = new MapViewModel(Settings.SelectedProfile.MapSettings, Settings)
+                    {
+                        CoordinateSystem = Settings.SelectedProfile.CoordinateSystem,
+                        CurrentCoordinatesLabel = CurrentCoordinates
+                    };
+                if (Scrubber.TryParse(CurrentCoordinates, Settings.SelectedProfile.CoordinateOrder, out var currentPos)) {
+                    _mapViewModel.CurrentPosition = currentPos;
                 } else {
-                    // Default x z y d
-                    formatted = $"{coords.X:F1}, {coords.Z ?? 0:F1}, {coords.Y:F1}";
+                    _mapViewModel.CurrentPosition = null;
                 }
-                SelectedLocation = null;
-                TargetCoordinates = formatted;
-                ShowDirection();
-            };
-            _mapViewModel.PinRequested += coords => {
-                System.Windows.Application.Current.Dispatcher.Invoke(() => {
-                    AddLocation(coords);
-                    UpdateMapLocations();
-                });
-            };
-            // _mapWindow.Owner = Application.Current.MainWindow;
-            _mapWindow.Closed += (s, e) => {
-                _mapWindow = null;
-                _mapViewModel = null;
-            };
-            _mapWindow.Show();
-        } else {
-            if (_mapWindow.WindowState == WindowState.Minimized) {
-                _mapWindow.WindowState = WindowState.Normal;
+
+                var targetInput = TargetCoordinates ?? string.Empty;
+                var coordinatesToParse = targetInput;
+                if (SelectedLocation != null && targetInput == SelectedLocation.DisplayName) {
+                    coordinatesToParse = SelectedLocation.Coordinates;
+                }
+
+                if (Scrubber.TryParse(coordinatesToParse, Settings.SelectedProfile.CoordinateOrder, out var targetPos)) {
+                    _mapViewModel.TargetPosition = targetPos;
+                }
+                else {
+                    _mapViewModel.TargetPosition = null;
+                }
+                UpdateMapLocations();
+                _mapWindow = new MapWindow(_mapViewModel);
+                _mapViewModel.DestinationSelected += coords => {
+                    string formatted;
+                    if (Settings.SelectedProfile.CoordinateOrder == "y x") {
+                        formatted = $"{coords.Y:F1}, {coords.X:F1}";
+                    } else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
+                        formatted = $"{coords.Y:F1}, {coords.X:F1}, {coords.Z ?? 0:F1}";
+                    } else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
+                        formatted = $"{coords.X:F1}, {coords.Y:F1}";
+                    } else {
+                        // Default x z y d
+                        formatted = $"{coords.X:F1}, {coords.Z ?? 0:F1}, {coords.Y:F1}";
+                    }
+                    SelectedLocation = null;
+                    TargetCoordinates = formatted;
+                    ShowDirection();
+                };
+                _mapViewModel.PinRequested += coords => {
+                    System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                        AddLocation(coords);
+                        UpdateMapLocations();
+                    });
+                };
+                _mapWindow.Closed += (s, e) => {
+                    _mapWindow = null;
+                    _mapViewModel = null;
+                };
+                _mapWindow.Show();
+            } else {
+                if (_mapWindow.WindowState == WindowState.Minimized) {
+                    _mapWindow.WindowState = WindowState.Normal;
+                }
+                if (!Settings.KeyboardClickThrough) {
+                    _mapWindow.Activate();
+                }
+                _mapWindow.Show();
             }
-            if (!Settings.KeyboardClickThrough) {
-                _mapWindow.Activate();
-            }
-            _mapWindow.Show();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error opening or activating MapWindow.");
         }
     }
 
@@ -1115,7 +1232,7 @@ public class MainViewModel : INotifyPropertyChanged {
         return true;
     }
 
-    public void InitializeWindow(IntPtr windowHAndle) {
-        _lastWindowHandle = windowHAndle;
+    public void InitializeWindow(IntPtr windowHandle) {
+        _lastWindowHandle = windowHandle;
     }
 }

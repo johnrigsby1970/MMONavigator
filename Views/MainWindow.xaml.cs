@@ -15,14 +15,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.ViewModels;
-using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
 namespace MMONavigator.Views;
 
@@ -37,28 +39,14 @@ namespace MMONavigator.Views;
 /// </summary>
 public partial class MainWindow : Window, IWindowHandleProvider {
     private readonly MainViewModel _viewModel;
+    private IntPtr _hwnd;
+
     public IntPtr GetWindowHandle() => new WindowInteropHelper(this).Handle;
+
     public const double StandardRowHeight = 30;
     private const double CollapsedRowHeight = 0;
     public static GridLength StandardGridRowHeight => new GridLength(StandardRowHeight);
     private static readonly GridLength HiddenRowHeight = new GridLength(CollapsedRowHeight);
-    private IntPtr _hwnd;
-
-
-    protected override void OnSourceInitialized(EventArgs e) {
-        base.OnSourceInitialized(e);
-
-        _hwnd = new WindowInteropHelper(this).Handle;
-        _viewModel.InitializeWindow(_hwnd);
-
-        // Only keep this if you have other HwndSource hooks (like your Clipboard handler)
-        var source = HwndSource.FromHwnd(_hwnd);
-        source?.AddHook(HwndHandler);
-        StartWatcher();
-        // You no longer need to call UpdateKeyboardClickThrough() here 
-        // because the behavior will handle the activation state 
-        // as soon as the user interacts with a control.
-    }
 
     public MainWindow() {
         InitializeComponent();
@@ -68,7 +56,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         Topmost = true;
         Deactivated += (s, e) => KeepOnTop();
 
-        Top = 0; //SystemParameters.PrimaryScreenHeight;
+        Top = 0;
         Left = (SystemParameters.PrimaryScreenWidth / 2) - (Width / 2);
 
         // Initialize state and apply it immediately
@@ -78,14 +66,304 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         _viewModel.ShowTimers = _viewModel.Settings.ShowTimers;
         ApplyTimersVisibility();
 
+        _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
-        _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
 
-        //StartWatcher();
+        // Attach initial settings handler safely
+        if (_viewModel.Settings != null) {
+            _viewModel.Settings.PropertyChanged -= Settings_PropertyChanged;
+            _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
+        }
+    }
+
+    #region Location Dropdown & Tree Control
+
+    private IntPtr _prePopupForegroundWindow = IntPtr.Zero;
+    
+    /// <summary>
+    /// Temporarily disables click-through on MainWindow so clicking anywhere 
+    /// on the overlay UI absorbs the click and closes the popup safely.
+    /// </summary>
+    private void DisableClickThrough() {
+        try {
+            if (_hwnd == IntPtr.Zero) return;
+        
+            // Ensure NOACTIVATE is active so clicking popup items doesn't steal game focus
+            int extendedStyle = NativeMethods.GetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE);
+            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle | NativeMethods.WS_EX_NOACTIVATE);
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Error in DisableClickThrough on MainWindow.");
+        }
+    }
+    /// <summary>
+    /// Restores OS-level click-through and topmost status when the popup closes.
+    /// </summary>
+    private void EnableClickThrough() {
+        try {
+            if (_hwnd == IntPtr.Zero) return;
+
+            int extendedStyle = NativeMethods.GetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE);
+
+            // Strip WS_EX_TRANSPARENT from MainWindow so all buttons (including the expander arrow) 
+            // stay clickable! Keep WS_EX_NOACTIVATE so clicking buttons won't steal game focus.
+            extendedStyle &= ~NativeMethods.WS_EX_TRANSPARENT;
+            extendedStyle |= NativeMethods.WS_EX_NOACTIVATE;
+
+            NativeMethods.SetWindowLong(_hwnd, NativeMethods.GWL_EXSTYLE, extendedStyle);
+
+            KeepOnTop();
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Error in EnableClickThrough on MainWindow.");
+        }
+    }
+    
+    private void ExpanderHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+        try {
+            // Capture whichever window (the game) currently has focus BEFORE WPF activates our popup!
+            IntPtr currentForeground = NativeMethods.GetForegroundWindow();
+            if (currentForeground != _hwnd && currentForeground != IntPtr.Zero) {
+                _prePopupForegroundWindow = currentForeground;
+            }
+
+            if (myGrid.DataContext is MainViewModel vm) {
+                vm.IsExpanded = !vm.IsExpanded;
+                e.Handled = true; // Prevent double-toggle
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error toggling expander popup.");
+        }
+    }
+    
+    private void LocationPopup_Opened(object sender, EventArgs e) {
+        try {
+            DisableClickThrough();
+
+            // Reveal the invisible background overlay so clicks anywhere on 
+            // the main window dismiss the popup without passing through to background apps
+            BackgroundDismissOverlay.Visibility = Visibility.Visible;
+
+            // Capture the active game window handle so focus can be returned cleanly
+            IntPtr currentForeground = NativeMethods.GetForegroundWindow();
+            if (currentForeground != _hwnd && currentForeground != IntPtr.Zero) {
+                _prePopupForegroundWindow = currentForeground;
+            }
+
+            Topmost = false;
+
+            if (LocationPopup.Child != null) {
+                var source = (HwndSource)PresentationSource.FromVisual(LocationPopup.Child);
+                if (source != null) {
+                    NativeMethods.SetWindowPos(source.Handle, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+                        NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+                }
+            }
+
+            // Focus the TreeView so arrow keys work immediately
+            Dispatcher.BeginInvoke(new Action(() => {
+                LocationTree.Focus();
+                if (LocationTree.ItemContainerGenerator.ContainerFromIndex(0) is TreeViewItem firstContainer) {
+                    firstContainer.Focus();
+                    Keyboard.Focus(firstContainer);
+                }
+            }), System.Windows.Threading.DispatcherPriority.Input);
+
+            Mouse.AddPreviewMouseDownOutsideCapturedElementHandler(LocationPopup, OnClickOutsidePopup);
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Error in LocationPopup_Opened.");
+        }
+    }
+    
+    /// <summary>
+    /// Forces OS-level keyboard focus back to the game window.
+    /// </summary>
+    private void ReturnFocusToGame() {
+        try {
+            IntPtr targetWnd = _prePopupForegroundWindow;
+
+            // If targetWnd is invalid or points to ourselves, try the last active game window handle
+            if (targetWnd == IntPtr.Zero || targetWnd == _hwnd) {
+                targetWnd = NativeMethods.GetWindow(_hwnd, NativeMethods.GW_HWNDNEXT);
+            }
+
+            if (targetWnd != IntPtr.Zero && targetWnd != _hwnd) {
+                // Force focus return using thread input attachment (bypasses Windows foreground locking)
+                uint currentThreadId = NativeMethods.GetWindowThreadProcessId(_hwnd, out _);
+                uint targetThreadId = NativeMethods.GetWindowThreadProcessId(targetWnd, out _);
+
+                if (currentThreadId != targetThreadId) {
+                    NativeMethods.AttachThreadInput(currentThreadId, targetThreadId, true);
+                    NativeMethods.SetForegroundWindow(targetWnd);
+                    NativeMethods.AttachThreadInput(currentThreadId, targetThreadId, false);
+                }
+                else {
+                    NativeMethods.SetForegroundWindow(targetWnd);
+                }
+            }
+
+            _prePopupForegroundWindow = IntPtr.Zero;
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Error returning foreground focus to game.");
+        }
+    }
+
+    private void LocationPopup_Closed(object sender, EventArgs e) {
+        try {
+            Topmost = true;
+
+            // Hide the background overlay so passive click-through is fully restored
+            BackgroundDismissOverlay.Visibility = Visibility.Collapsed;
+
+            EnableClickThrough();
+
+            Mouse.RemovePreviewMouseDownOutsideCapturedElementHandler(LocationPopup, OnClickOutsidePopup);
+
+            if (myGrid.DataContext is MainViewModel vm) {
+                vm.IsExpanded = false;
+            }
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Error in LocationPopup_Closed.");
+        }
+    }
+    
+    /// <summary>
+    /// Handles clicks on the empty/transparent window background while the popup is open.
+    /// Dismisses the drop-down and returns focus cleanly to the game.
+    /// </summary>
+    private void BackgroundDismissOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+        try {
+            if (myGrid.DataContext is MainViewModel vm) {
+                vm.IsExpanded = false;
+                e.Handled = true;
+                ReturnFocusToGame();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling BackgroundDismissOverlay_MouseLeftButtonDown.");
+        }
+    }
+
+    private void OnClickOutsidePopup(object sender, MouseButtonEventArgs e) {
+        try {
+            if (myGrid.DataContext is MainViewModel vm && vm.IsExpanded) {
+                // Check if the click occurred inside the LocationExpander button
+                System.Windows.Point expanderPt = e.GetPosition(LocationExpander);
+                bool clickedHeader = expanderPt.X >= 0 && expanderPt.X <= LocationExpander.ActualWidth &&
+                                     expanderPt.Y >= 0 && expanderPt.Y <= LocationExpander.ActualHeight;
+
+                if (clickedHeader) return;
+
+                // Check if click occurred inside the popup tree
+                if (LocationPopup.Child is UIElement popupChild) {
+                    System.Windows.Point popupPt = e.GetPosition(popupChild);
+                    bool clickedInsidePopup = popupPt.X >= 0 && popupPt.X <= popupChild.RenderSize.Width &&
+                                              popupPt.Y >= 0 && popupPt.Y <= popupChild.RenderSize.Height;
+
+                    if (clickedInsidePopup) return;
+                }
+
+                // Clicked outside both — close popup!
+                vm.IsExpanded = false;
+            }
+        }
+        catch (Exception ex) {
+            Log.Debug(ex, "Error handling click outside popup.");
+        }
+    }
+
+    private void LocationTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
+        try {
+            if (e.OriginalSource is DependencyObject clickedObj) {
+                var toggleButton = FindParent<System.Windows.Controls.Primitives.ToggleButton>(clickedObj);
+                if (toggleButton != null) return; // Folder expander arrow clicked
+
+                var treeViewItem = FindParent<TreeViewItem>(clickedObj);
+                if (treeViewItem?.DataContext is LocationItem item) {
+                    if (item.Items != null && item.Items.Count > 0) return; // Folder node
+
+                    // Destination Leaf Clicked
+                    if (myGrid.DataContext is MainViewModel vm) {
+                        vm.SelectedLocation = item;
+                        vm.IsExpanded = false;
+                        e.Handled = true;
+
+                        // Immediately restore focus to game window!
+                        ReturnFocusToGame();
+                    }
+                }
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error in LocationTree_PreviewMouseLeftButtonDown.");
+        }
+    }
+
+    private void LocationTree_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
+        try {
+            if (myGrid.DataContext is not MainViewModel vm) return;
+
+            if (e.Key == Key.Enter || e.Key == Key.Space) {
+                if (LocationTree.SelectedItem is LocationItem item) {
+                    if (item.Items == null || item.Items.Count == 0) { // Destination Leaf
+                        vm.SelectedLocation = item;
+                        vm.IsExpanded = false;
+                        e.Handled = true;
+
+                        // Immediately restore focus to game window!
+                        ReturnFocusToGame();
+                    }
+                }
+            }
+            else if (e.Key == Key.Escape) {
+                vm.IsExpanded = false;
+                e.Handled = true;
+                ReturnFocusToGame();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling LocationTree_KeyDown.");
+        }
+    }
+
+    private static T? FindParent<T>(DependencyObject child) where T : DependencyObject {
+        DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+        if (parentObject == null) return null;
+        if (parentObject is T parent) return parent;
+        return FindParent<T>(parentObject);
+    }
+
+    #endregion
+
+    protected override void OnSourceInitialized(EventArgs e) {
+        base.OnSourceInitialized(e);
+
+        try {
+            _hwnd = new WindowInteropHelper(this).Handle;
+            _viewModel.InitializeWindow(_hwnd);
+
+            // Only keep this if you have other HwndSource hooks (like your Clipboard handler)
+            var source = HwndSource.FromHwnd(_hwnd);
+            source?.AddHook(HwndHandler);
+
+            StartWatcher();
+            // You no longer need to call UpdateKeyboardClickThrough() here 
+            // because the behavior will handle the activation state 
+            // as soon as the user interacts with a control.
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Failed to complete OnSourceInitialized in MainWindow.");
+        }
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainViewModel.Settings)) {
+            // Unhook old subscription if possible, then hook new settings reference
+            _viewModel.Settings.PropertyChanged -= Settings_PropertyChanged;
             _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
             StartWatcher();
         }
@@ -98,26 +376,41 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     private void StartWatcher() {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        _viewModel.StartWatcher(hwnd);
+        try {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            _viewModel.StartWatcher(hwnd);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error starting location watcher.");
+        }
     }
 
     private void Stop() {
-        _viewModel.StopWatcher();
+        try {
+            _viewModel.StopWatcher();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error stopping location watcher.");
+        }
     }
+    
+    private const int WM_NCHITTEST = 0x0084;
+    private const int HTCLIENT = 1;
 
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
-            // 1. Kick the heavy lifting and clipboard reading off the UI thread immediately.
-            // We use a fire-and-forget task so this handler returns instantly.
             _ = ProcessClipboardAsync();
-
-            // If KeepOnTop() absolutely MUST run on clipboard updates, 
-            // let's also defer it slightly so it doesn't fight the game's render cycle.
             _ = DeferKeepOnTopAsync();
         }
+        else if (msg == WM_NCHITTEST && _viewModel != null && _viewModel.IsExpanded) {
+            // While the drop-down popup is open, treat all background mouse hits as client hits.
+            // This stops clicks from passing through to background apps (JetBrains, Notepad, Game),
+            // allowing clicking anywhere on MainWindow to dismiss the popup while keeping child
+            // controls (drag button, titlebar hover) fully functional!
+            handled = true;
+            return (IntPtr)HTCLIENT;
+        }
 
-        handled = false;
         return IntPtr.Zero;
     }
 
@@ -130,9 +423,12 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             // make sure it is wrapped in a try/catch for COMException just in case!
             _viewModel.HandleClipboardUpdate();
         }
-        catch (System.Runtime.InteropServices.COMException) {
-            // If a collision still happens, your app catches it gracefully 
-            // instead of locking up the OS clipboard chain.
+        catch (COMException ex) {
+            // Log at Debug level so clipboard collisions during game updates don't flood Sentry as errors
+            Log.Debug(ex, "Clipboard access collision occurred (COMException). Continuing gracefully.");
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Unexpected error processing clipboard update.");
         }
     }
 
@@ -142,26 +438,32 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     private void KeepOnTop() {
-        // SWP_NOACTIVATE is the key here. It prevents your window 
-        // from stealing focus from the game/media player.
-        var hwnd = new WindowInteropHelper(this).Handle;
-        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
-            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+        try {
+            // SWP_NOACTIVATE is the key here. It prevents your window 
+            // from stealing focus from the game/media player.
+            var hwnd = new WindowInteropHelper(this).Handle;
+            NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+                NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+        }
+        catch (Exception ex) {
+            Log.Warning(ex, "Failed to apply SWP_NOACTIVATE in KeepOnTop.");
+        }
     }
 
-    #region Title Bar
+    #region Title Bar Commands & Interactions
 
     //https://stackoverflow.com/questions/55447212/how-do-i-make-a-transparent-wpf-window-with-the-default-title-bar-functionality
 
     private void ConfigureWatcher_Click(object sender, RoutedEventArgs e) {
         try {
-            var dialog = new WatcherConfigurationDialog(_viewModel.Settings);
-            dialog.Owner = this;
+            var dialog = new WatcherConfigurationDialog(_viewModel.Settings) {
+                Owner = this
+            };
             dialog.ShowDialog();
 
             // Check your manual property instead of the built-in DialogResult
             if (dialog.ManualDialogResult == true) {
-                System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Watcher configuration dialog OK");
+                Log.Information("Watcher configuration dialog saved. Reloading profile settings.");
 
                 // The dialog now manages profiles and settings directly on the passed _viewModel.Settings
                 // We just need to ensure they are saved and the view model is notified of potential changes
@@ -176,8 +478,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             }
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]ConfigureWatcher_Click error: {ex.Message}");
+            Log.Error(ex, "Error occurred during Watcher Configuration dialog interaction.");
         }
     }
 
@@ -187,8 +488,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             Close_Popup(sender, e);
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]HideShowSettings_Click error: {ex.Message}");
+            Log.Error(ex, "Error toggling settings visibility.");
         }
     }
 
@@ -198,8 +498,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             Close_Popup(sender, e);
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]HideShowTimers_Click error: {ex.Message}");
+            Log.Error(ex, "Error toggling timers visibility.");
         }
     }
 
@@ -212,8 +511,6 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     private void ApplySettingsVisibility() {
         // GridLength height = _viewModel.ShowSettings ? StandardGridRowHeight : HiddenRowHeight;
         // destinationRow.Height = height;
-        // targetRow.Height = height;
-        // settingsRow.Height = height;
     }
 
     private void ToggleTimers() {
@@ -223,7 +520,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     }
 
     private void ApplyTimersVisibility() {
-        //timerRow.Height = _viewModel.ShowTimers ? StandardGridRowHeight : HiddenRowHeight;
+        // timerRow.Height = _viewModel.ShowTimers ? StandardGridRowHeight : HiddenRowHeight;
     }
 
     private void TitleBar_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) {
@@ -235,8 +532,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             closebutton.Visibility = Visibility.Visible;
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]TitleBar_MouseEnter error: {ex.Message}");
+            Log.Warning(ex, "Error showing title bar buttons on MouseEnter.");
         }
     }
 
@@ -249,8 +545,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             closebutton.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]TitleBar_MouseLeave error: {ex.Message}");
+            Log.Warning(ex, "Error hiding title bar buttons on MouseLeave.");
         }
     }
 
@@ -261,8 +556,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             }
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]MinimizeButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error minimizing window.");
         }
     }
 
@@ -273,22 +567,9 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             togglebutton.ToolTip = _viewModel.MainContentVisibility ? "Hide Directions" : "Show Directions";
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]ToggleVisibityButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error toggling main content visibility.");
         }
     }
-
-    private void LicenseButton_Click(object sender, RoutedEventArgs e) {
-        try {
-            Close_Popup(sender, e);
-            _viewModel.MainContentVisibility = !_viewModel.MainContentVisibility;
-        }
-        catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]LicenseButton_Click error: {ex.Message}");
-        }
-    }
-
 
     private void MaximizeButton_Click(object sender, RoutedEventArgs e) {
         try {
@@ -297,44 +578,44 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             }
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]MaximizeButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error maximizing window.");
         }
     }
 
+    protected override void OnClosing(CancelEventArgs e) {
+        try {
+            _viewModel.SaveSettings();
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error saving settings on window closing.");
+        }
+
+        base.OnClosing(e);
+    }
+
     protected override void OnClosed(EventArgs e) {
-        // try {
-        //     _viewModel.SaveSettings();
-        // }
-        // catch {
-        //     // ignored
-        // }
         try {
             _viewModel.StopWatcher();
         }
-        catch {
-            // ignored
+        catch (Exception ex) {
+            Log.Warning(ex, "Exception while stopping watcher during shutdown.");
         }
 
         try {
-            HwndSource.FromHwnd(_hwnd)?.RemoveHook(HwndHandler);
+            if (_hwnd != IntPtr.Zero) {
+                HwndSource.FromHwnd(_hwnd)?.RemoveHook(HwndHandler);
+            }
         }
-        catch {
-            // ignored
+        catch (Exception ex) {
+            Log.Warning(ex, "Exception while removing HwndSource hook during shutdown.");
         }
 
         try {
             base.OnClosed(e);
         }
-        catch {
-            // ignored
+        catch (Exception ex) {
+            Log.Warning(ex, "Exception in base.OnClosed execution.");
         }
-    }
-
-    protected override void OnClosing(CancelEventArgs e) {
-        _viewModel.SaveSettings();
-
-        base.OnClosing(e);
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) {
@@ -347,8 +628,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
                 System.Windows.Threading.DispatcherPriority.Background);
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]CloseButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error executing window close sequence.");
         }
     }
 
@@ -357,28 +637,22 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     private void ToggleButton_Click(object sender, RoutedEventArgs e) {
         try {
             if (myGrid.DataContext is MainViewModel vm) {
-                // Simply flip the state
                 vm.IsExpanded = !vm.IsExpanded;
-                System.Diagnostics.Debug.WriteLine($"ToggleButton_Click");
             }
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]ToggleButton_Click error: {ex.Message}");
+            Log.Error(ex, "Error toggling expanded state.");
         }
     }
 
     private void Close_Popup(object sender, RoutedEventArgs e) {
         try {
             if (myGrid.DataContext is MainViewModel vm) {
-                // Simply flip the state
                 vm.IsExpanded = false;
-                System.Diagnostics.Debug.WriteLine($"TitleBar_MouseLeftButtonUp");
             }
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]Close_Popup error: {ex.Message}");
+            Log.Error(ex, "Error closing popup.");
         }
     }
 
@@ -389,7 +663,6 @@ public partial class MainWindow : Window, IWindowHandleProvider {
 
             // 2. Clear focus from whatever might be blocking
             Keyboard.ClearFocus();
-
             // 3. Force focus specifically to the TreeView
             LocationTree.Focus();
 
@@ -398,8 +671,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             CommandManager.InvalidateRequerySuggested();
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine(
-                $"[DEBUG_LOG]Close_Popup error: {ex.Message}");
+            Log.Error(ex, "Error managing window focus on LocationPopup_PreviewMouseDown.");
         }
     }
 }

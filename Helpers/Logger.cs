@@ -5,7 +5,7 @@ namespace MMONavigator.Helpers;
 
 public static class Logger
 {
-    private const string SourceName = "MMONavigator";
+    private const string SourceName = Constants.AppName;
     private const string LogName = "Application";
 
     public static void LogError(string message, Exception? ex = null)

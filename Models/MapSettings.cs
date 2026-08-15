@@ -1,110 +1,53 @@
-﻿using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MMONavigator.Models;
 
-public class MapPoint : INotifyPropertyChanged {
+public partial class MapPoint : ObservableObject {
+    [ObservableProperty]
     private double _x;
-    public double X {
-        get => _x;
-        set { _x = value; OnPropertyChanged(); }
-    }
 
+    [ObservableProperty]
     private double _y;
-    public double Y {
-        get => _y;
-        set { _y = value; OnPropertyChanged(); }
-    }
 
+    [ObservableProperty]
     private double _pixelX;
-    public double PixelX {
-        get => _pixelX;
-        set { _pixelX = value; OnPropertyChanged(); }
-    }
 
+    [ObservableProperty]
     private double _pixelY;
-    public double PixelY {
-        get => _pixelY;
-        set { _pixelY = value; OnPropertyChanged(); }
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 }
 
-public class MapSettings : INotifyPropertyChanged {
+public partial class MapSettings : ObservableObject {
+    [ObservableProperty]
     private string? _imagePath;
-    public string? ImagePath {
-        get => _imagePath;
-        set { _imagePath = value;
-            OnPropertyChanged();
-             }
-    }
 
+    [ObservableProperty]
     private MapPoint _point1 = new();
-    public MapPoint Point1 {
-        get => _point1;
-        set { _point1 = value; OnPropertyChanged(); }
-    }
 
+    [ObservableProperty]
     private MapPoint _point2 = new();
-    public MapPoint Point2 {
-        get => _point2;
-        set { _point2 = value; OnPropertyChanged(); }
-    }
 
+    [ObservableProperty]
     private bool _isCalibrated;
-    public bool IsCalibrated {
-        get => _isCalibrated;
-        set { _isCalibrated = value; OnPropertyChanged(); }
-    }
-    
-    private WindowPlacement _placement = new();
-    public WindowPlacement Placement {
-        get => _placement;
-        set { _placement = value; OnPropertyChanged(); }
-    }
-    
-    private bool _showLocations;
-    public bool ShowLocations {
-        get => _showLocations;
-        set { _showLocations = value; OnPropertyChanged(); }
-    }
 
+    [ObservableProperty]
+    private WindowPlacement _placement = new();
+
+    [ObservableProperty]
+    private bool _showLocations;
+
+    [ObservableProperty]
     private bool _showCalibrationMarkers = true;
-    public bool ShowCalibrationMarkers {
-        get => _showCalibrationMarkers;
-        set { _showCalibrationMarkers = value; OnPropertyChanged(); }
-    }
-        
+
+    [ObservableProperty]
     private bool _showBreadcrumb = true;
-    public bool ShowBreadcrumb {
-        get => _showBreadcrumb;
-        set { _showBreadcrumb = value; OnPropertyChanged(); }
-    }
-    
+
+    [ObservableProperty]
     private bool _showFogOfWar;
-    public bool ShowFogOfWar {
-        get => _showFogOfWar;
-        set { _showFogOfWar = value; OnPropertyChanged(); }
-    }
-    
-    // The "Counter-Scale" Property
-    public double InverseZoom => 1.0 / ZoomLevel;
-    
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InverseZoom))]
     private double _zoomLevel = 1.0;
-    public double ZoomLevel {
-        get => _zoomLevel;
-        set { 
-            _zoomLevel = value; OnPropertyChanged();
-            OnPropertyChanged(nameof(InverseZoom)); // Notify the UI to update
-        }
-    }
-    
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+
+    // Computed property dependent on ZoomLevel
+    public double InverseZoom => 1.0 / ZoomLevel;
 }

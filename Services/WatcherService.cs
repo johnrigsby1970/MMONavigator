@@ -16,66 +16,104 @@ public class WatcherService : IWatcherService {
     private AppSettings? _settings;
 
     public void Start(AppSettings settings, IntPtr windowHandle) {
-        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Starting watcher service, Mode: {settings.SelectedProfile.WatchMode}");
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        
+        Log.Information("Starting WatcherService. Mode: {WatchMode}, WindowHandle: {Handle}", 
+            settings.SelectedProfile?.WatchMode, windowHandle);
+
         Stop();
-        _settings = settings;
         _windowHandle = windowHandle;
 
-        if (settings.SelectedProfile.WatchMode == WatchMode.Clipboard) {
-            NativeMethods.AddClipboardFormatListener(_windowHandle);
-        } else {
-            SetupFileWatcher();
+        try {
+            if (_settings.SelectedProfile.WatchMode == WatchMode.Clipboard) {
+                if (_windowHandle != IntPtr.Zero) {
+                    NativeMethods.AddClipboardFormatListener(_windowHandle);
+                }
+                else {
+                    Log.Warning("WatcherService started in Clipboard mode with an empty WindowHandle.");
+                }
+            } else {
+                SetupFileWatcher();
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error starting WatcherService.");
         }
     }
 
     public void Stop() {
-        System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Stopping watcher service");
-        if (_windowHandle != IntPtr.Zero) {
-            NativeMethods.RemoveClipboardFormatListener(_windowHandle);
+        Log.Information("Stopping WatcherService.");
+
+        try {
+            if (_windowHandle != IntPtr.Zero) {
+                NativeMethods.RemoveClipboardFormatListener(_windowHandle);
+            }
         }
+        catch (Exception ex) {
+            Log.Warning(ex, "Error removing ClipboardFormatListener during WatcherService.Stop.");
+        }
+
         if (_fileWatcher != null) {
-            _fileWatcher.EnableRaisingEvents = false;
-            _fileWatcher.Dispose();
-            _fileWatcher = null;
+            try {
+                _fileWatcher.EnableRaisingEvents = false;
+                _fileWatcher.Changed -= OnFileChanged;
+                _fileWatcher.Created -= OnFileChanged;
+                _fileWatcher.Deleted -= OnFileDeleted;
+                _fileWatcher.Dispose();
+            }
+            catch (Exception ex) {
+                Log.Warning(ex, "Error disposing FileSystemWatcher during WatcherService.Stop.");
+            }
+            finally {
+                _fileWatcher = null;
+            }
         }
     }
 
     public void HandleClipboardUpdate() {
-        if (_settings?.SelectedProfile.WatchMode != WatchMode.Clipboard) return;
+        if (_settings?.SelectedProfile?.WatchMode != WatchMode.Clipboard) return;
+
         try {
-            var text = System.Windows.Clipboard.GetText();
-            if (string.IsNullOrEmpty(text)) return;
-            if (text.Length > Scrubber.MaxLength) return;
+            // Ensure Clipboard read executes on the WPF STA Thread
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess()) {
+                dispatcher.BeginInvoke(new Action(HandleClipboardUpdate));
+                return;
+            }
+
+            string text = System.Windows.Clipboard.GetText();
+            if (string.IsNullOrEmpty(text) || text.Length > Scrubber.MaxLength) return;
 
             if (Scrubber.TryParse(text, _settings.SelectedProfile.CoordinateOrder, out _)) {
                 string coordinates = Scrubber.ScrubEntry(text) ?? string.Empty;
+                Log.Debug("Clipboard coordinates detected: {Coordinates}", coordinates);
+                
                 LocationUpdated?.Invoke(this, coordinates);
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Clipboard updated: {coordinates}");
             }
         }
-        catch (COMException) {
-            // Clipboard might be locked by another process
+        catch (COMException ex) {
+            // Common when game/macro tools lock the clipboard briefly
+            Log.Debug(ex, "Clipboard access collision (COMException). Retrying on next update.");
         }
-        catch (ThreadStateException) {
-            // Thread not in STA mode
+        catch (ThreadStateException ex) {
+            Log.Warning(ex, "ThreadStateException accessing Clipboard. Ensure call originates on STA thread.");
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine($"Error processing clipboard: {ex.Message}");
+            Log.Error(ex, "Unexpected error processing Clipboard update.");
         }
     }
 
     private void SetupFileWatcher() {
-        if (_settings == null || string.IsNullOrEmpty(_settings.SelectedProfile.LogFilePath)) {
-            System.Diagnostics.Debug.WriteLine("[DEBUG_LOG] Log file path is empty, not starting watcher.");
+        if (_settings?.SelectedProfile == null || string.IsNullOrEmpty(_settings.SelectedProfile.LogFilePath)) {
+            Log.Information("Log file path is empty; FileSystemWatcher will not be started.");
             return;
         }
 
         try {
             var fullPath = _settings.SelectedProfile.LogFilePath;
             
-            // Basic path validation
             if (fullPath.Length >= 260) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Log file path is too long: {fullPath}");
+                Log.Warning("Log file path exceeds standard path limits ({Length} chars): {FullPath}", fullPath.Length, fullPath);
                 return;
             }
 
@@ -83,78 +121,98 @@ public class WatcherService : IWatcherService {
             var fileName = Path.GetFileName(fullPath);
 
             if (string.IsNullOrEmpty(directory) || string.IsNullOrEmpty(fileName)) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid path or filename: {directory} / {fileName}");
+                Log.Warning("Invalid directory or filename derived from log path: '{FullPath}'", fullPath);
                 return;
             }
 
             if (!Directory.Exists(directory)) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Directory does not exist: {directory}");
+                Log.Warning("Target directory for log file watcher does not exist: '{Directory}'", directory);
                 // We don't create the game's log directory, but we should be ready if it appears
                 // FileSystemWatcher can only be created for an existing directory.
                 return;
             }
 
-            _fileWatcher = new FileSystemWatcher(directory, fileName);
-            _fileWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime;
+            _fileWatcher = new FileSystemWatcher(directory, fileName) {
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.CreationTime
+            };
+
+            _fileWatcher.Changed -= OnFileChanged;
+            _fileWatcher.Created -= OnFileChanged;
+            _fileWatcher.Deleted -= OnFileDeleted;
+            _fileWatcher.Renamed -= OnFileRenamed;
+            _fileWatcher.Error -= OnFileWatcherError;
+            
             _fileWatcher.Changed += OnFileChanged;
             _fileWatcher.Created += OnFileChanged;
             _fileWatcher.Deleted += OnFileDeleted;
-            _fileWatcher.Renamed += (s, e) => OnFileChanged(s, e);
-            _fileWatcher.Error += (s, e) => {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher error: {e.GetException().Message}");
-            };
+            _fileWatcher.Renamed += OnFileRenamed;
+            _fileWatcher.Error += OnFileWatcherError;
+
             _fileWatcher.EnableRaisingEvents = true;
 
             InitializeFilePosition();
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] FileWatcher setup for: {fullPath}");
+            Log.Information("FileSystemWatcher successfully configured for '{FullPath}'.", fullPath);
         }
-        catch (UnauthorizedAccessException) {
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Access denied to log directory.");
+        catch (UnauthorizedAccessException ex) {
+            Log.Error(ex, "Access denied establishing FileSystemWatcher for '{LogPath}'.", _settings.SelectedProfile.LogFilePath);
         }
         catch (ArgumentException ex) {
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Invalid log path argument: {ex.Message}");
+            Log.Error(ex, "Invalid argument configuring FileSystemWatcher for '{LogPath}'.", _settings.SelectedProfile.LogFilePath);
         }
         catch (Exception ex) {
-            System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Error setting up file watcher: {ex.Message}");
+            Log.Error(ex, "Unexpected error setting up FileSystemWatcher for '{LogPath}'.", _settings.SelectedProfile.LogFilePath);
         }
     }
 
+    private void OnFileWatcherError(object sender, ErrorEventArgs e) {
+        var ex = e.GetException();
+        Log.Error(ex, "FileSystemWatcher internal error occurred.");
+    }
+
+    private void OnFileRenamed(object sender, RenamedEventArgs e) {
+        OnFileChanged(sender, e);
+    }
+
     private void InitializeFilePosition() {
-        if (_settings == null) return;
+        if (_settings?.SelectedProfile == null) return;
+
         lock (_fileLock) {
             try {
-                if (File.Exists(_settings.SelectedProfile.LogFilePath)) {
-                    using (var stream = new FileStream(_settings.SelectedProfile.LogFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                var logPath = _settings.SelectedProfile.LogFilePath;
+                if (!string.IsNullOrEmpty(logPath) && File.Exists(logPath)) {
+                    using (var stream = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
                         _lastFilePosition = stream.Length;
-                        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Initial file position: {_lastFilePosition}");
+                        Log.Debug("Initialized log file pointer to end of file: {Position} bytes", _lastFilePosition);
                     }
                 } else {
                     _lastFilePosition = 0;
                 }
             }
             catch (IOException ex) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] IOException during initialization: {ex.Message}");
+                Log.Warning(ex, "IOException initializing log file stream position.");
                 _lastFilePosition = 0;
             }
-            catch (UnauthorizedAccessException) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Access denied during initialization.");
+            catch (UnauthorizedAccessException ex) {
+                Log.Warning(ex, "Access denied initializing log file stream position.");
                 _lastFilePosition = 0;
             }
         }
     }
 
     private void OnFileChanged(object sender, FileSystemEventArgs e) {
-        if (_settings == null) return;
-        System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] File changed: {e.ChangeType} - {e.FullPath}");
+        if (_settings?.SelectedProfile == null) return;
+
         lock (_fileLock) {
             if (!File.Exists(e.FullPath)) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] File does not exist: {e.FullPath}");
+                Log.Debug("File change event received for non-existent path: '{FullPath}'", e.FullPath);
                 return;
             }
 
             try {
                 using (var stream = new FileStream(e.FullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                    // Handle log truncation or file rotation
                     if (stream.Length < _lastFilePosition) {
+                        Log.Information("Log file truncation detected. Resetting file pointer to 0.");
                         _lastFilePosition = 0;
                     }
 
@@ -163,33 +221,37 @@ public class WatcherService : IWatcherService {
                         using (var reader = new StreamReader(stream)) {
                             string? line;
                             string? lastMatch = null;
+
                             while ((line = reader.ReadLine()) != null) {
                                 if (string.IsNullOrWhiteSpace(line)) continue;
+
                                 if (LogParser.TryParseLogLine(line, _settings.SelectedProfile.LogFileRegex, out string coordinates)) {
-                                    System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Log parsed: {coordinates}");
                                     lastMatch = coordinates;
                                 }
                             }
 
                             if (lastMatch != null) {
+                                Log.Debug("Log line successfully parsed coordinates: {Coordinates}", lastMatch);
                                 LocationUpdated?.Invoke(this, lastMatch);
                             }
+
                             _lastFilePosition = stream.Position;
                         }
                     }
                 }
             }
             catch (IOException ex) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] IOException reading log file: {ex.Message}");
+                Log.Warning(ex, "IOException reading log file '{FullPath}'.", e.FullPath);
             }
             catch (Exception ex) {
-                System.Diagnostics.Debug.WriteLine($"[DEBUG_LOG] Error reading log file: {ex.Message}");
+                Log.Error(ex, "Unexpected error reading log file '{FullPath}'.", e.FullPath);
             }
         }
     }
 
     private void OnFileDeleted(object sender, FileSystemEventArgs e) {
         lock (_fileLock) {
+            Log.Information("Log file deleted: '{FullPath}'. Resetting file pointer.", e.FullPath);
             _lastFilePosition = 0;
         }
     }

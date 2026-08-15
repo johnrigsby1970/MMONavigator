@@ -4,14 +4,13 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using MMONavigator.Helpers;
 using MMONavigator.Models;
 using Color = System.Windows.Media.Color;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
 using UserControl = System.Windows.Controls.UserControl;
-using MMONavigator.Helpers;
-
 
 namespace MMONavigator.Controls;
 
@@ -31,7 +30,7 @@ public partial class MapCircleMarker : UserControl {
 
     // ─── toolbar color-picker state ──────────────────────────────────
     string _colorTarget = string.Empty;
-    
+
     public event EventHandler<MapTextStampEventArgs>? Stamped;
 
     static readonly Color[] ColorPalette = {
@@ -54,24 +53,29 @@ public partial class MapCircleMarker : UserControl {
         Color.FromRgb(180, 0, 255), Color.FromRgb(128, 0, 128), Color.FromRgb(255, 0, 255),
         Color.FromRgb(255, 105, 180), Color.FromRgb(255, 182, 193), Color.FromArgb(0, 0, 0, 0),
     };
-    
+
     public MapCircleMarker() {
         InitializeComponent();
-        SizeChanged += (_, _) => UpdateHandlePositions();
+        SizeChanged -= OnControlSizeChanged;
+        SizeChanged += OnControlSizeChanged;
+        Loaded -= OnLoaded;
         Loaded += OnLoaded;
     }
 
+    private void OnControlSizeChanged(object sender, SizeChangedEventArgs e) {
+        UpdateHandlePositions();
+    }
     // ═════════════════════════════════════════════════════════════════
     // Dependency Properties
     // ═════════════════════════════════════════════════════════════════
-    
+
     public static readonly DependencyProperty TargetImageProperty =
         DependencyProperty.Register(
-            nameof(TargetImage), 
-            typeof(System.Windows.Controls.Image), 
-            typeof(MapCircleMarker), 
+            nameof(TargetImage),
+            typeof(System.Windows.Controls.Image),
+            typeof(MapCircleMarker),
             new PropertyMetadata(null));
-    
+
     public static readonly DependencyProperty CircleBackgroundColorProperty =
         DependencyProperty.Register(nameof(CircleBackgroundColor), typeof(Color), typeof(MapCircleMarker),
             new PropertyMetadata(Color.FromRgb(0, 0, 0), OnCircleBrushInvalidated));
@@ -152,7 +156,7 @@ public partial class MapCircleMarker : UserControl {
             c.UpdateSwatchColors();
         }
     }
-    
+
     static void OnRotationAngleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
         if (d is MapCircleMarker c) c.MainRotation.Angle = (double)e.NewValue;
     }
@@ -162,141 +166,197 @@ public partial class MapCircleMarker : UserControl {
     }
 
     // ═════════════════════════════════════════════════════════════════
-    // Visual state builders
+    // Visual State Builders
     // ═════════════════════════════════════════════════════════════════
 
     void RebuildBackgroundBrush() {
-        var c = CircleBackgroundColor;
-        c.A = (byte)Math.Round(Math.Clamp(CircleBackgroundOpacity, 0, 1) * 255);
-        BackgroundEllipse.Fill = new SolidColorBrush(c);
+        try {
+            var c = CircleBackgroundColor;
+            c.A = (byte)Math.Round(Math.Clamp(CircleBackgroundOpacity, 0, 1) * 255);
+            BackgroundEllipse.Fill = new SolidColorBrush(c);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error rebuilding background brush in MapCircleMarker.");
+        }
     }
 
     void RebuildBorderBrush() {
-        var c = CircleBorderColor;
-        c.A = (byte)Math.Round(Math.Clamp(CircleBorderOpacity, 0, 1) * 255);
-        BackgroundEllipse.Stroke = new SolidColorBrush(c);
-        BackgroundEllipse.StrokeThickness = CircleBorderThickness;
+        try {
+            var c = CircleBorderColor;
+            c.A = (byte)Math.Round(Math.Clamp(CircleBorderOpacity, 0, 1) * 255);
+            BackgroundEllipse.Stroke = new SolidColorBrush(c);
+            BackgroundEllipse.StrokeThickness = CircleBorderThickness;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error rebuilding border brush in MapCircleMarker.");
+        }
     }
-    
+
     void UpdateSwatchColors() {
         if (!IsLoaded) return;
 
-        var bgOpaque = CircleBackgroundColor;
-        CircleBgColorSwatch.Background = bgOpaque.A == 0
-            ? CreateCheckerBrush()
-            : new SolidColorBrush(bgOpaque);
+        try {
+            var bgOpaque = CircleBackgroundColor;
+            CircleBgColorSwatch.Background = bgOpaque.A == 0
+                ? CreateCheckerBrush()
+                : new SolidColorBrush(bgOpaque);
 
-        if (bgOpaque.A == 0) {
-            CircleOpacitySlider.Value = 0;
-        }
-
-        BorderColorSwatch.Background = CircleBorderColor.A == 0
-            ? CreateCheckerBrush()
-            : new SolidColorBrush(CircleBorderColor);
-    }
-    
-    void UpdateInverseScale() {
-        double s = 1.0 / Math.Max(0.01, ZoomLevel);
-        ToolbarInverseScale.ScaleX = s;
-        ToolbarInverseScale.ScaleY = s;
-    }
-    
-    void OnLoaded(object sender, RoutedEventArgs e) {
-        if (double.IsNaN(Width)) Width = ActualWidth;
-        if (double.IsNaN(Height)) Height = ActualHeight;
-        
-        PopulateColorPicker();
-        RebuildBackgroundBrush();
-        RebuildBorderBrush();
-        UpdateSwatchColors();
-        UpdateInverseScale();
-        UpdateHandlePositions();
-        
-        BorderThicknessSlider.Value = CircleBorderThickness;
-        BorderOpacitySlider.Value = CircleBorderOpacity;
-
-        Dispatcher.BeginInvoke(new Action(() => {
-            var window = Window.GetWindow(this);
-            if (window != null) {
-                var helper = new System.Windows.Interop.WindowInteropHelper(window);
-                if (helper.Handle != IntPtr.Zero) {
-                    NativeMethods.SetForegroundWindow(helper.Handle);
-                }
+            if (bgOpaque.A == 0) {
+                CircleOpacitySlider.Value = 0;
             }
-        }), System.Windows.Threading.DispatcherPriority.Background);
+
+            BorderColorSwatch.Background = CircleBorderColor.A == 0
+                ? CreateCheckerBrush()
+                : new SolidColorBrush(CircleBorderColor);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating swatch colors in MapCircleMarker.");
+        }
+    }
+
+    void UpdateInverseScale() {
+        try {
+            double s = 1.0 / Math.Max(0.01, ZoomLevel);
+            ToolbarInverseScale.ScaleX = s;
+            ToolbarInverseScale.ScaleY = s;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating inverse scale in MapCircleMarker.");
+        }
+    }
+
+    void OnLoaded(object sender, RoutedEventArgs e) {
+        try {
+            if (double.IsNaN(Width)) Width = ActualWidth;
+            if (double.IsNaN(Height)) Height = ActualHeight;
+
+            PopulateColorPicker();
+            RebuildBackgroundBrush();
+            RebuildBorderBrush();
+            UpdateSwatchColors();
+            UpdateInverseScale();
+            UpdateHandlePositions();
+
+            BorderThicknessSlider.Value = CircleBorderThickness;
+            BorderOpacitySlider.Value = CircleBorderOpacity;
+
+            Dispatcher.BeginInvoke(new Action(() => {
+                try {
+                    var window = Window.GetWindow(this);
+                    if (window != null) {
+                        var helper = new System.Windows.Interop.WindowInteropHelper(window);
+                        if (helper.Handle != IntPtr.Zero) {
+                            NativeMethods.SetForegroundWindow(helper.Handle);
+                        }
+                    }
+                }
+                catch (Exception ex) {
+                    Log.Warning(ex, "Error setting foreground window in MapCircleMarker OnLoaded callback.");
+                }
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling OnLoaded in MapCircleMarker.");
+        }
     }
 
     void UpdateHandlePositions() {
-        double w = ActualWidth;
-        double h = ActualHeight;
+        try {
+            double w = ActualWidth;
+            double h = ActualHeight;
 
-        PlaceHandle(NwHandle, -HandleHalf, -HandleHalf);
-        PlaceHandle(NeHandle, w - HandleHalf, -HandleHalf);
-        PlaceHandle(SeHandle, w - HandleHalf, h - HandleHalf);
-        PlaceHandle(SwHandle, -HandleHalf, h - HandleHalf);
-        
-        RotationConnectorLine.X1 = w / 2;
-        RotationConnectorLine.Y1 = 0;
-        RotationConnectorLine.X2 = w / 2;
-        RotationConnectorLine.Y2 = -RotationConnectorLen;
+            PlaceHandle(NwHandle, -HandleHalf, -HandleHalf);
+            PlaceHandle(NeHandle, w - HandleHalf, -HandleHalf);
+            PlaceHandle(SeHandle, w - HandleHalf, h - HandleHalf);
+            PlaceHandle(SwHandle, -HandleHalf, h - HandleHalf);
 
-        Canvas.SetLeft(RotationHandle, w / 2 - RotationHandleRadius);
-        Canvas.SetTop(RotationHandle, -RotationConnectorLen - RotationHandleRadius * 2);
+            RotationConnectorLine.X1 = w / 2;
+            RotationConnectorLine.Y1 = 0;
+            RotationConnectorLine.X2 = w / 2;
+            RotationConnectorLine.Y2 = -RotationConnectorLen;
 
-        Canvas.SetLeft(StampButton, w + 6);
-        Canvas.SetTop(StampButton, h / 2 - StampButtonSize / 2);
+            Canvas.SetLeft(RotationHandle, w / 2 - RotationHandleRadius);
+            Canvas.SetTop(RotationHandle, -RotationConnectorLen - RotationHandleRadius * 2);
 
-        Canvas.SetLeft(ToolbarContainer, 0);
-        Canvas.SetTop(ToolbarContainer, h + 6);
+            Canvas.SetLeft(StampButton, w + 6);
+            Canvas.SetTop(StampButton, h / 2 - StampButtonSize / 2);
+
+            Canvas.SetLeft(ToolbarContainer, 0);
+            Canvas.SetTop(ToolbarContainer, h + 6);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating handle positions in MapCircleMarker.");
+        }
     }
 
     static void PlaceHandle(Thumb t, double x, double y) {
         Canvas.SetLeft(t, x);
         Canvas.SetTop(t, y);
     }
-    
-    void Border_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
+
+    void Border_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         if (e.ClickCount == 2) return;
 
         var parent = ParentCanvas;
         if (parent == null) return;
 
-        _isDragging       = true;
-        _dragOriginScreen = e.GetPosition(parent);
-        _dragOriginLeft   = Canvas.GetLeft(this);
-        _dragOriginTop    = Canvas.GetTop(this);
-    
-        BackgroundEllipse.CaptureMouse();
-        e.Handled = true;
+        try {
+            _isDragging = true;
+            _dragOriginScreen = e.GetPosition(parent);
+            _dragOriginLeft = Canvas.GetLeft(this);
+            _dragOriginTop = Canvas.GetTop(this);
+
+            BackgroundEllipse.CaptureMouse();
+            e.Handled = true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling Border_PreviewMouseLeftButtonDown.");
+        }
     }
 
     void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         var parent = ParentCanvas;
         if (parent == null) return;
 
-        _isDragging = true;
-        _dragOriginScreen = e.GetPosition(parent);
-        _dragOriginLeft = Canvas.GetLeft(this);
-        _dragOriginTop = Canvas.GetTop(this);
-        BackgroundEllipse.CaptureMouse();
-        e.Handled = true;
+        try {
+            _isDragging = true;
+            _dragOriginScreen = e.GetPosition(parent);
+            _dragOriginLeft = Canvas.GetLeft(this);
+            _dragOriginTop = Canvas.GetTop(this);
+            BackgroundEllipse.CaptureMouse();
+            e.Handled = true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling Border_MouseLeftButtonDown.");
+        }
     }
 
     void Border_MouseMove(object sender, MouseEventArgs e) {
         if (!_isDragging) return;
         var parent = ParentCanvas;
         if (parent == null) return;
-        var pos = e.GetPosition(parent);
-        Canvas.SetLeft(this, _dragOriginLeft + pos.X - _dragOriginScreen.X);
-        Canvas.SetTop(this, _dragOriginTop + pos.Y - _dragOriginScreen.Y);
+
+        try {
+            var pos = e.GetPosition(parent);
+            Canvas.SetLeft(this, _dragOriginLeft + pos.X - _dragOriginScreen.X);
+            Canvas.SetTop(this, _dragOriginTop + pos.Y - _dragOriginScreen.Y);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling Border_MouseMove.");
+        }
     }
 
     void Border_MouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
         if (!_isDragging) return;
-        _isDragging = false;
-        BackgroundEllipse.ReleaseMouseCapture();
-        e.Handled = true;
+
+        try {
+            _isDragging = false;
+            BackgroundEllipse.ReleaseMouseCapture();
+            e.Handled = true;
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling Border_MouseLeftButtonUp.");
+        }
     }
 
     void NwHandle_DragDelta(object sender, DragDeltaEventArgs e) => ApplyResize(e.HorizontalChange, e.VerticalChange,
@@ -324,21 +384,26 @@ public partial class MapCircleMarker : UserControl {
         ApplyResize(e.HorizontalChange, 0, anchorRight: true, anchorBottom: false);
 
     void ApplyResize(double dx, double dy, bool anchorRight, bool anchorBottom) {
-        if (anchorRight) {
-            double newW = Math.Max(MinCircleSize, Width - dx);
-            double usedDx = Width - newW;
-            Width = newW;
-            Canvas.SetLeft(this, Canvas.GetLeft(this) + usedDx);
-        }
-        else if (dx != 0) Width = Math.Max(MinCircleSize, Width + dx);
+        try {
+            if (anchorRight) {
+                double newW = Math.Max(MinCircleSize, Width - dx);
+                double usedDx = Width - newW;
+                Width = newW;
+                Canvas.SetLeft(this, Canvas.GetLeft(this) + usedDx);
+            }
+            else if (dx != 0) Width = Math.Max(MinCircleSize, Width + dx);
 
-        if (anchorBottom) {
-            double newH = Math.Max(MinCircleSize, Height - dy);
-            double usedDy = Height - newH;
-            Height = newH;
-            Canvas.SetTop(this, Canvas.GetTop(this) + usedDy);
+            if (anchorBottom) {
+                double newH = Math.Max(MinCircleSize, Height - dy);
+                double usedDy = Height - newH;
+                Height = newH;
+                Canvas.SetTop(this, Canvas.GetTop(this) + usedDy);
+            }
+            else if (dy != 0) Height = Math.Max(MinCircleSize, Height + dy);
         }
-        else if (dy != 0) Height = Math.Max(MinCircleSize, Height + dy);
+        catch (Exception ex) {
+            Log.Error(ex, "Error applying resize transform in MapCircleMarker.");
+        }
     }
 
     void RotationHandle_DragStarted(object sender, DragStartedEventArgs e) { }
@@ -346,39 +411,59 @@ public partial class MapCircleMarker : UserControl {
     void RotationHandle_DragDelta(object sender, DragDeltaEventArgs e) {
         var parent = ParentCanvas;
         if (parent == null) return;
-        var center = TransformToAncestor(parent).Transform(new Point(ActualWidth / 2, ActualHeight / 2));
-        var mouse = Mouse.GetPosition(parent);
-        RotationAngle = Math.Atan2(mouse.X - center.X, -(mouse.Y - center.Y)) * (180.0 / Math.PI);
+
+        try {
+            var center = TransformToAncestor(parent).Transform(new Point(ActualWidth / 2, ActualHeight / 2));
+            var mouse = Mouse.GetPosition(parent);
+            RotationAngle = Math.Atan2(mouse.X - center.X, -(mouse.Y - center.Y)) * (180.0 / Math.PI);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error updating rotation angle in RotationHandle_DragDelta.");
+        }
     }
-    
+
     void BorderThicknessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
         if (!IsLoaded) return;
         CircleBorderThickness = e.NewValue;
     }
-    
+
     void PopulateColorPicker() {
-        ColorSwatchPanel.Children.Clear();
-        foreach (var color in ColorPalette) {
-            bool isTransparent = color.A == 0;
-            var cell = new Border {
-                Width = 22,
-                Height = 22,
-                Margin = new Thickness(1),
-                CornerRadius = new CornerRadius(2),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
-                BorderThickness = new Thickness(1),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Background = isTransparent
-                    ? CreateCheckerBrush()
-                    : new SolidColorBrush(color),
-                ToolTip = isTransparent ? "Transparent" : $"#{color.R:X2}{color.G:X2}{color.B:X2}",
-            };
-            var captured = color;
-            cell.MouseLeftButtonDown += (_, _) => ApplyPickedColor(captured);
-            ColorSwatchPanel.Children.Add(cell);
+        try {
+            ColorSwatchPanel.Children.Clear();
+            foreach (var color in ColorPalette) {
+                bool isTransparent = color.A == 0;
+                var cell = new Border {
+                    Width = 22,
+                    Height = 22,
+                    Margin = new Thickness(1),
+                    CornerRadius = new CornerRadius(2),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(80, 80, 80)),
+                    BorderThickness = new Thickness(1),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                    Background = isTransparent
+                        ? CreateCheckerBrush()
+                        : new SolidColorBrush(color),
+                    ToolTip = isTransparent ? "Transparent" : $"#{color.R:X2}{color.G:X2}{color.B:X2}",
+                };
+                // Inside your loop building the color palette:
+                cell.Tag = color; // Store the color directly on the UI element
+                cell.MouseLeftButtonDown -= OnColorCellClicked; // Prevent duplicates
+                cell.MouseLeftButtonDown += OnColorCellClicked;
+                ColorSwatchPanel.Children.Add(cell);
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error populating color picker in MapCircleMarker.");
         }
     }
-
+    
+    // Single shared handler outside the loop:
+    private void OnColorCellClicked(object sender, MouseButtonEventArgs e) {
+        if (sender is FrameworkElement element && element.Tag is Color pickedColor) {
+            ApplyPickedColor(pickedColor);
+        }
+    }
+    
     static DrawingBrush CreateCheckerBrush() {
         var drawing = new DrawingGroup();
         drawing.Children.Add(new GeometryDrawing(
@@ -400,7 +485,7 @@ public partial class MapCircleMarker : UserControl {
             ViewportUnits = BrushMappingMode.Absolute,
         };
     }
-    
+
     void CircleBgColorSwatch_Click(object sender, MouseButtonEventArgs e) {
         _colorTarget = "CircleBg";
         ColorPickerPopup.IsOpen = true;
@@ -412,127 +497,147 @@ public partial class MapCircleMarker : UserControl {
     }
 
     void ApplyPickedColor(Color color) {
-        ColorPickerPopup.IsOpen = false;
+        try {
+            ColorPickerPopup.IsOpen = false;
 
-        switch (_colorTarget) {
-            case "CircleBg":
-                CircleBackgroundColor = color;
-                break;
+            switch (_colorTarget) {
+                case "CircleBg":
+                    CircleBackgroundColor = color;
+                    break;
 
-            case "Border":
-                CircleBorderColor = color;
-                if (CircleBorderThickness < 0.5) {
-                    CircleBorderThickness = 1.0;
-                    BorderThicknessSlider.Value = 1.0;
-                }
-
-                break;
+                case "Border":
+                    CircleBorderColor = color;
+                    if (CircleBorderThickness < 0.5) {
+                        CircleBorderThickness = 1.0;
+                        BorderThicknessSlider.Value = 1.0;
+                    }
+                    break;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error applying picked color in MapCircleMarker.");
         }
     }
 
     void StampButton_Click(object sender, RoutedEventArgs e) {
-        ColorPickerPopup.IsOpen = false;
-        var parent = ParentCanvas;
-        if (parent == null) return;
+        try {
+            ColorPickerPopup.IsOpen = false;
+            var parent = ParentCanvas;
+            if (parent == null) return;
 
-        var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName) ?? FindDescendantByType<System.Windows.Controls.Image>(parent);
-        if (mapImage == null || mapImage.Source is not BitmapSource bitmapSource) return;
+            var mapImage = TargetImage ?? FindDescendantByName<System.Windows.Controls.Image>(parent, MapImageElementName) ?? FindDescendantByType<System.Windows.Controls.Image>(parent);
+            if (mapImage == null || mapImage.Source is not BitmapSource bitmapSource) {
+                Log.Warning("StampButton_Click: Unable to locate valid target map image or BitmapSource.");
+                return;
+            }
 
-        double myCanvasX = Canvas.GetLeft(this);
-        double myCanvasY = Canvas.GetTop(this);
+            double myCanvasX = Canvas.GetLeft(this);
+            double myCanvasY = Canvas.GetTop(this);
 
-        double imageCanvasX = Canvas.GetLeft(mapImage);
-        double imageCanvasY = Canvas.GetTop(mapImage);
+            double imageCanvasX = Canvas.GetLeft(mapImage);
+            double imageCanvasY = Canvas.GetTop(mapImage);
 
-        if (double.IsNaN(myCanvasX)) myCanvasX = this.TransformToAncestor(parent).Transform(new Point(0, 0)).X;
-        if (double.IsNaN(myCanvasY)) myCanvasY = this.TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
-        if (double.IsNaN(imageCanvasX))
-            imageCanvasX = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).X;
-        if (double.IsNaN(imageCanvasY))
-            imageCanvasY = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
+            if (double.IsNaN(myCanvasX)) myCanvasX = TransformToAncestor(parent).Transform(new Point(0, 0)).X;
+            if (double.IsNaN(myCanvasY)) myCanvasY = TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
+            if (double.IsNaN(imageCanvasX))
+                imageCanvasX = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).X;
+            if (double.IsNaN(imageCanvasY))
+                imageCanvasY = mapImage.TransformToAncestor(parent).Transform(new Point(0, 0)).Y;
 
-        double relativeX = myCanvasX - imageCanvasX;
-        double relativeY = myCanvasY - imageCanvasY;
+            double relativeX = myCanvasX - imageCanvasX;
+            double relativeY = myCanvasY - imageCanvasY;
 
-        double pixelWidthRatio = (double)bitmapSource.PixelWidth / mapImage.ActualWidth;
-        double pixelHeightRatio = (double)bitmapSource.PixelHeight / mapImage.ActualHeight;
+            // Prevent division-by-zero if ActualWidth/ActualHeight haven't rendered yet
+            double actualImageW = mapImage.ActualWidth > 0 ? mapImage.ActualWidth : 1.0;
+            double actualImageH = mapImage.ActualHeight > 0 ? mapImage.ActualHeight : 1.0;
 
-        double burnX = relativeX * pixelWidthRatio;
-        double burnY = relativeY * pixelHeightRatio;
+            double pixelWidthRatio = (double)bitmapSource.PixelWidth / actualImageW;
+            double pixelHeightRatio = (double)bitmapSource.PixelHeight / actualImageH;
 
-        double burnWidth = ActualWidth * pixelWidthRatio;
-        double burnHeight = ActualHeight * pixelHeightRatio;
-        double burnFontSize = FontSize * pixelWidthRatio;
+            double burnX = relativeX * pixelWidthRatio;
+            double burnY = relativeY * pixelHeightRatio;
 
-        var textColor = (Foreground as SolidColorBrush)?.Color ?? Color.FromRgb(255, 255, 255);
+            double burnWidth = ActualWidth * pixelWidthRatio;
+            double burnHeight = ActualHeight * pixelHeightRatio;
+            double burnFontSize = FontSize * pixelWidthRatio;
 
-        var args = new MapTextStampEventArgs {
-            Text = string.Empty,
-            X = burnX,
-            Y = burnY,
-            Width = burnWidth,
-            Height = burnHeight,
-            RotationAngle = RotationAngle,
-            FontFamilyName = FontFamily?.Source ?? "Segoe UI",
-            FontSize = burnFontSize,
-            // IsBold = IsBold,
-            // IsItalic = IsItalic,
-            // IsUnderline = IsUnderline,
-            TextColor = textColor,
-            // TextOpacity = TextOpacity,
-            // TextPadding = TextPadding * pixelWidthRatio,
-            // TextAlignment = TextAlign,
-            BackgroundColor = CircleBackgroundColor,
-            BackgroundOpacity = CircleBackgroundOpacity,
-            BoxBorderColor = CircleBorderColor,
-            BoxBorderOpacity = CircleBorderOpacity,
-            BoxBorderThickness = CircleBorderThickness * pixelWidthRatio,
-            CornerRadius = new CornerRadius(0),
-            IsEllipse = true,
-            EllipseMargin = 15 * pixelWidthRatio
-        };
+            var textColor = (Foreground as SolidColorBrush)?.Color ?? Color.FromRgb(255, 255, 255);
 
-        Stamped?.Invoke(this, args);
-        parent.Children.Remove(this);
+            var args = new MapTextStampEventArgs {
+                Text = string.Empty,
+                X = burnX,
+                Y = burnY,
+                Width = burnWidth,
+                Height = burnHeight,
+                RotationAngle = RotationAngle,
+                FontFamilyName = FontFamily?.Source ?? "Segoe UI",
+                FontSize = burnFontSize,
+                TextColor = textColor,
+                BackgroundColor = CircleBackgroundColor,
+                BackgroundOpacity = CircleBackgroundOpacity,
+                BoxBorderColor = CircleBorderColor,
+                BoxBorderOpacity = CircleBorderOpacity,
+                BoxBorderThickness = CircleBorderThickness * pixelWidthRatio,
+                CornerRadius = new CornerRadius(0),
+                IsEllipse = true,
+                EllipseMargin = 15 * pixelWidthRatio
+            };
+
+            Stamped?.Invoke(this, args);
+            parent.Children.Remove(this);
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error handling StampButton_Click in MapCircleMarker.");
+        }
     }
 
     private static T? FindDescendantByName<T>(DependencyObject element, string name) where T : DependencyObject {
-        int count = VisualTreeHelper.GetChildrenCount(element);
-        for (int i = 0; i < count; i++) {
-            var child = VisualTreeHelper.GetChild(element, i);
-            if (child is T tElement && child is FrameworkElement fe && fe.Name == name) {
-                return tElement;
-            }
+        if (element == null) return null;
 
-            var result = FindDescendantByName<T>(child, name);
-            if (result != null) return result;
+        try {
+            int count = VisualTreeHelper.GetChildrenCount(element);
+            for (int i = 0; i < count; i++) {
+                var child = VisualTreeHelper.GetChild(element, i);
+                if (child is T tElement && child is FrameworkElement fe && fe.Name == name) {
+                    return tElement;
+                }
+
+                var result = FindDescendantByName<T>(child, name);
+                if (result != null) return result;
+            }
+        }
+        catch (Exception ex) {
+            Log.Debug(ex, "Error in FindDescendantByName while searching for '{Name}'.", name);
         }
 
         return null;
     }
-    
-    private static T? FindDescendantByType<T>(DependencyObject element) where T : DependencyObject
-    {
-        int count = VisualTreeHelper.GetChildrenCount(element);
-        for (int i = 0; i < count; i++)
-        {
-            var child = VisualTreeHelper.GetChild(element, i);
-            if (child is T tElement)
-            {
-                return tElement;
-            }
 
-            var result = FindDescendantByType<T>(child);
-            if (result != null) return result;
+    private static T? FindDescendantByType<T>(DependencyObject element) where T : DependencyObject {
+        if (element == null) return null;
+
+        try {
+            int count = VisualTreeHelper.GetChildrenCount(element);
+            for (int i = 0; i < count; i++) {
+                var child = VisualTreeHelper.GetChild(element, i);
+                if (child is T tElement) {
+                    return tElement;
+                }
+
+                var result = FindDescendantByType<T>(child);
+                if (result != null) return result;
+            }
         }
+        catch (Exception ex) {
+            Log.Debug(ex, "Error in FindDescendantByType.");
+        }
+
         return null;
     }
-
 
     Canvas? ParentCanvas => VisualTreeHelper.GetParent(this) as Canvas;
-    
-    public System.Windows.Controls.Image? TargetImage
-    {
+
+    public System.Windows.Controls.Image? TargetImage {
         get => (System.Windows.Controls.Image?)GetValue(TargetImageProperty);
         set => SetValue(TargetImageProperty, value);
     }
