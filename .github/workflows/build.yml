@@ -87,20 +87,37 @@ jobs:
 
     - name: Create Store MSIX & MSIXUpload Package
       run: |
+        $version = "0.6.1.1" # Target version for Microsoft Store
+        $publishDir = "${{ github.workspace }}/publish"
+        $manifestPath = "$publishDir/AppxManifest.xml"
+
+        # 1. Dynamically update the Version attribute in the published AppxManifest.xml
+        if (Test-Path $manifestPath) {
+          [xml]$xml = Get-Content $manifestPath
+          $xml.Package.Identity.Version = $version
+          $xml.Save($manifestPath)
+          Write-Host "Successfully updated AppxManifest.xml version to $version"
+        } else {
+          Write-Error "AppxManifest.xml not found at $manifestPath"
+          exit 1
+        }
+
         # Locate MakeAppx tool
         $makeAppx = (Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "makeappx.exe" | Where-Object FullName -like "*x64*" | Select-Object -First 1).FullName
 
         $msixDir = "${{ github.workspace }}/Artifacts/MSIX"
-        $publishDir = "${{ github.workspace }}/publish"
         $msixPath = "$msixDir/MMONavigator.msix"
-        $msixUploadPath = "$msixDir/MMONavigator.msixupload"
+        
+        # Name the output container using the exact Partner Center package identity format
+        $msixUploadName = "JohnRigsby.MMONavigator_${version}_x64.msixupload"
+        $msixUploadPath = "$msixDir/$msixUploadName"
 
         New-Item -ItemType Directory -Force -Path $msixDir
 
-        # 1. Pack into MSIX
+        # 2. Pack into MSIX using updated AppxManifest.xml
         & $makeAppx pack /d $publishDir /p $msixPath /o
 
-        # 2. Prepare staging directories for .msixupload container
+        # 3. Prepare staging directories for .msixupload container
         $stagingDir = "${{ github.workspace }}/upload_staging"
         $symbolsDir = "${{ github.workspace }}/symbols_staging"
         New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
@@ -109,14 +126,14 @@ jobs:
         # Copy MSIX file into staging
         Copy-Item $msixPath "$stagingDir/MMONavigator.msix"
 
-        # 3. Compress PDB symbols into .appxsym archive (Required format for Partner Center)
+        # 4. Compress PDB symbols into .appxsym archive
         $pdbFiles = Get-ChildItem -Path $publishDir -Filter "*.pdb"
         if ($pdbFiles) {
           Copy-Item -Path $pdbFiles.FullName -Destination $symbolsDir
           Compress-Archive -Path "$symbolsDir/*" -DestinationPath "$stagingDir/MMONavigator.appxsym" -Force
         }
 
-        # 4. Zip .msix + .appxsym into final .msixupload file
+        # 5. Zip .msix + .appxsym into final .msixupload file
         Compress-Archive -Path "$stagingDir/*" -DestinationPath $msixUploadPath -Force
 
         # Cleanup temporary staging directories
