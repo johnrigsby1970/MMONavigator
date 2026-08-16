@@ -24,7 +24,6 @@
         <SolidColorBrush x:Key="TextStroke" Color="black" />
         <SolidColorBrush x:Key="TextFill" Color="white" />
         <SolidColorBrush x:Key="TitleBar" Opacity="0.1" Color="White" />
-        <local:MainWindow x:Key="MainWindow" />
         <x:Static Member="local:MainWindow.StandardRowHeight" x:Key="StandardRowHeight" />
         <x:Static Member="local:MainWindow.StandardGridRowHeight" x:Key="StandardGridRowHeight" />
     </Window.Resources>
@@ -39,12 +38,12 @@
         </Grid.RowDefinitions>
 
         <!-- Invisible Hit-Test Overlay behind controls to capture off-popup clicks -->
-        <Rectangle x:Name="BackgroundDismissOverlay"
-                   Grid.Row="0" Grid.Column="0" 
-                   Grid.RowSpan="2" Grid.ColumnSpan="2"
-                   Fill="#01000000"
-                   Visibility="Collapsed"
-                   MouseLeftButtonDown="BackgroundDismissOverlay_MouseLeftButtonDown" />
+        <!-- <Rectangle x:Name="BackgroundDismissOverlay" -->
+        <!--            Grid.Row="0" Grid.Column="0"  -->
+        <!--            Grid.RowSpan="2" Grid.ColumnSpan="2" -->
+        <!--            Fill="#01000000" -->
+        <!--            Visibility="Collapsed" -->
+        <!--            MouseLeftButtonDown="BackgroundDismissOverlay_MouseLeftButtonDown" /> -->
         
         <Rectangle Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                    Fill="{StaticResource TitleBar}"
@@ -184,146 +183,91 @@
                 <RowDefinition Height="Auto" Name="compassRow" />
             </Grid.RowDefinitions>
 
-            <StackPanel Grid.Row="0" Grid.Column="0" FlowDirection="LeftToRight"
-                        Orientation="Horizontal"
-                        Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <controls:OutlinedTextBlock
-                    Text="Destination:"
-                    FontFamily="Verdana" FontSize="10pt"
-                    FontWeight="ExtraBold"
-                    TextWrapping="Wrap"
-                    StrokeThickness=".5"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    TextAlignment="Left"
-                    Width="100"
-                    Margin="5,1,0,0"
-                    Stroke="{StaticResource TextStroke}"
-                    Fill="{StaticResource TextFill}" />
+            <!-- Destination Bar Row (First overlay removed from here) -->
+    <StackPanel Grid.Row="0" Grid.Column="0" FlowDirection="LeftToRight"
+                Orientation="Horizontal"
+                Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <controls:OutlinedTextBlock
+            Text="Destination:"
+            FontFamily="Verdana" FontSize="10pt" FontWeight="ExtraBold"
+            TextWrapping="Wrap" StrokeThickness=".5" VerticalAlignment="Center"
+            HorizontalAlignment="Center" TextAlignment="Left" Width="100" Margin="5,1,0,0"
+            Stroke="{StaticResource TextStroke}" Fill="{StaticResource TextFill}" />
 
-                <!-- <ComboBox -->
-                <!--     ItemsSource="{Binding Locations}" -->
-                <!--     SelectedItem="{Binding SelectedLocation}" -->
-                <!--     Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" -->
-                <!--     IsEditable="True" -->
-                <!--     DisplayMemberPath="DisplayName" -->
-                <!--     Height="22" -->
-                <!--     FontSize="8pt" -->
-                <!--     VerticalAlignment="Center" Width="140" -->
-                <!--     ToolTip="{Binding DestinationTooltip}" /> -->
+        <TextBox x:Name="TargetCoordinates"
+                 Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                 Height="22" Width="99" FontSize="8pt" Margin="0,0,0,0" VerticalAlignment="Center"
+                 ToolTip="{Binding DestinationTooltip}" helpers:ClickThroughBehavior.IsEnabled="True" />
 
-                <TextBox x:Name="TargetCoordinates"
-                         Text="{Binding TargetCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         Height="22"
-                         FontSize="8pt"
-                         Margin="0,0,0,0"
-                         VerticalAlignment="Center"
-                         Width="99"
-                         ToolTip="{Binding DestinationTooltip}"
-                         helpers:ClickThroughBehavior.IsEnabled="True" />
+<ToggleButton x:Name="LocationExpanderButton"
+              Width="20" Height="22" Margin="1,0,0,0"
+              IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+              Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
+              Style="{StaticResource PrimaryToggleButtonStyle}" 
+              ToolTip="Toggle Locations Tree">
+    <ToggleButton.Template>
+        <ControlTemplate TargetType="ToggleButton">
+            <Border x:Name="border"
+                    Background="{DynamicResource PrimaryButtonBackgroundBrush}"
+                    BorderBrush="{DynamicResource PrimaryButtonBackgroundBrush}"
+                    BorderThickness="1"
+                    CornerRadius="0,2,2,0"
+                    SnapsToDevicePixels="True">
+                <!-- Dropdown Arrow Icon -->
+                <TextBlock x:Name="arrow"
+                           Text="&#xE70D;" 
+                           FontFamily="Segoe MDL2 Assets" 
+                           FontSize="8pt"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource PrimaryButtonForegroundBrush}" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+                <!-- Mouse Hover State -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#3F3F46" />
+                    <Setter TargetName="border" Property="BorderBrush" Value="#007ACC" />
+                    <Setter TargetName="arrow" Property="Foreground" Value="White" />
+                </Trigger>
+                <!-- Checked / Active Open State -->
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#007ACC" />
+                    <Setter TargetName="border" Property="BorderBrush" Value="#007ACC" />
+                    <Setter TargetName="arrow" Property="Foreground" Value="White" />
+                    <!-- Flips arrow upside down when open -->
+                    <Setter TargetName="arrow" Property="Text" Value="&#xE70E;" />
+                </Trigger>
+                <!-- Pressed State -->
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter TargetName="border" Property="Background" Value="#005A9E" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </ToggleButton.Template>
+</ToggleButton>
 
-                <!-- <Button Width="25" Height="25" -->
-                <!--         Background="Transparent" -->
-                <!--         BorderThickness="0" -->
-                <!--         Click="ToggleButton_Click" -->
-                <!--         Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}"> -->
-                <!-- -->
-                <!--     <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="10pt" -->
-                <!--                Background="white" -->
-                <!--                Foreground="black" HorizontalAlignment="Center" VerticalAlignment="Center"/> -->
-                <!-- -->
-                <!--     <Button.Template> -->
-                <!--         <ControlTemplate TargetType="Button"> -->
-                <!--             <ContentPresenter/> -->
-                <!--         </ControlTemplate> -->
-                <!--     </Button.Template> -->
-                <!-- </Button> -->
+        <Button x:Name="addlocation" Width="20" Height="20" Margin="3,0,0,0"
+                Content="&#xE710;" FontFamily="Segoe MDL2 Assets" ToolTip="Remember Destination" FontWeight="ExtraBold"
+                PreviewMouseLeftButtonDown="Close_Popup"
+                Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Command="{Binding AddLocationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
 
-                <!-- https://stackoverflow.com/questions/722700/wpf-treeview-inside-a-combobox -->
-                <Expander Width="25" Height="25"
-                          x:Name="LocationExpander"
-                          IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                          Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Expander.Header>
-                        <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="10pt"
-                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Margin="-2,0,0,0" />
-                    </Expander.Header>
-                    <Popup
-                        x:Name="LocationPopup"
-                        FocusManager.IsFocusScope="True"
-                        Focusable="True"
-                        PlacementTarget="{Binding ElementName=TargetCoordinates}"
-                        IsOpen="{Binding IsExpanded}"
-                        StaysOpen="True"
-                        Placement="Bottom"
-                        AllowsTransparency="True"
-                        PopupAnimation="None"
-                        Opened="LocationPopup_Opened"
-                        Closed="LocationPopup_Closed"
-                        Margin="1,1,1,1"
-                        Width="200">
-                        <mmoNavigator:ExtendedTreeView 
-                            x:Name="LocationTree"
-                            ItemsSource="{Binding Locations}" 
-                            PreviewMouseLeftButtonDown="LocationTree_PreviewMouseLeftButtonDown"
-                            KeyDown="LocationTree_KeyDown"
-                            Margin="1,1,1,1"
-                            Width="200">
-                            <TreeView.ItemContainerStyle>
-                                <Style TargetType="{x:Type TreeViewItem}">
-                                    <!-- Keep IsSelected unbound or bound OneWay for visual focus -->
-                                </Style>
-                            </TreeView.ItemContainerStyle>
-                            <TreeView.Resources>
-                                <HierarchicalDataTemplate DataType="{x:Type models:LocationItem}"
-                                                          ItemsSource="{Binding Items}">
-                                    <TextBlock Text="{Binding DisplayName}"
-                                               FontSize="8pt"
-                                               Width="150"
-                                               Margin="0,1,0,1"
-                                               ToolTip="{Binding DestinationTooltip}" />
-                                </HierarchicalDataTemplate>
-                            </TreeView.Resources>
-                        </mmoNavigator:ExtendedTreeView>
-                    </Popup>
-                </Expander>
+        <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE70F;"
+                FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup" ToolTip="Edit Destination"
+                FontWeight="ExtraBold" Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Command="{Binding EditLocationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
 
-                <Button x:Name="addlocation" Width="20" Height="20" Margin="3,0,0,0"
-                        Content="&#xE710;"
-                        FontFamily="Segoe MDL2 Assets"
-                        ToolTip="Remember Destination" FontWeight="ExtraBold"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Command="{Binding AddLocationCommand}" Style="{StaticResource PrimaryButtonStyle}">
-                </Button>
+        <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE74D;"
+                FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup" ToolTip="Forget Destination"
+                FontWeight="ExtraBold" Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Command="{Binding RemoveLocationCommand}" Style="{StaticResource DeleteButtonStyle}" />
 
-                <Button Width="20" Height="20" Margin="3,0,0,0"
-                        Content="&#xE70F;"
-                        FontFamily="Segoe MDL2 Assets"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        ToolTip="Edit Destination" FontWeight="ExtraBold"
-                        Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Command="{Binding EditLocationCommand}" Style="{StaticResource PrimaryButtonStyle}">
-                </Button>
+        <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE8E5;"
+                FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup" ToolTip="Select Locations File"
+                FontWeight="ExtraBold" Command="{Binding SelectLocationFileCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+    </StackPanel>
 
-                <Button Width="20" Height="20" Margin="3,0,0,0"
-                        Content="&#xE74D;"
-                        FontFamily="Segoe MDL2 Assets"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        ToolTip="Forget Destination" FontWeight="ExtraBold"
-                        Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                        Command="{Binding RemoveLocationCommand}" Style="{StaticResource DeleteButtonStyle}">
-                </Button>
-
-                <Button Width="20" Height="20" Margin="3,0,0,0"
-                        Content="&#xE8E5;"
-                        FontFamily="Segoe MDL2 Assets"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        ToolTip="Select Locations File" FontWeight="ExtraBold"
-                        Command="{Binding SelectLocationFileCommand}" Style="{StaticResource PrimaryButtonStyle}">
-                </Button>
-            </StackPanel>
 
             <StackPanel Grid.Row="1" Grid.Column="0" FlowDirection="LeftToRight"
                         Orientation="Horizontal"
@@ -578,5 +522,29 @@
                 </Grid>
             </Grid>
         </Grid>
+        
+        <!-- Floating TreeView Overlay (Placed on Root Grid to Floating Over Content) -->
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                Panel.ZIndex="999"
+                Margin="105,28,0,0"
+                HorizontalAlignment="Left" VerticalAlignment="Top"
+                Background="#2D2D30" BorderBrush="CornflowerBlue" BorderThickness="1"
+                CornerRadius="3"
+                Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <mmoNavigator:ExtendedTreeView 
+                ItemsSource="{Binding Locations}"
+                PreviewMouseLeftButtonDown="LocationTree_PreviewMouseLeftButtonDown"
+                KeyDown="LocationTree_KeyDown"
+                Width="180" MaxHeight="220"
+                Background="Transparent">
+                <TreeView.Resources>
+                    <HierarchicalDataTemplate DataType="{x:Type models:LocationItem}" ItemsSource="{Binding Items}">
+                        <StackPanel Orientation="Horizontal" Margin="0,1">
+                            <TextBlock Text="{Binding DisplayName}" FontSize="8pt" Foreground="White" />
+                        </StackPanel>
+                    </HierarchicalDataTemplate>
+                </TreeView.Resources>
+            </mmoNavigator:ExtendedTreeView>
+        </Border>
     </Grid>
 </Window>

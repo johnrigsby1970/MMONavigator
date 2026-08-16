@@ -26,6 +26,12 @@
         <Setter Property="Foreground" Value="{StaticResource PrimaryButtonForegroundBrush}" />
     </Style>
     
+    <Style x:Key="PrimaryToggleButtonStyle" TargetType="ToggleButton">
+        <Setter Property="Background" Value="{StaticResource PrimaryButtonBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryButtonForegroundBrush}" />
+    </Style>
+
+    
     <Style x:Key="DeleteButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource DeleteButtonBackgroundBrush}" />
         <Setter Property="Foreground" Value="{StaticResource DeleteButtonForegroundBrush}" />

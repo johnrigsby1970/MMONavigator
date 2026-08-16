@@ -70,6 +70,13 @@ public static class NativeMethods {
     #endregion
     
     [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsWindow(IntPtr hWnd);
+    
+    [DllImport("user32.dll", SetLastError = true)]
     public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -92,6 +99,9 @@ public static class NativeMethods {
     public const int WM_ACTIVATE = 0x0006;
     public const int WA_INACTIVE = 0;
     public const int WM_CLIPBOARDUPDATE = 0x031D;
+    public const uint SWP_FRAMECHANGED = 0x0020; // Forces non-client recalculation
+    public const int WM_NCHITTEST = 0x0084;
+    public const int HTTRANSPARENT = -1;
     
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();

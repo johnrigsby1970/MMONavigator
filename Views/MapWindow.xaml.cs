@@ -15,7 +15,6 @@ using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.Services;
 using MMONavigator.ViewModels;
-
 using MessageBox = System.Windows.MessageBox;
 
 // ReSharper disable RedundantNameQualifier
@@ -41,7 +40,7 @@ public partial class MapWindow : ChildWindow {
     private DateTime _lastMouseOutsideTime = DateTime.MinValue;
     private IntPtr _hwnd;
     private AppSettings? _subscribedAppSettings;
-    
+
     public MapWindow(MapViewModel viewModel) {
         InitializeComponent();
         DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
@@ -88,7 +87,8 @@ public partial class MapWindow : ChildWindow {
         }
         catch (Exception ex) {
             Log.Error(ex, "Error toggling Add Pin mode.");
-            MessageBox.Show("Could not add pin. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Could not add pin. Please try again.", "Error", MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 
@@ -103,7 +103,8 @@ public partial class MapWindow : ChildWindow {
         }
         catch (Exception ex) {
             Log.Error(ex, "Error initiating map calibration.");
-            MessageBox.Show("Could not calibrate. Please try again.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Could not calibrate. Please try again.", "Error", MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 
@@ -115,7 +116,7 @@ public partial class MapWindow : ChildWindow {
             _isPickingTextLocation = false;
             _isPickingCircleLocation = false;
             _isPickingEllipseLocation = false;
-            
+
             if (_isCalibrating) {
                 if (_savedFogSettings.HasValue && DataContext is MapViewModel vm) {
                     vm.ShowFogOfWar = _savedFogSettings.Value;
@@ -154,7 +155,7 @@ public partial class MapWindow : ChildWindow {
     private void CenterMapOnMarker() {
         if (DataContext is not MapViewModel vm) return;
         vm.Settings ??= new MapSettings();
-        
+
         double currentZoom = vm.Settings.ZoomLevel;
 
         double targetX = (vm.MarkerX * currentZoom) - (MapScrollViewer.ActualWidth / 2);
@@ -169,7 +170,7 @@ public partial class MapWindow : ChildWindow {
             _subscribedAppSettings.PropertyChanged -= OnAppSettingsPropertyChanged;
             _subscribedAppSettings = null;
         }
-        
+
         try {
             SaveWindowPlacement();
         }
@@ -300,7 +301,8 @@ public partial class MapWindow : ChildWindow {
             //                        relativeMousePos.Y <= this.ActualHeight);
 
             //This method works on higher resolution / faster machines as well as slower
-            if (NativeMethods.GetCursorPos(out NativeMethods.Win32Point p) && PresentationSource.FromVisual(this) != null) {
+            if (NativeMethods.GetCursorPos(out NativeMethods.Win32Point p) &&
+                PresentationSource.FromVisual(this) != null) {
                 // 1. Convert the physical screen point (Win32) to a WPF Logical Point
                 System.Windows.Point mousePoint = PointFromScreen(new System.Windows.Point(p.X, p.Y));
 
@@ -334,7 +336,7 @@ public partial class MapWindow : ChildWindow {
             Log.Warning(ex, "Error checking cursor position in HoverTimer_Tick.");
         }
     }
-    
+
     private void MapImageElement_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         try {
             if (DataContext is not MapViewModel vm) return;
@@ -349,7 +351,7 @@ public partial class MapWindow : ChildWindow {
 
                 PauseHoverTracking();
                 bool wasHidden = !vm.IsHovered;
-            
+
                 // Wake up controls and disable transparent click-through
                 vm.IsHovered = true;
                 UpdateKeyboardClickThrough();
@@ -430,7 +432,7 @@ public partial class MapWindow : ChildWindow {
             UpdateKeyboardClickThrough();
         }
     }
-    
+
     private void KeepOnTop() {
         try {
             if (_hwnd == IntPtr.Zero) return;
@@ -518,7 +520,7 @@ public partial class MapWindow : ChildWindow {
                         var parent = FindParent<EditableMapText>(hitObj);
                         if (parent != null) {
                             hitTextControl = true;
-                            return HitTestResultBehavior.Stop;// Found it, stop searching
+                            return HitTestResultBehavior.Stop; // Found it, stop searching
                         }
                     }
 
@@ -543,26 +545,24 @@ public partial class MapWindow : ChildWindow {
             Log.Error(ex, "Error setting HideMapClickHint.");
         }
     }
-    
+
     private void Menu_SubmenuOpened(object sender, RoutedEventArgs e) {
         // Stop HoverTimer and MouseHook processing while navigating top-level menus
-        IsDialogActive = true; 
+        IsDialogActive = true;
     }
 
     private void Menu_SubmenuClosed(object sender, RoutedEventArgs e) {
         // Re-enable tracking after menu closes (if no modal dialog is active)100, 100
-        IsDialogActive = false; 
+        IsDialogActive = false;
     }
-    
+
     private void LoadMap_Click(object sender, RoutedEventArgs e) {
         if (DataContext is not MapViewModel vm) return;
 
         // Yield control so WPF closes the MenuItem layout cleanly before launching the dialog
-        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
-            ExecuteLoadMap(vm);
-        }));
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { ExecuteLoadMap(vm); }));
     }
-    
+
     private void ExecuteLoadMap(MapViewModel vm) {
         try {
             if (vm.IsDrawModeActive) {
@@ -728,8 +728,10 @@ public partial class MapWindow : ChildWindow {
             Log.Error(ex, "Error handling MouseRightButtonDown on MapCanvas.");
         }
     }
+
     EventHandler<MapTextStampEventArgs> labelHandler = null!;
     EventHandler<MapTextStampEventArgs> handler = null!;
+
     private void MapCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         // // If the user is actively clicking inside our formatting toolbar or handles canvas,
         // // let the event route natively to those buttons and sliders instead of triggering map actions!
@@ -749,7 +751,7 @@ public partial class MapWindow : ChildWindow {
                 // Check if the click is inside our custom EditableMapText control tree
                 var parentTextControl = FindParent<EditableMapText>(clickedObj);
                 if (parentTextControl != null || e.OriginalSource is System.Windows.Controls.TextBox) {
-                    e.Handled = true;// Stop the map window from running click-through or drag rules!
+                    e.Handled = true; // Stop the map window from running click-through or drag rules!
                     return;
                 }
             }
@@ -799,7 +801,7 @@ public partial class MapWindow : ChildWindow {
                         Height = 80,
                         TargetImage = MapImageElement
                     };
-                    
+
                     labelHandler = (s, args) => {
                         // 1. Immediately detach so it only runs ONCE and releases memory
                         label.Stamped -= handler;
@@ -855,7 +857,7 @@ public partial class MapWindow : ChildWindow {
                         vm.AppSettings.KeyboardClickThrough = oldClickThroughSetting;
                         UpdateKeyboardClickThrough();
                     };
-                    
+
                     // When the user stamps the text, restore original background tracking parameters automatically
                     label.Stamped += handler;
 
@@ -970,7 +972,8 @@ public partial class MapWindow : ChildWindow {
                             StatusTextBlock.Text = "Status: Click Point 2 on map";
                         }
                         else {
-                            MessageBox.Show("Invalid coordinates format.", "Calibration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show("Invalid coordinates format.", "Calibration Error", MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
                         }
                     }
                 }
@@ -1046,7 +1049,8 @@ public partial class MapWindow : ChildWindow {
                             StatusTextBlock.Text = "Status: Calibrated";
                         }
                         else {
-                            MessageBox.Show("Invalid coordinates format.", "Calibration Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show("Invalid coordinates format.", "Calibration Error", MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
                         }
                     }
                 }
@@ -1095,7 +1099,7 @@ public partial class MapWindow : ChildWindow {
                 var parentTextControl = FindParent<EditableMapText>(clickedObj);
                 if (parentTextControl != null || e.OriginalSource is System.Windows.Controls.TextBox) {
                     _isDragging = false;
-                    e.Handled = true;// Stop the map window from running click-through or drag rules!
+                    e.Handled = true; // Stop the map window from running click-through or drag rules!
                     return;
                 }
             }
@@ -1225,23 +1229,40 @@ public partial class MapWindow : ChildWindow {
         MouseHook.Start();
     }
 
+    private bool _isUpdatingState = false;
+
     private void OnGlobalMouseTrigger(NativeMethods.Win32Point pt) {
+        // Prevent re-entry if we are already processing a state change
+        if (_isUpdatingState) return;
+
         Dispatcher.Invoke(() => {
             if (DataContext is not MapViewModel vm) return;
+            if (!IsLoaded) return;
 
-            // Check if cursor is inside the Map Window bounds
-            System.Windows.Point mousePoint = PointFromScreen(new System.Windows.Point(pt.X, pt.Y));
-            bool isInsideWindow = (mousePoint.X >= 0 && mousePoint.X <= ActualWidth &&
-                                   mousePoint.Y >= 0 && mousePoint.Y <= ActualHeight);
+            IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero || !NativeMethods.IsWindow(hwnd)) return;
 
-            if (isInsideWindow) {
-                PauseHoverTracking();
-                vm.IsHovered = true;
-                UpdateKeyboardClickThrough(); // Removes WS_EX_TRANSPARENT while controls are active
+            if (NativeMethods.GetWindowRect(hwnd, out NativeMethods.RECT rect)) {
+                bool isInsideWindow = (pt.X >= rect.Left && pt.X <= rect.Right &&
+                                       pt.Y >= rect.Top && pt.Y <= rect.Bottom);
+
+                // Only act if the state actually needs to change
+                if (isInsideWindow && !vm.IsHovered) {
+                    try {
+                        _isUpdatingState = true;
+
+                        PauseHoverTracking();
+                        vm.IsHovered = true;
+                        UpdateKeyboardClickThrough();
+                    }
+                    finally {
+                        _isUpdatingState = false;
+                    }
+                }
             }
         });
     }
-    
+
     #region Stamp Helpers
 
     private void OnLabelStamped(object? s, MapTextStampEventArgs a) {
@@ -1492,7 +1513,8 @@ public partial class MapWindow : ChildWindow {
                             "Do you want to go ahead and calibrate at this time?";
                         const string caption = "Image Loaded";
 
-                        var result = MessageBox.Show(message, caption, MessageBoxButton.YesNo, MessageBoxImage.Question);
+                        var result = MessageBox.Show(message, caption, MessageBoxButton.YesNo,
+                            MessageBoxImage.Question);
 
                         if (result == MessageBoxResult.Yes) {
                             StartCalibration();
@@ -1597,7 +1619,7 @@ public partial class MapWindow : ChildWindow {
         try {
             if (DataContext is not MapViewModel vm) return;
             if (string.IsNullOrWhiteSpace(vm.MapName) || !vm.IsDrawModeActive) return;
-            
+
             StatusTextBlock.Text = "Status: Pick a point to add circle.";
             _isPickingCircleLocation = true;
         }
@@ -1610,7 +1632,7 @@ public partial class MapWindow : ChildWindow {
         try {
             if (DataContext is not MapViewModel vm) return;
             if (string.IsNullOrWhiteSpace(vm.MapName) || !vm.IsDrawModeActive) return;
-            
+
             StatusTextBlock.Text = "Status: Pick a point to add ellipse.";
             _isPickingEllipseLocation = true;
         }
@@ -1623,7 +1645,7 @@ public partial class MapWindow : ChildWindow {
         try {
             if (DataContext is not MapViewModel vm) return;
             if (string.IsNullOrWhiteSpace(vm.MapName) || !vm.IsDrawModeActive) return;
-            
+
             StatusTextBlock.Text = "Status: Pick a point to add text.";
             _isPickingTextLocation = true;
         }
@@ -1668,12 +1690,14 @@ public partial class MapWindow : ChildWindow {
 
             var newName = inputDialog.Answer.Trim();
             if (string.IsNullOrEmpty(newName)) {
-                MessageBox.Show("Map name cannot be empty.", "Save Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Map name cannot be empty.", "Save Error", MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 return;
             }
 
             if (newName.Length > 100) {
-                MessageBox.Show("Map name is too long. Please use a shorter name (under 100 characters).", "Save Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Map name is too long. Please use a shorter name (under 100 characters).", "Save Error",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1692,7 +1716,8 @@ public partial class MapWindow : ChildWindow {
 
             // Final path length check
             if (destImagePath.Length >= 255) {
-                MessageBox.Show("The resulting file path is too long for Windows. Please use a shorter name.", "Save Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("The resulting file path is too long for Windows. Please use a shorter name.",
+                    "Save Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -1730,7 +1755,8 @@ public partial class MapWindow : ChildWindow {
             }
             catch (IOException ioex) {
                 Log.Error(ioex, "IO Error saving map to '{Path}'.", destImagePath);
-                MessageBox.Show($"IO Error saving map: {ioex.Message}", "Save Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"IO Error saving map: {ioex.Message}", "Save Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
         catch (Exception ex) {
@@ -1911,7 +1937,7 @@ public partial class MapWindow : ChildWindow {
             Log.Error(ex, "Error handling TitleBar_MouseLeftButtonDown.");
         }
     }
-    
+
     private void UpdateKeyboardClickThrough() {
         try {
             if (_hwnd == IntPtr.Zero) return;
@@ -1926,7 +1952,8 @@ public partial class MapWindow : ChildWindow {
                 // pass straight through to the mobs in game
                 if (!vm.IsHovered) {
                     extendedStyle |= NativeMethods.WS_EX_TRANSPARENT;
-                } else {
+                }
+                else {
                     extendedStyle &= ~NativeMethods.WS_EX_TRANSPARENT;
                 }
 
