@@ -84,6 +84,7 @@ public class AppSettings : INotifyPropertyChanged {
     public string? LegacyCoordinateOrder { get; set; }
 
     public WindowPlacement? MapWindowPlacement { get; set; }
+    public WindowPlacement? ThreeDMapWindowPlacement { get; set; }
     public WindowPlacement? MainWindowPlacement { get; set; }
     public void MigrateLegacySettings() {
         if (Profiles.Count == 0 && (LegacyWatchMode.HasValue || !string.IsNullOrEmpty(LegacyLogFilePath))) {

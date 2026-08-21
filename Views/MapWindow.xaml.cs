@@ -23,19 +23,18 @@ namespace MMONavigator.Views;
 
 // ReSharper disable once RedundantExtendsListEntry
 public partial class MapWindow : ChildWindow {
-    private bool _isCalibrating;
     private bool? _savedFogSettings;
     private bool _isSettingDestination;
     private bool _isPickingTextLocation;
     private bool _isPickingCircleLocation;
     private bool _isPickingEllipseLocation;
     private bool _isAddingPin;
-    private int _calibrationStep;
+
     private bool _isDragging;
     private System.Windows.Point _lastMousePosition;
     private IntPtr _preDragForegroundWindow;
     private System.Drawing.Point _lastMousePos;
-    private DispatcherTimer? _dragTimer;
+    //private DispatcherTimer? _dragTimer;
     private DispatcherTimer? _hoverTimer;
     private DateTime _lastMouseOutsideTime = DateTime.MinValue;
     private IntPtr _hwnd;
@@ -72,11 +71,40 @@ public partial class MapWindow : ChildWindow {
         _hoverTimer.Start();
     }
 
+    public bool IsCalibratingStep1 => IsCalibrating && CalibrationStep == 1;
+    public bool IsCalibratingStep2 => IsCalibrating && CalibrationStep == 2;
+    
+    private int _calibrationStep;
+    public int CalibrationStep {
+        get => _calibrationStep;
+        set {
+            if(_calibrationStep != value) {
+                _calibrationStep = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsCalibratingStep1));
+                OnPropertyChanged(nameof(IsCalibratingStep2));
+            }
+        }
+    }
+    
+    private bool _isCalibrating;
+    public bool IsCalibrating {
+        get => _isCalibrating;
+        set {
+            if(_isCalibrating != value) {
+                _isCalibrating = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsCalibratingStep1));
+                OnPropertyChanged(nameof(IsCalibratingStep2));
+            }
+        }
+    }
+    
     private void AddPin_Click(object sender, RoutedEventArgs e) {
         try {
             _isAddingPin = AddPinMenuItem.IsChecked;
             if (_isAddingPin) {
-                _isCalibrating = false;
+                IsCalibrating = false;
                 _isSettingDestination = false;
                 SetDestinationMenuItem.IsChecked = false;
                 StatusTextBlock.Text = "Status: Click on map to add pin";
@@ -94,7 +122,7 @@ public partial class MapWindow : ChildWindow {
 
     private void Calibrate_Click(object sender, RoutedEventArgs e) {
         try {
-            if (_isCalibrating) {
+            if (IsCalibrating) {
                 CancelCalibration();
                 return;
             }
@@ -108,23 +136,25 @@ public partial class MapWindow : ChildWindow {
         }
     }
 
+   
+    
     private void CancelActiveModes() {
         if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation ||
-            _isPickingEllipseLocation || _isCalibrating) {
+            _isPickingEllipseLocation || IsCalibrating) {
             _isSettingDestination = false;
             _isAddingPin = false;
             _isPickingTextLocation = false;
             _isPickingCircleLocation = false;
             _isPickingEllipseLocation = false;
 
-            if (_isCalibrating) {
+            if (IsCalibrating) {
                 if (_savedFogSettings.HasValue && DataContext is MapViewModel vm) {
                     vm.ShowFogOfWar = _savedFogSettings.Value;
                     _savedFogSettings = null;
                 }
 
-                _isCalibrating = false;
-                _calibrationStep = 0;
+                IsCalibrating = false;
+                CalibrationStep = 0;
             }
 
             // Reset UI Elements
@@ -136,18 +166,18 @@ public partial class MapWindow : ChildWindow {
     }
 
     private void CancelCalibration() {
-        if (_isCalibrating) {
+        if (IsCalibrating) {
             if (_savedFogSettings.HasValue && DataContext is MapViewModel vm) {
                 vm.ShowFogOfWar = _savedFogSettings.Value;
                 _savedFogSettings = null;
             }
 
-            _isCalibrating = false;
+            IsCalibrating = false;
             _isSettingDestination = false;
             SetDestinationMenuItem.IsChecked = false;
             _isAddingPin = false;
             AddPinMenuItem.IsChecked = false;
-            _calibrationStep = 0;
+            CalibrationStep = 0;
             StatusTextBlock.Text = "Status: Calibration Cancelled";
         }
     }
@@ -180,7 +210,7 @@ public partial class MapWindow : ChildWindow {
 
         try {
             _hoverTimer?.Stop();
-            _dragTimer?.Stop();
+            //_dragTimer?.Stop();
         }
         catch (Exception ex) {
             Log.Warning(ex, "Error stopping timers during Cleanup.");
@@ -229,7 +259,7 @@ public partial class MapWindow : ChildWindow {
         // If user releases mouse, stop dragging
         // ReSharper disable once RedundantNameQualifier
         if (System.Windows.Forms.Control.MouseButtons != System.Windows.Forms.MouseButtons.Left) {
-            _dragTimer?.Stop();
+            //_dragTimer?.Stop();
 
             // Return focus to the background app
             if (_preDragForegroundWindow != IntPtr.Zero && _preDragForegroundWindow != _hwnd) {
@@ -385,7 +415,7 @@ public partial class MapWindow : ChildWindow {
                 // Only mark handled if we actually cancelled something, 
                 // so Esc can still close dialogs or do other native tasks if we're idle.
                 if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation ||
-                    _isPickingEllipseLocation || _isCalibrating) {
+                    _isPickingEllipseLocation || IsCalibrating) {
                     CancelActiveModes();
                     e.Handled = true;
                 }
@@ -717,7 +747,7 @@ public partial class MapWindow : ChildWindow {
         try {
             // Only intercept the right-click if the user is actually in a special mode
             if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation ||
-                _isPickingEllipseLocation || _isCalibrating) {
+                _isPickingEllipseLocation || IsCalibrating) {
                 CancelActiveModes();
                 // CRITICAL: Tell WPF we consumed this click to cancel the tool.
                 // This stops a standard context menu from opening on top of our canvas.
@@ -768,7 +798,7 @@ public partial class MapWindow : ChildWindow {
                 NativeMethods.SetForegroundWindow(_hwnd);
             }
 
-            if (!_isCalibrating && !_isSettingDestination && !_isAddingPin && !_isPickingTextLocation &&
+            if (!IsCalibrating && !_isSettingDestination && !_isAddingPin && !_isPickingTextLocation &&
                 !_isPickingCircleLocation && !_isPickingEllipseLocation) {
                 _isDragging = true;
                 _lastMousePosition = e.GetPosition(MapScrollViewer);
@@ -781,6 +811,7 @@ public partial class MapWindow : ChildWindow {
 
             vm.Settings ??= new MapSettings();
             System.Windows.Point clickPoint = e.GetPosition(MapCanvas);
+            System.Windows.Point iamgeRelativePoint = e.GetPosition(MapImageElement);
 
             if (_isPickingTextLocation) {
                 //We aere in draw mode and have selected to add text to the map
@@ -945,7 +976,7 @@ public partial class MapWindow : ChildWindow {
                 return;
             }
 
-            if (_calibrationStep == 1) {
+            if (CalibrationStep == 1) {
                 string suggestedCoords = vm.CurrentPosition.HasValue
                     ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                     : "0, 0";
@@ -968,7 +999,7 @@ public partial class MapWindow : ChildWindow {
                             vm.Settings.Point1.PixelX = clickPoint.X;
                             vm.Settings.Point1.PixelY = clickPoint.Y;
 
-                            _calibrationStep = 2;
+                            CalibrationStep = 2;
                             StatusTextBlock.Text = "Status: Click Point 2 on map";
                         }
                         else {
@@ -986,7 +1017,7 @@ public partial class MapWindow : ChildWindow {
                 e.Handled = true;
                 return;
             }
-            else if (_calibrationStep == 2) {
+            else if (CalibrationStep == 2) {
                 string suggestedCoords = vm.CurrentPosition.HasValue
                     ? $"{vm.CurrentPosition.Value.X}, {vm.CurrentPosition.Value.Y}"
                     : "0, 0";
@@ -1026,8 +1057,8 @@ public partial class MapWindow : ChildWindow {
                                 _savedFogSettings = null;
                             }
 
-                            _isCalibrating = false;
-                            _calibrationStep = 0;
+                            IsCalibrating = false;
+                            CalibrationStep = 0;
 
                             if (vm.MapImage != null && !string.IsNullOrEmpty(vm.MapPath)) {
                                 var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
@@ -1857,7 +1888,7 @@ public partial class MapWindow : ChildWindow {
         try {
             _isSettingDestination = SetDestinationMenuItem.IsChecked;
             if (_isSettingDestination) {
-                _isCalibrating = false;
+                IsCalibrating = false;
                 _isAddingPin = false;
                 AddPinMenuItem.IsChecked = false;
                 StatusTextBlock.Text = "Status: Click on map to set destination";
@@ -1897,12 +1928,12 @@ public partial class MapWindow : ChildWindow {
         if (DataContext is not MapViewModel vm) return;
         _savedFogSettings = vm.ShowFogOfWar;
         vm.ShowFogOfWar = false;
-        _isCalibrating = true;
+        IsCalibrating = true;
         _isSettingDestination = false;
         SetDestinationMenuItem.IsChecked = false;
         _isAddingPin = false;
         AddPinMenuItem.IsChecked = false;
-        _calibrationStep = 1;
+        CalibrationStep = 1;
         StatusTextBlock.Text = "Status: Click Point 1 on map";
     }
 
@@ -1916,11 +1947,11 @@ public partial class MapWindow : ChildWindow {
 
             _lastMousePos = System.Windows.Forms.Cursor.Position;
 
-            _dragTimer = new DispatcherTimer {
-                Interval = TimeSpan.FromMilliseconds(1)
-            };
-            _dragTimer.Tick += DragTimer_Tick;
-            _dragTimer.Start();
+            //_dragTimer = new DispatcherTimer {
+            //    Interval = TimeSpan.FromMilliseconds(1)
+           // };
+            //_dragTimer.Tick += DragTimer_Tick;
+            //_dragTimer.Start();
         }
         catch (Exception ex) {
             Log.Error(ex, "Error initiating manual drag sequence.");
@@ -1930,8 +1961,14 @@ public partial class MapWindow : ChildWindow {
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         try {
             // Start the timer-based drag instead of DragMove()
-            StartManualDrag();
-            e.Handled = true;
+            //StartManualDrag();
+           // e.Handled = true;
+           if (e.ChangedButton == MouseButton.Left) {
+               // Release current mouse capture if any, then send native caption hit message
+               Mouse.Capture(null);
+               NativeMethods.SendMessage(_hwnd, NativeMethods.WM_NCLBUTTONDOWN, (int)NativeMethods.HT_CAPTION, 0);
+               e.Handled = true;
+           }
         }
         catch (Exception ex) {
             Log.Error(ex, "Error handling TitleBar_MouseLeftButtonDown.");

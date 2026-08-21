@@ -167,7 +167,7 @@
                     <Separator />
 
                     <!-- Generates a map dynamically via position logs -->
-                    <MenuItem Header="Create _Live Map by Walking..." Click="StartDrawMode_Click" Foreground="Black">
+                    <MenuItem Header="Create New _Live Map by Walking..." Click="StartDrawMode_Click" Foreground="Black">
                         <MenuItem.Style>
                             <Style TargetType="MenuItem">
                                 <Setter Property="Visibility" Value="Visible" />
@@ -180,6 +180,24 @@
                         </MenuItem.Style>
                     </MenuItem>
 
+                    <MenuItem Header="Start Live Drawing"
+                              Click="ToggleDrawMode_Click"  Foreground="Black">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem">
+                                <Setter Property="IsEnabled" Value="True" />
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDrawModeActive}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Settings.IsCalibrated}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.Style>
+                    </MenuItem>
+                    
                     <!-- Toggle off draw mode -->
                     <MenuItem Header="Stop Live Drawing" Click="StopDrawMode_Click" Foreground="Black">
                         <MenuItem.Style>
@@ -636,7 +654,7 @@
                                     </Style>
                                 </Separator.Style>
                             </Separator>
-                            <MenuItem Header="Draw Mode" IsCheckable="True"
+                            <MenuItem Header="Start Live Drawing" IsCheckable="True"
                                       Click="ToggleDrawMode_Click"
                                       IsChecked="{Binding IsDrawModeActive, Mode=OneWay}"
                                       IsEnabled="{Binding Settings.IsCalibrated}" Focusable="False" />
@@ -650,25 +668,6 @@
                                         ScaleY="{Binding Settings.ZoomLevel}" />
                     </Canvas.LayoutTransform>
                     <Grid Opacity="{Binding EffectiveOpacity}">
-
-                        <!-- <Grid Width="800" Height="600"> -->
-                        <!--     <Image Canvas.ZIndex="0" x:Name="MapImageElement" -->
-                        <!--     PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown" -->
-                        <!--     Source="{Binding MapImage}" Stretch="None" Focusable="False" /> -->
-                        <!--     <Border Background="#3E3E42"  -->
-                        <!--             HorizontalAlignment="Center"  -->
-                        <!--             VerticalAlignment="Center" -->
-                        <!--             x:Name="PlaceholderBorder" -->
-                        <!--             Visibility="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"> -->
-                        <!--         <TextBlock Text="Load Map or Pick Image"  -->
-                        <!--                    Foreground="White"  -->
-                        <!--                    FontSize="24" -->
-                        <!--                    HorizontalAlignment="Center"  -->
-                        <!--                    VerticalAlignment="Center"  -->
-                        <!--                    FontWeight="Bold"/> -->
-                        <!--     </Border> -->
-                        <!-- </Grid> -->
-
                         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Image Canvas.ZIndex="0" x:Name="MapImageElement"
                                    PreviewMouseLeftButtonDown="MapImageElement_PreviewMouseLeftButtonDown"
@@ -1082,31 +1081,183 @@
                 </Grid>
             </Popup>
 
+<!--             <Popup x:Name="CalibrationPoint1TipPopup" -->
+<!--        Opened="WakeHintPopup_Opened" -->
+<!--        Placement="Bottom" -->
+<!--        AllowsTransparency="True" -->
+<!--        PopupAnimation="Fade" -->
+<!--        VerticalOffset="5" -->
+<!--        Width="450" -->
+<!--        IsHitTestVisible="False"> -->
+<!--     <Popup.Style> -->
+<!--         <Style TargetType="Popup"> -->
+<!--             <Setter Property="IsOpen" Value="False" /> -->
+<!-- -->
+<!--             <Style.Triggers> -->
+<!--                 ~1~ Zoom / Height Positioning Conditions @1@ -->
+<!--                 <DataTrigger Value="True"> -->
+<!--                     <DataTrigger.Binding> -->
+<!--                         <MultiBinding Converter="{StaticResource ComparisonConverter}"> -->
+<!--                             <Binding ElementName="MapCanvas" Path="ActualHeight" /> -->
+<!--                             <Binding Path="Settings.ZoomLevel" /> -->
+<!--                             <Binding ElementName="MapScrollViewer" Path="ActualHeight" /> -->
+<!--                         </MultiBinding> -->
+<!--                     </DataTrigger.Binding> -->
+<!--                     <Setter Property="PlacementTarget" Value="{Binding ElementName=MapCanvas}" /> -->
+<!--                     <Setter Property="VerticalOffset" -->
+<!--                             Value="{Binding PlacementTarget.ActualHeight, RelativeSource={RelativeSource Self},  -->
+<!--                         Converter={StaticResource HalfValueConverter}, ConverterParameter=15}" /> -->
+<!--                 </DataTrigger> -->
+<!--                 <DataTrigger Value="False"> -->
+<!--                     <DataTrigger.Binding> -->
+<!--                         <MultiBinding Converter="{StaticResource ComparisonConverter}"> -->
+<!--                             <Binding ElementName="MapCanvas" Path="ActualHeight" /> -->
+<!--                             <Binding Path="Settings.ZoomLevel" /> -->
+<!--                             <Binding ElementName="MapScrollViewer" Path="ActualHeight" /> -->
+<!--                         </MultiBinding> -->
+<!--                     </DataTrigger.Binding> -->
+<!--                     <Setter Property="PlacementTarget" Value="{Binding ElementName=MapScrollViewer}" /> -->
+<!--                     <Setter Property="VerticalOffset" -->
+<!--                             Value="{Binding PlacementTarget.ActualHeight, RelativeSource={RelativeSource Self},  -->
+<!--                         Converter={StaticResource HalfValueConverter}, ConverterParameter=-40}" /> -->
+<!--                 </DataTrigger> -->
+<!-- -->
+<!--                 ~1~ Trigger to open during Calibration Step 2 @1@ -->
+<!--                 <DataTrigger Binding="{Binding Path=IsCalibratingStep1, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}}" Value="True"> -->
+<!--                     <Setter Property="IsOpen" Value="True" /> -->
+<!--                 </DataTrigger> -->
+<!-- -->
+<!--                 ~1~ Close if window is minimized @1@ -->
+<!--                 <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}}" Value="Minimized"> -->
+<!--                     <Setter Property="IsOpen" Value="False" /> -->
+<!--                 </DataTrigger> -->
+<!--             </Style.Triggers> -->
+<!--         </Style> -->
+<!--     </Popup.Style> -->
+<!-- -->
+<!--     <Grid x:Name="CalibrationPoint1TipRoot" HorizontalAlignment="Center"> -->
+<!--         <Border Background="#CC2F3B2F" -->
+<!--                 Padding="10,5" -->
+<!--                 CornerRadius="5" -->
+<!--                 BorderBrush="Gold" -->
+<!--                 IsHitTestVisible="True" -->
+<!--                 HorizontalAlignment="Left" -->
+<!--                 BorderThickness="1" -->
+<!--                 Margin="10,0,0,0"> -->
+<!--             <StackPanel Orientation="Horizontal"> -->
+<!--                 <TextBlock Text="CALIBRATION: 1st calibration point. Left click on a point on the map and enter its coordinates." -->
+<!--                            Foreground="White" -->
+<!--                            FontSize="10" -->
+<!--                            TextWrapping="Wrap" -->
+<!--                            FontWeight="Bold" -->
+<!--                            VerticalAlignment="Center" -->
+<!--                            IsHitTestVisible="False" /> -->
+<!--             </StackPanel> -->
+<!--         </Border> -->
+<!--     </Grid> -->
+<!-- </Popup> -->
+<!-- -->
+<!-- <Popup x:Name="CalibrationPoint2TipPopup" -->
+<!--        Opened="WakeHintPopup_Opened" -->
+<!--        Placement="Bottom" -->
+<!--        AllowsTransparency="True" -->
+<!--        PopupAnimation="Fade" -->
+<!--        VerticalOffset="5" -->
+<!--        Width="450" -->
+<!--        IsHitTestVisible="False"> -->
+<!--     <Popup.Style> -->
+<!--         <Style TargetType="Popup"> -->
+<!--             <Setter Property="IsOpen" Value="False" /> -->
+<!-- -->
+<!--             <Style.Triggers> -->
+<!--                 ~1~ Zoom / Height Positioning Conditions @1@ -->
+<!--                 <DataTrigger Value="True"> -->
+<!--                     <DataTrigger.Binding> -->
+<!--                         <MultiBinding Converter="{StaticResource ComparisonConverter}"> -->
+<!--                             <Binding ElementName="MapCanvas" Path="ActualHeight" /> -->
+<!--                             <Binding Path="Settings.ZoomLevel" /> -->
+<!--                             <Binding ElementName="MapScrollViewer" Path="ActualHeight" /> -->
+<!--                         </MultiBinding> -->
+<!--                     </DataTrigger.Binding> -->
+<!--                     <Setter Property="PlacementTarget" Value="{Binding ElementName=MapCanvas}" /> -->
+<!--                     <Setter Property="VerticalOffset" -->
+<!--                             Value="{Binding PlacementTarget.ActualHeight, RelativeSource={RelativeSource Self},  -->
+<!--                         Converter={StaticResource HalfValueConverter}, ConverterParameter=15}" /> -->
+<!--                 </DataTrigger> -->
+<!--                 <DataTrigger Value="False"> -->
+<!--                     <DataTrigger.Binding> -->
+<!--                         <MultiBinding Converter="{StaticResource ComparisonConverter}"> -->
+<!--                             <Binding ElementName="MapCanvas" Path="ActualHeight" /> -->
+<!--                             <Binding Path="Settings.ZoomLevel" /> -->
+<!--                             <Binding ElementName="MapScrollViewer" Path="ActualHeight" /> -->
+<!--                         </MultiBinding> -->
+<!--                     </DataTrigger.Binding> -->
+<!--                     <Setter Property="PlacementTarget" Value="{Binding ElementName=MapScrollViewer}" /> -->
+<!--                     <Setter Property="VerticalOffset" -->
+<!--                             Value="{Binding PlacementTarget.ActualHeight, RelativeSource={RelativeSource Self},  -->
+<!--                         Converter={StaticResource HalfValueConverter}, ConverterParameter=-40}" /> -->
+<!--                 </DataTrigger> -->
+<!-- -->
+<!--                 ~1~ Trigger to open during Calibration Step 2 @1@ -->
+<!--                 <DataTrigger Binding="{Binding Path=IsCalibratingStep2, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}}" Value="True"> -->
+<!--                     <Setter Property="IsOpen" Value="True" /> -->
+<!--                 </DataTrigger> -->
+<!-- -->
+<!--                 ~1~ Close if window is minimized @1@ -->
+<!--                 <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}}" Value="Minimized"> -->
+<!--                     <Setter Property="IsOpen" Value="False" /> -->
+<!--                 </DataTrigger> -->
+<!--             </Style.Triggers> -->
+<!--         </Style> -->
+<!--     </Popup.Style> -->
+<!-- -->
+<!--     <Grid x:Name="CalibrationPoint2TipRoot" HorizontalAlignment="Center"> -->
+<!--         <Border Background="#CC2F3B2F" -->
+<!--                 Padding="10,5" -->
+<!--                 CornerRadius="5" -->
+<!--                 BorderBrush="Gold" -->
+<!--                 IsHitTestVisible="True" -->
+<!--                 HorizontalAlignment="Left" -->
+<!--                 BorderThickness="1" -->
+<!--                 Margin="10,0,0,0"> -->
+<!--             <StackPanel Orientation="Horizontal"> -->
+<!--                 <TextBlock Text="CALIBRATION: 2nd calibration point. Left click on a point on the map some distance from the 1st, and enter its coordinates." -->
+<!--                            Foreground="White" -->
+<!--                            FontSize="10" -->
+<!--                            TextWrapping="Wrap" -->
+<!--                            FontWeight="Bold" -->
+<!--                            VerticalAlignment="Center" -->
+<!--                            IsHitTestVisible="False" /> -->
+<!--             </StackPanel> -->
+<!--         </Border> -->
+<!--     </Grid> -->
+<!-- </Popup> -->
+
             <Rectangle Width="18" Height="18"
                        Fill="{Binding EffectiveTransparentBrush}"
                        Visibility="{Binding UIVisibility}"
                        HorizontalAlignment="Right"
                        VerticalAlignment="Bottom"
                        IsHitTestVisible="False" />
+
+
             <!-- Watermark Layer -->
             <StackPanel HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        IsHitTestVisible="False"
                         MaxWidth="500"
                         Margin="20">
                 <StackPanel.Style>
                     <Style TargetType="StackPanel">
-                        <!-- Default to Collapsed -->
                         <Setter Property="Visibility" Value="Collapsed" />
                         <Style.Triggers>
-                            <!-- Show ONLY when: Map IS loaded AND NOT calibrated AND NOT in Draw Mode -->
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
-                                    <!-- NullToVisibilityConverter returns Collapsed when MapImage is NOT null -->
-                                    <Condition Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" Value="Collapsed" />
+                                    <Condition
+                                        Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
+                                        Value="Collapsed" />
                                     <Condition Binding="{Binding Settings.IsCalibrated}" Value="False" />
-                                    <!-- Bound directly to MapViewModel.IsDrawModeActive -->
                                     <Condition Binding="{Binding IsDrawModeActive}" Value="False" />
+                                    <Condition Binding="{Binding IsCalibrationTipDismissed}" Value="False" />
                                 </MultiDataTrigger.Conditions>
                                 <Setter Property="Visibility" Value="Visible" />
                             </MultiDataTrigger>
@@ -1114,87 +1265,123 @@
                     </Style>
                 </StackPanel.Style>
 
-                <!-- Large Header -->
                 <TextBlock Text="NOT CALIBRATED"
                            FontSize="40"
                            FontWeight="Bold"
                            Foreground="Gold"
                            Opacity="0.4"
                            HorizontalAlignment="Center"
+                           IsHitTestVisible="False"
                            Margin="0,0,0,8" />
 
-                <!-- Helper Subtitle -->
-<Border Background="#252526"
-        BorderBrush="#3E3E42"
-        BorderThickness="1"
-        CornerRadius="8"
-        Padding="20"
-        MaxWidth="480"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center">
-    
-    <StackPanel>
-        <!-- Large Header -->
-        <TextBlock Text="MAP NOT CALIBRATED"
-                   FontSize="14"
-                   FontWeight="Bold"
-                   Foreground="Gold"
-                   HorizontalAlignment="Center"
-                   Margin="0,0,0,12" />
+                <Border Background="#252526"
+                        BorderBrush="#3E3E42"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        MaxWidth="480"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
 
-        <!-- Subtitle -->
-        <TextBlock Text="This image needs to be aligned with game coordinates before real-time position tracking can begin."
-                   FontSize="12"
-                   Foreground="#CCCCCC"
-                   TextWrapping="Wrap"
-                   TextAlignment="Center"
-                   LineHeight="16"
-                   Margin="0,0,0,16" />
+                    <Grid>
+                        <Button Content="✕"
+                                Command="{Binding DismissCalibrationTipCommand}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Width="22"
+                                Height="22"
+                                Margin="0,-10,-10,0"
+                                Foreground="#888888"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontSize="12"
+                                FontWeight="Bold"
+                                Cursor="Hand"
+                                ToolTip="Close Notice">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="border"
+                                                        Background="{TemplateBinding Background}"
+                                                        CornerRadius="11">
+                                                    <ContentPresenter HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="border" Property="Background"
+                                                                Value="#33FFFFFF" />
+                                                        <Setter Property="Foreground" Value="White" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
 
-        <Separator Background="#3E3E42" Margin="0,0,0,16" />
+                        <StackPanel>
+                            <TextBlock Text="MAP NOT CALIBRATED"
+                                       FontSize="14"
+                                       FontWeight="Bold"
+                                       Foreground="Gold"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,12" />
 
-        <!-- Quick Steps -->
-        <Grid Margin="0,0,0,16">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Text="This image needs to be aligned with game coordinates before real-time position tracking can begin."
+                                FontSize="12"
+                                Foreground="#CCCCCC"
+                                TextWrapping="Wrap"
+                                TextAlignment="Center"
+                                LineHeight="16"
+                                Margin="0,0,0,16" />
 
-            <!-- Step 1 -->
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold" Margin="0,0,8,8" />
-            <TextBlock Grid.Row="0" Grid.Column="1" 
-                       Text="Click the 'Calibrate' button in the top menu bar." 
-                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <Separator Background="#3E3E42" Margin="0,0,0,16" />
 
-            <!-- Step 2 -->
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold" Margin="0,0,8,0" />
-            <TextBlock Grid.Row="1" Grid.Column="1" 
-                       Text="Pick two spots on the map and type in your in-game /loc coordinates for each." 
-                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
-        </Grid>
+                            <Grid Margin="0,0,0,16">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
 
-        <!-- Tip / Action Callout -->
-        <Border Background="#1E1E1E" 
-                BorderBrush="#333333" 
-                BorderThickness="1" 
-                CornerRadius="4" 
-                Padding="10,8">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <TextBlock Text="🎯 " FontSize="12" VerticalAlignment="Center" />
-                <TextBlock Text="Tip: Choose two points far apart on the map for maximum accuracy."
-                           FontSize="11"
-                           Foreground="#888888"
-                           FontStyle="Italic"
-                           VerticalAlignment="Center" />
-            </StackPanel>
-        </Border>
-    </StackPanel>
-</Border>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold"
+                                           Margin="0,0,8,8" />
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           Text="Click the 'Calibrate' button in the top menu bar."
+                                           Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
 
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold"
+                                           Margin="0,0,8,0" />
+                                <TextBlock Grid.Row="1" Grid.Column="1"
+                                           Text="Pick two spots on the map and type in your in-game /loc coordinates for each."
+                                           Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
+                            </Grid>
+
+                            <Border Background="#1E1E1E"
+                                    BorderBrush="#333333"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="10,8">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="🎯 " FontSize="12" VerticalAlignment="Center" Foreground="Gold" />
+                                    <TextBlock Text="Tip: Choose two points far apart on the map for maximum accuracy."
+                                               FontSize="11"
+                                               Foreground="#888888"
+                                               FontStyle="Italic"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </StackPanel>
 
             <!-- Watermark Layer -->
@@ -1240,16 +1427,82 @@
                                TextAlignment="Center"
                                Margin="0,0,0,8" />
 
-                    <TextBlock FontSize="12"
-                               Foreground="#B0B0B0"
-                               LineHeight="18"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap">
-                        <Run Text="Keep your " />
-                        <Run FontWeight="Bold" Foreground="Gold" Text="/loc" />
-                        <Run Text=" macro running as you move. Where you walk defines open space, while hitting boundaries creates walls. Use different brush colors for edges and roads. The map expands as you move to the edge as long as you are running the macro. You can go out of bounds." />
-                    </TextBlock>
+                    <!-- <TextBlock FontSize="12" -->
+                    <!--            Foreground="#B0B0B0" -->
+                    <!--            LineHeight="18" -->
+                    <!--            TextAlignment="Center" -->
+                    <!--            TextWrapping="Wrap"> -->
+                    <!--     <Run Text="Keep your " /> -->
+                    <!--     <Run FontWeight="Bold" Foreground="Gold" Text="/loc" /> -->
+                    <!--     <Run -->
+                    <!--         Text=" macro running as you move. Your current location becomes the center of this new map. Where you walk defines open space, while hitting boundaries creates walls. You can draw and walk the edge of a wall to draw a line representing the wall, or river, or ridge line. Use different brush colors for edges and roads. The map expands as you move to the edge as long as you are running the macro. You can go out of bounds." /> -->
+                    <!-- </TextBlock> -->
 
+                    <Border Background="#1E1E1E" 
+        BorderBrush="#3E3E42" 
+        BorderThickness="1" 
+        CornerRadius="6" 
+        Padding="16,12" 
+        MaxWidth="440">
+    <StackPanel>
+        <!-- Header -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+            <TextBlock Text="💡 How Draw Mode Works" FontSize="13" FontWeight="Bold" Foreground="White"/>
+        </StackPanel>
+
+        <!-- Requirements / Quick Action -->
+        <TextBlock FontSize="12" Foreground="#CCCCCC" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,10">
+            Keep your <Run FontWeight="Bold" Foreground="Gold">/loc</Run> macro running continuously. If it stops, restart it before moving again. You are the brush. Your movement draws on the map.
+        </TextBlock>
+
+        <Separator Background="#3E3E42" Margin="0,0,0,10"/>
+
+        <!-- Key Rules -->
+        <Grid Margin="0,2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Bullet 1 -->
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="0" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
+                You start out in the center of the map. Your initial location coordinates define the center. The map automatically expands as you move toward the edges.
+            </TextBlock>
+
+            <!-- Bullet 2 -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
+                Walking defines open space. Trace walls, rivers, or ridges to outline boundaries.
+            </TextBlock>
+
+            <!-- Bullet 3 -->
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
+                Use different brush colors for distinct terrain types like edges, walls, and roads.
+            </TextBlock>
+            
+            <!-- Bullet 4 -->
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
+                Movement will normally drop period circles where you stand. If you want a line, choose the line option and it will connect the dots. It will connect the last dot if you start tracking /loc again. So switch to transparent to avoid bad lines.
+            </TextBlock>
+            
+            <!-- Bullet 5 -->
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="4" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
+                Once the map is saved, you can stop and restart drawing by re-entering draw mode off the menu.
+            </TextBlock>
+        </Grid>
+    </StackPanel>
+</Border>
                     <TextBlock FontSize="11.5"
                                Foreground="#888888"
                                FontStyle="Italic"
@@ -1313,6 +1566,8 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -1323,13 +1578,27 @@
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold"
                                        Margin="0,0,8,8" />
                             <TextBlock Grid.Row="0" Grid.Column="1"
-                                       Text="Go to File → New Map from Image File... and select your map image."
+                                       Text="Take a screenshot of a map online, or download one. Your game likely has a fan resource. The map should be to scale, with two coordinate points of reference. Size will not matter."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            
+                            <!-- Step 2 -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,8" />
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Text="Open the screenshot in an image editor and crop out any pieces you don't want, like a browser address bar."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            
+                            <!-- Step 3 -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,8" />
+                            <TextBlock Grid.Row="2" Grid.Column="1"
+                                       Text="Go to File → New Map from Image File... and select the image to use as your map."
                                        Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
 
-                            <!-- Step 2 -->
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold"
+                            <!-- Step 4 -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold"
                                        Margin="0,0,8,0" />
-                            <TextBlock Grid.Row="1" Grid.Column="1"
+                            <TextBlock Grid.Row="3" Grid.Column="1"
                                        Text="Set two calibration points using in-game coordinates so your position syncs automatically."
                                        Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
                         </Grid>
@@ -1341,7 +1610,7 @@
                                 CornerRadius="4"
                                 Padding="10,8">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <TextBlock Text="🗺️ " FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="🗺️ " FontSize="12" VerticalAlignment="Center" Foreground="#888888" />
                                 <TextBlock Text="Tip: Already configured a map? Use File → Open Saved Map..."
                                            FontSize="11"
                                            Foreground="#888888"
@@ -1382,8 +1651,38 @@
                     </Slider.Style>
                 </Slider>
 
+                <!-- General Status TextBlock: Hidden during either calibration step -->
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="20,0,10,0"
-                           Text="Status: Ready" Focusable="False" />
+                           Text="Status: Ready" Focusable="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <!-- Hide when Step 1 is active -->
+                                <DataTrigger Binding="{Binding Path=IsCalibratingStep1, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                
+                                <!-- Hide when Step 2 is active -->
+                                <DataTrigger Binding="{Binding Path=IsCalibratingStep2, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                
+                <!-- Step 1 Instruction -->
+                <TextBlock Text="CALIBRATION: 1st calibration point. Left click on a point on the map and enter its coordinates."
+                           FontSize="10"
+                           Foreground="Gold" VerticalAlignment="Center" Margin="20,0,10,0"
+                           Visibility="{Binding Path=IsCalibratingStep1, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                <!-- Step 2 Instruction -->
+                <TextBlock Text="CALIBRATION: 2nd calibration point. Left click on a point on the map, some distance from the 1st, and enter its coordinates."
+                           FontSize="10"
+                           Foreground="Gold" VerticalAlignment="Center" Margin="20,0,10,0"
+                           Visibility="{Binding Path=IsCalibratingStep2, RelativeSource={RelativeSource AncestorType={x:Type local:MapWindow}}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </Border>
     </Grid>

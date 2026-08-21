@@ -4,7 +4,7 @@
              xmlns:local="clr-namespace:MMONavigator"
              xmlns:helpers="clr-namespace:MMONavigator.Helpers"
              xmlns:controls="clr-namespace:MMONavigator.Controls"
-             Title="Configure Watcher" Height="500" Width="500"
+             Title="Configure Watcher" Height="700" Width="600"
              WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
              Background="#2D2D30" Foreground="White">
     <Window.Resources>
@@ -31,41 +31,36 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,5">
                     <TextBlock
                         TextWrapping="Wrap"
                         Margin="0,0,0,5" FontWeight="Bold">
                         Setup your current game profile or create a new one.
-                        <LineBreak />
-                        <LineBreak />
-                        The program needs to know where your game writes the player location.
                     </TextBlock>
                     <TextBlock
                         x:Name="ExtraContent"
                         TextWrapping="Wrap"
                         Margin="0,0,0,5" FontWeight="Bold"
                         Visibility="Collapsed">
-                        <LineBreak />
-                        Some games, like Pantheon - Rise of the Fallen, write to the system clipboard. This program can monitor
-                        changes to the clipboard and update the direction you need to travel to get to your destination. 
+                        Pantheon - Rise of the Fallen, write to the system clipboard. 
                         The coordinate system is a "Standard Map" coordinate system, or Right Handed, where as you head East the 
                         x coordinate gets more positive. Log entries are made in "x z y f" format, where f is the direction you are facing.
                         <LineBreak />
                         <LineBreak />
-                        While others, like EverQuest,
-                        log to a file by character name. In this case, you may need to turn on logging and each
+                        Others, like EverQuest or Project 1999,
+                        log to a file by character name. In this case, you may need to turn on logging in your game and each
                         character will need its own game profile. The coordinate system is an "Inverted Map", or LeftHanded, 
                         where as you head West the x coordinate gets more positive. Log entries are made in "y x z" format.
                         <LineBreak />
                         <LineBreak />
-                        In both Pantheon and EverQuest, the program updates when the user executes the /loc command in the game.
+                        In both Pantheon and EverQuest, the program updates when the user executes the /loc command in the game. 
+                        You can create a macro to execute this command with a wait between other executions. /loc /wait 1 as many times as the macro tool allows.
                         <LineBreak />
                         <LineBreak />
-                        It should be noted, this program does not packet sniff. There are three ways the character's 
-                        location is updated in this program, watching changes to the clipboard, watching for changes to 
-                        a designated log file, or manually. This program just takes away the tedium or looking at a coordinate set 
-                        and trying to figure out which way to go.
+                        This program does not packet sniff. Many games can be made to write coordinates to a log file. Consult your game to determine how. 
+                        This program is regularly used with Pantheon and has been used with Project 1999.
                     </TextBlock>
 
                     <Button Style="{StaticResource MainButtonStyle}"
@@ -173,6 +168,105 @@
                           Content="Keyboard Click-Through (Pass keys to game)" 
                           Foreground="White" Margin="0,0,0,15" VerticalAlignment="Center"
                           ToolTip="When enabled, the program will not consume keystrokes unless an input field is focused." />
+                
+                
+            <StackPanel Grid.Row="11"  VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Margin="20">
+                
+                <!-- Hint Subtitle -->
+                <Border Background="#252526"
+                        BorderBrush="#3E3E42"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+
+                    <StackPanel>
+                        <!-- Large Header -->
+                        <TextBlock Text="CAPTURING LOCATIONS"
+                                   FontSize="14"
+                                   FontWeight="Bold"
+                                   Foreground="LightGray"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,12" />
+
+                        <!-- Subtitle -->
+                        <TextBlock Text="The program needs to know where your game writes the player location. It can read from the 
+                        clipboard or a log file. Any game that writes coordinates to a log file can be used with this program."
+                                   FontSize="12"
+                                   Foreground="#CCCCCC"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   LineHeight="16"
+                                   Margin="0,0,0,16" />
+
+                        <Separator Background="#3E3E42" Margin="0,0,0,16" />
+
+                        <!-- Steps -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Step 1 -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="1." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,8" />
+                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                       Text="Pantheon: Rise of the Fallen writes to the system clipboard using standard coordinate system. This is the default. It logs when you enter /loc."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                            <!-- Step 2 -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="2." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,8" />
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Text="EverQuest and Project 1999 writes to character specific log files. You have to enable it, which is why you need to tell this program where the log file is.
+                                        It logs when you enter /loc."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            
+                            <!-- Step 3 -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="3." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="1"
+                                       Text="Create a macro in your game to execute /loc. Use /wait 1 to give some time between each command. Add as many as the macro allows."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
+                            
+                            <!-- Step 3 -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="4." Foreground="Gold" FontWeight="Bold"
+                                       Margin="0,0,8,0" />
+                            <TextBlock Grid.Row="3" Grid.Column="1"
+                                       Text="If your game writes the location continuously, this program will capture the changes."
+                                       Foreground="#AAAAAA" FontSize="12" TextWrapping="Wrap" />
+                        </Grid>
+
+                        <!-- Tip / Shortcut Box -->
+                        <Border Background="#1E1E1E"
+                                BorderBrush="#333333"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="10,8">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="🗺️ " FontSize="12" VerticalAlignment="Center" Foreground="Gold" />
+                                <TextBlock Text="Tip: You can type in a destination location or capture your current lcoation and press the button to the right of it to copy it as a destination. Save and name existing destinations to load again in the future...."
+                                           FontSize="11"
+                                           Foreground="#888888"
+                                           FontStyle="Italic"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
             </Grid>
         </ScrollViewer>
 

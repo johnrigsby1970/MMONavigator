@@ -10,7 +10,7 @@
         xmlns:helpers="clr-namespace:MMONavigator.Helpers"
         mc:Ignorable="d"
         Title="MainWindow"
-        Width="300" Height="Auto" SizeToContent="WidthAndHeight"
+        Width="500" Height="Auto" SizeToContent="Height"
         AllowsTransparency="True"
         Topmost="True"
         Background="Transparent"
@@ -27,524 +27,683 @@
         <x:Static Member="local:MainWindow.StandardRowHeight" x:Key="StandardRowHeight" />
         <x:Static Member="local:MainWindow.StandardGridRowHeight" x:Key="StandardGridRowHeight" />
     </Window.Resources>
-    <Grid Name="myGrid">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="115" />
-            <ColumnDefinition Width="185" />
-        </Grid.ColumnDefinitions>
+    <Grid Width="500" Background="Transparent">
         <Grid.RowDefinitions>
-            <RowDefinition Height="30"></RowDefinition>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-
-        <!-- Invisible Hit-Test Overlay behind controls to capture off-popup clicks -->
-        <!-- <Rectangle x:Name="BackgroundDismissOverlay" -->
-        <!--            Grid.Row="0" Grid.Column="0"  -->
-        <!--            Grid.RowSpan="2" Grid.ColumnSpan="2" -->
-        <!--            Fill="#01000000" -->
-        <!--            Visibility="Collapsed" -->
-        <!--            MouseLeftButtonDown="BackgroundDismissOverlay_MouseLeftButtonDown" /> -->
-        
-        <Rectangle Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                   Fill="{StaticResource TitleBar}"
-                   MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
-        </Rectangle>
-        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-              Height="{StaticResource StandardRowHeight}"
-              VerticalAlignment="Top" Background="Transparent"
-              MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave"
-              MouseLeftButtonUp="Close_Popup">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                <!-- <Button x:Name="dragbutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue" -->
-                <!--         helpers:DragWindowBehavior.IsEnabled="True" -->
-                <!--         ToolTip="Drag Window" -->
-                <!--         Content="&#xF271;" FontFamily="Segoe MDL2 Assets" FontSize="12pt" -->
-                <!--         Foreground="White" FontWeight="ExtraBold"> -->
-                <!-- </Button> -->
-                <Border
-                    Background="CornflowerBlue" Width="24" Height="24" Margin="3"
-                    helpers:DragWindowBehavior.IsEnabled="True"
-                    Cursor="SizeAll">
-                    <TextBlock Text="&#xF271;" FontFamily="Segoe MDL2 Assets"
-                               FontWeight="ExtraBold"
-                               FontSize="12pt"
-                               Background="CornflowerBlue"
-                               MouseLeftButtonDown="Close_Popup"
-
-                               ToolTip="Drag Window"
-                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <Button x:Name="mapbutton" Width="24" Height="24" Margin="3" Content="&#xE707;"
-                        FontFamily="Segoe MDL2 Assets"
-                        FontSize="12pt"
-                        ToolTip="Open Map" FontWeight="ExtraBold"
-                        Command="{Binding OpenMapCommand}"
-                        MouseLeftButtonDown="Close_Popup"
-                        Style="{StaticResource PrimaryButtonStyle}">
-                </Button>
-                <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
-                        FontFamily="Segoe MDL2 Assets"
-                        FontSize="12pt"
-                        ToolTip="Toggle Settings" FontWeight="ExtraBold"
-                        Click="HideShowSettings_Click" Style="{StaticResource PrimaryButtonStyle}"
-                        IsEnabled="{Binding MainContentVisibility}"
-                        Visibility="Collapsed">
-                </Button>
-                <Button x:Name="timerbutton" Width="24" Height="24" Margin="3"
-                        Content="&#xED5A;"
-                        FontFamily="Segoe MDL2 Assets"
-                        FontSize="12pt"
-                        ToolTip="Toggle Timers" FontWeight="ExtraBold"
-                        IsEnabled="{Binding MainContentVisibility}"
-                        Click="HideShowTimers_Click" Style="{StaticResource PrimaryButtonStyle}"
-                        Visibility="Collapsed">
-                </Button>
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-
-                <Button x:Name="licensebutton" Width="24" Height="24"
-                        Content="&#xE946;"
-                        FontFamily="Segoe MDL2 Assets"
-                        FontSize="12pt"
-                        Margin="3"
-                        Command="{Binding OpenAboutCommand}"
-                        ToolTip="About" Style="{StaticResource PrimaryButtonStyle}"
-                        Visibility="Collapsed">
-                </Button>
-                <Button x:Name="togglebutton" Width="24" Height="24"
-                        Content="&#xE7B3;"
-                        FontFamily="Segoe MDL2 Assets"
-                        FontSize="12pt"
-                        Margin="3" Click="ToggleVisibityButton_Click"
-                        ToolTip="Hide Directions" Style="{StaticResource PrimaryButtonStyle}"
-                        Visibility="Collapsed">
-                </Button>
-                <!-- <Button x:Name="minbutton" Width="24" Height="24" -->
-                <!--         FontSize="12pt" -->
-                <!--         Margin="3" Click="MinimizeButton_Click" -->
-                <!--         Foreground="White" ToolTip="Minimize" Background="CornflowerBlue" -->
-                <!--         Visibility="Collapsed"> -->
-                <!--     _ -->
-                <!-- </Button> -->
-                <Button x:Name="closebutton" Width="24" Height="24"
-                        FontSize="12pt"
-                        Margin="3" Click="CloseButton_Click"
-                        ToolTip="Close" Style="{StaticResource PrimaryButtonStyle}"
-                        Visibility="Collapsed">
-                    X
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <Grid Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-              Visibility="{Binding MainContentVisibility, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Grid Name="myGrid" Width="300" Grid.Row="0" HorizontalAlignment="Center">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="115" />
+                <ColumnDefinition Width="185" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Name="destinationRow">
-                    <RowDefinition.Style>
-                        <Style TargetType="RowDefinition">
-                            <Setter Property="Height" Value="30" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ShowSettings}" Value="False">
-                                    <Setter Property="Height" Value="0" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </RowDefinition.Style>
-                </RowDefinition>
-                <RowDefinition Name="targetRow">
-                    <RowDefinition.Style>
-                        <Style TargetType="RowDefinition">
-                            <Setter Property="Height" Value="30" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ShowSettings}" Value="False">
-                                    <Setter Property="Height" Value="0" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </RowDefinition.Style>
-                </RowDefinition>
-                <RowDefinition Name="timerRow">
-                    <RowDefinition.Style>
-                        <Style TargetType="RowDefinition">
-                            <Setter Property="Height" Value="30" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ShowTimers}" Value="False">
-                                    <Setter Property="Height" Value="0" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </RowDefinition.Style>
-                </RowDefinition>
-                <RowDefinition Height="50" Name="directionRow" />
-                <RowDefinition Height="Auto" Name="compassRow" />
+                <RowDefinition Height="30"></RowDefinition>
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Destination Bar Row (First overlay removed from here) -->
-    <StackPanel Grid.Row="0" Grid.Column="0" FlowDirection="LeftToRight"
-                Orientation="Horizontal"
-                Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-        <controls:OutlinedTextBlock
-            Text="Destination:"
-            FontFamily="Verdana" FontSize="10pt" FontWeight="ExtraBold"
-            TextWrapping="Wrap" StrokeThickness=".5" VerticalAlignment="Center"
-            HorizontalAlignment="Center" TextAlignment="Left" Width="100" Margin="5,1,0,0"
-            Stroke="{StaticResource TextStroke}" Fill="{StaticResource TextFill}" />
+            <!-- Invisible Hit-Test Overlay behind controls to capture off-popup clicks -->
+            <!-- <Rectangle x:Name="BackgroundDismissOverlay" -->
+            <!--            Grid.Row="0" Grid.Column="0"  -->
+            <!--            Grid.RowSpan="2" Grid.ColumnSpan="2" -->
+            <!--            Fill="#01000000" -->
+            <!--            Visibility="Collapsed" -->
+            <!--            MouseLeftButtonDown="BackgroundDismissOverlay_MouseLeftButtonDown" /> -->
 
-        <TextBox x:Name="TargetCoordinates"
-                 Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                 Height="22" Width="99" FontSize="8pt" Margin="0,0,0,0" VerticalAlignment="Center"
-                 ToolTip="{Binding DestinationTooltip}" helpers:ClickThroughBehavior.IsEnabled="True" />
+            <Rectangle Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                       Fill="{StaticResource TitleBar}"
+                       MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave">
+            </Rectangle>
+            <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                  Height="{StaticResource StandardRowHeight}"
+                  VerticalAlignment="Top" Background="Transparent"
+                  MouseEnter="TitleBar_MouseEnter" MouseLeave="TitleBar_MouseLeave"
+                  MouseLeftButtonUp="Close_Popup">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                    <!-- <Button x:Name="dragbutton" Width="24" Height="24" Margin="3" Background="CornflowerBlue" -->
+                    <!--         helpers:DragWindowBehavior.IsEnabled="True" -->
+                    <!--         ToolTip="Drag Window" -->
+                    <!--         Content="&#xF271;" FontFamily="Segoe MDL2 Assets" FontSize="12pt" -->
+                    <!--         Foreground="White" FontWeight="ExtraBold"> -->
+                    <!-- </Button> -->
+                    <Border
+                        Background="CornflowerBlue" Width="24" Height="24" Margin="3"
+                        helpers:DragWindowBehavior.IsEnabled="True"
+                        Cursor="SizeAll">
+                        <TextBlock Text="&#xF271;" FontFamily="Segoe MDL2 Assets"
+                                   FontWeight="ExtraBold"
+                                   FontSize="12pt"
+                                   Background="CornflowerBlue"
+                                   MouseLeftButtonDown="Close_Popup"
 
-<ToggleButton x:Name="LocationExpanderButton"
-              Width="20" Height="22" Margin="1,0,0,0"
-              IsChecked="{Binding IsExpanded, Mode=TwoWay}"
-              Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
-              Style="{StaticResource PrimaryToggleButtonStyle}" 
-              ToolTip="Toggle Locations Tree">
-    <ToggleButton.Template>
-        <ControlTemplate TargetType="ToggleButton">
-            <Border x:Name="border"
-                    Background="{DynamicResource PrimaryButtonBackgroundBrush}"
-                    BorderBrush="{DynamicResource PrimaryButtonBackgroundBrush}"
-                    BorderThickness="1"
-                    CornerRadius="0,2,2,0"
-                    SnapsToDevicePixels="True">
-                <!-- Dropdown Arrow Icon -->
-                <TextBlock x:Name="arrow"
-                           Text="&#xE70D;" 
-                           FontFamily="Segoe MDL2 Assets" 
-                           FontSize="8pt"
-                           FontWeight="Bold"
-                           Foreground="{DynamicResource PrimaryButtonForegroundBrush}" 
-                           HorizontalAlignment="Center" 
-                           VerticalAlignment="Center" />
-            </Border>
-            <ControlTemplate.Triggers>
-                <!-- Mouse Hover State -->
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="border" Property="Background" Value="#3F3F46" />
-                    <Setter TargetName="border" Property="BorderBrush" Value="#007ACC" />
-                    <Setter TargetName="arrow" Property="Foreground" Value="White" />
-                </Trigger>
-                <!-- Checked / Active Open State -->
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="border" Property="Background" Value="#007ACC" />
-                    <Setter TargetName="border" Property="BorderBrush" Value="#007ACC" />
-                    <Setter TargetName="arrow" Property="Foreground" Value="White" />
-                    <!-- Flips arrow upside down when open -->
-                    <Setter TargetName="arrow" Property="Text" Value="&#xE70E;" />
-                </Trigger>
-                <!-- Pressed State -->
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter TargetName="border" Property="Background" Value="#005A9E" />
-                </Trigger>
-            </ControlTemplate.Triggers>
-        </ControlTemplate>
-    </ToggleButton.Template>
-</ToggleButton>
-
-        <Button x:Name="addlocation" Width="20" Height="20" Margin="3,0,0,0"
-                Content="&#xE710;" FontFamily="Segoe MDL2 Assets" ToolTip="Remember Destination" FontWeight="ExtraBold"
-                PreviewMouseLeftButtonDown="Close_Popup"
-                Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
-                Command="{Binding AddLocationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-
-        <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE70F;"
-                FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup" ToolTip="Edit Destination"
-                FontWeight="ExtraBold" Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                Command="{Binding EditLocationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-
-        <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE74D;"
-                FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup" ToolTip="Forget Destination"
-                FontWeight="ExtraBold" Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
-                Command="{Binding RemoveLocationCommand}" Style="{StaticResource DeleteButtonStyle}" />
-
-        <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE8E5;"
-                FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup" ToolTip="Select Locations File"
-                FontWeight="ExtraBold" Command="{Binding SelectLocationFileCommand}" Style="{StaticResource PrimaryButtonStyle}" />
-    </StackPanel>
-
-
-            <StackPanel Grid.Row="1" Grid.Column="0" FlowDirection="LeftToRight"
-                        Orientation="Horizontal"
-                        Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <controls:OutlinedTextBlock
-                    Text="Location:"
-                    FontFamily="Verdana" FontSize="10pt"
-                    FontWeight="ExtraBold"
-                    TextWrapping="Wrap"
-                    StrokeThickness=".5"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    TextAlignment="Left"
-                    Width="100"
-                    Margin="5,1,0,0"
-                    Stroke="{StaticResource TextStroke}"
-                    Fill="{StaticResource TextFill}" />
-
-                <TextBox
-                    Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=300}"
-                    Height="20" Margin="0,1,4,0"
-                    FontSize="8pt"
-                    VerticalAlignment="Center" Width="120"
-                    ToolTip="{Binding LocationTooltip}"
-                    helpers:ClickThroughBehavior.IsEnabled="True" />
-
-                <Button Width="20" Height="20" Margin="3"
-                        Content="&#xF272;"
-                        FontFamily="Segoe MDL2 Assets"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        ToolTip="Copy Location to Destination" FontWeight="ExtraBold"
-                        Command="{Binding CopyLocationToDestinationCommand}"
-                        Style="{StaticResource PrimaryButtonStyle}">
-                </Button>
-
-                <Button Width="20" Height="20" Margin="0,3,3,3"
+                                   ToolTip="Drag Window"
+                                   Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Button
+                        Width="24"
+                        Height="24"
+                        Margin="3"
                         Content="&#xE77B;"
+                        FontSize="12pt"
                         FontFamily="Segoe MDL2 Assets"
                         PreviewMouseLeftButtonDown="Close_Popup"
                         ToolTip="Configure Location Watcher" FontWeight="ExtraBold"
                         Click="ConfigureWatcher_Click" Style="{StaticResource PrimaryButtonStyle}">
-                </Button>
+                    </Button>
+                    <Button x:Name="mapbutton" Width="24" Height="24" Margin="3" Content="&#xE707;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            ToolTip="Open Map" FontWeight="ExtraBold"
+                            Command="{Binding OpenMapCommand}"
+                            MouseLeftButtonDown="Close_Popup"
+                            Style="{StaticResource PrimaryButtonStyle}">
+                    </Button>
+                    <Button x:Name="threeDMapbutton" Width="24" Height="24" Margin="3" Content="&#xE774;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            ToolTip="Open 3D Map (premium)" FontWeight="ExtraBold"
+                            Command="{Binding Open3DMapCommand}"
+                            MouseLeftButtonDown="Close_Popup"
+                            Style="{StaticResource PrimaryButtonStyle}">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Enter Activation Code..." Click="EnterCode_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button x:Name="settingsbutton" Width="24" Height="24" Margin="3" Content="&#xE713;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            ToolTip="Toggle Settings" FontWeight="ExtraBold"
+                            Click="HideShowSettings_Click" Style="{StaticResource PrimaryButtonStyle}"
+                            IsEnabled="{Binding MainContentVisibility}"
+                            Visibility="Collapsed">
+                    </Button>
+                    <Button x:Name="timerbutton" Width="24" Height="24" Margin="3"
+                            Content="&#xED5A;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            ToolTip="Toggle Timers" FontWeight="ExtraBold"
+                            IsEnabled="{Binding MainContentVisibility}"
+                            Click="HideShowTimers_Click" Style="{StaticResource PrimaryButtonStyle}"
+                            Visibility="Collapsed">
+                    </Button>
+                </StackPanel>
 
-            </StackPanel>
-
-            <StackPanel Grid.Row="2" Grid.Column="0" FlowDirection="LeftToRight"
-                        Orientation="Horizontal" HorizontalAlignment="Center"
-                        Visibility="{Binding ShowTimers, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <Button Width="60" Height="24" Margin="13,3,3,3"
-                        Background="{Binding Timer5.Background}"
-                        Foreground="{Binding Timer5.Foreground}"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
-                                   Margin="0,0,5,0" />
-                        <TextBlock Text="{Binding Timer5.DisplayText}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <Button Width="60" Height="24" Margin="3"
-                        Background="{Binding Timer10.Background}"
-                        Foreground="{Binding Timer10.Foreground}"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer10}" FontWeight="Bold">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
-                                   Margin="0,0,5,0" />
-                        <TextBlock Text="{Binding Timer10.DisplayText}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <Button Width="60" Height="24" Margin="3"
-                        Background="{Binding Timer15.Background}"
-                        Foreground="{Binding Timer15.Foreground}"
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer15}" FontWeight="Bold">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
-                                   Margin="0,0,5,0" />
-                        <TextBlock Text="{Binding Timer15.DisplayText}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-                <Button Width="60" Height="24" Margin="3"
-                        Background="{Binding Timer20.Background}"
-                        Foreground="{Binding Timer20.Foreground}"
-
-                        PreviewMouseLeftButtonDown="Close_Popup"
-                        Command="{Binding TimerCommand}" CommandParameter="{Binding Timer20}" FontWeight="Bold">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
-                                   Margin="0,0,5,0" />
-                        <TextBlock Text="{Binding Timer20.DisplayText}" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
-            <StackPanel Grid.Row="3" Grid.Column="0" FlowDirection="LeftToRight"
-                        Orientation="Horizontal" Background="Transparent"
-                        helpers:ClickThroughBehavior.IsEnabled="True">
-                <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
-                         VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
-                         Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets"
-                         ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
-                         Visibility="{Binding LeftButtonVisibility}"
-                         IsReadOnly="True">
-                </TextBox>
-
-                <controls:OutlinedTextBlock x:Name="labelDirection"
-                                            Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"
-                                            FontFamily="Verdana" FontSize="12pt"
-                                            FontWeight="ExtraBold"
-                                            TextWrapping="Wrap"
-                                            StrokeThickness="1"
-                                            VerticalAlignment="Center"
-                                            HorizontalAlignment="Center"
-                                            TextAlignment="Center"
-                                            Width="245"
-                                            Stroke="{StaticResource TextStroke}"
-                                            Fill="{Binding LabelDirectionFill}" />
-                <TextBox x:Name="rightbutton"
-                         VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
-                         Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets"
-                         ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
-                         Visibility="{Binding RightButtonVisibility}"
-                         IsReadOnly="True">
-                </TextBox>
-            </StackPanel>
-
-            <Grid Grid.Row="4" Background="Transparent"
-                  helpers:ClickThroughBehavior.IsEnabled="True">
-                <Grid IsHitTestVisible="False">
-                    <!-- Compass Circle -->
-                    <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3"
-                             HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
-
-                    <!-- Distance in center -->
-                    <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"
-                               IsHitTestVisible="False" />
-                </Grid>
-
-                <!-- Coffee cup icon -->
-                <!-- <Button Command="{Binding BuyMeACoffeeCommand}" -->
-                <!--         Visibility="{Binding ShowCoffeeIcon}" -->
-                <!--         HorizontalAlignment="Center" VerticalAlignment="Center" -->
-                <!--         Margin="100,100,0,0" -->
-                <!--         BorderThickness="0" -->
-                <!--         Background="Transparent" -->
-                <!--         Padding="0" Cursor="Hand" -->
-                <!--         ToolTip="Buy me a coffee!" -->
-                <!--         > -->
-                <!--     <TextBlock Text="&#xE8E1;" FontFamily="Segoe MDL2 Assets"  -->
-                <!--                FontSize="10pt" Foreground="{Binding CompassBrush}"  IsHitTestVisible="true"/> -->
-                <!-- </Button> -->
-
-                <!-- Indicators -->
-                <Grid Width="120" Height="120" HorizontalAlignment="Center" Background="{x:Null}"
-                      VerticalAlignment="Center" IsHitTestVisible="False">
-                    <Grid.RenderTransform>
-                        <RotateTransform Angle="{Binding NorthRotation}" CenterX="60" CenterY="60" />
-                    </Grid.RenderTransform>
-
-                    <!-- North -->
-                    <Line X1="60" Y1="20" X2="60" Y2="30" Stroke="{Binding CompassBrush}" StrokeThickness="3"
-                          IsHitTestVisible="False" />
-                    <TextBlock Text="N" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="14pt"
-                               HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"
-                               IsHitTestVisible="False" />
-
-                    <!-- NorthEast -->
-                    <Grid Width="120" Height="120" IsHitTestVisible="False">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="45" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="NE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-
-                    <!-- East -->
-                    <Grid Width="120" Height="120">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="90" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="E" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-
-                    <!-- SouthEast -->
-                    <Grid Width="120" Height="120">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="135" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="SE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-
-                    <!-- South -->
-                    <Grid Width="120" Height="120">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="180" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="S" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-
-                    <!-- SouthWest -->
-                    <Grid Width="120" Height="120">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="225" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="SW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-
-                    <!-- West -->
-                    <Grid Width="120" Height="120">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="270" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="W" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-
-                    <!-- NorthWest -->
-                    <Grid Width="120" Height="120">
-                        <Grid.RenderTransform>
-                            <RotateTransform Angle="315" CenterX="60" CenterY="60" />
-                        </Grid.RenderTransform>
-                        <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
-                        <TextBlock Text="NW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
-                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
-                    </Grid>
-                </Grid>
-
-                <!-- Destination Dot -->
-                <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center"
-                      IsHitTestVisible="False"
-                      Visibility="{Binding DestinationVisibility}">
-                    <Grid.RenderTransform>
-                        <TransformGroup>
-                            <TranslateTransform Y="{Binding DestinationOffset}" />
-                            <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40" />
-                        </TransformGroup>
-                    </Grid.RenderTransform>
-                    <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center"
-                             VerticalAlignment="Center" />
-                </Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <!-- Coffee cup icon -->
+                    <Button x:Name="coffebutton"
+                            Command="{Binding BuyMeACoffeeCommand}"
+                            Width="24"
+                            Height="24"
+                            Content="&#xE8E1;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            Margin="3"
+                            BorderThickness="0"
+                            Padding="0" Cursor="Hand"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            ToolTip="Buy me a coffee!"
+                            Visibility="Collapsed">
+                    </Button>
+                    <Button x:Name="licensebutton"
+                            Width="24"
+                            Height="24"
+                            Content="&#xE946;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            Margin="3"
+                            Command="{Binding OpenAboutCommand}"
+                            ToolTip="About"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Visibility="Collapsed">
+                    </Button>
+                    <Button x:Name="togglebutton" Width="24" Height="24"
+                            Content="&#xE7B3;"
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="12pt"
+                            Margin="3"
+                            Click="ToggleVisibityButton_Click"
+                            ToolTip="Hide Directions" Style="{StaticResource PrimaryButtonStyle}"
+                            Visibility="Collapsed">
+                    </Button>
+                    <!-- <Button x:Name="minbutton" Width="24" Height="24" -->
+                    <!--         FontSize="12pt" -->
+                    <!--         Margin="3" Click="MinimizeButton_Click" -->
+                    <!--         Foreground="White" ToolTip="Minimize" Background="CornflowerBlue" -->
+                    <!--         Visibility="Collapsed"> -->
+                    <!--     _ -->
+                    <!-- </Button> -->
+                    <Button x:Name="closebutton" Width="24" Height="24"
+                            FontSize="12pt"
+                            Margin="3" Click="CloseButton_Click"
+                            ToolTip="Close" Style="{StaticResource PrimaryButtonStyle}"
+                            Visibility="Collapsed">
+                        X
+                    </Button>
+                </StackPanel>
             </Grid>
-        </Grid>
-        
-        <!-- Floating TreeView Overlay (Placed on Root Grid to Floating Over Content) -->
-        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                Panel.ZIndex="999"
-                Margin="105,28,0,0"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Background="#2D2D30" BorderBrush="CornflowerBlue" BorderThickness="1"
-                CornerRadius="3"
-                Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
-            <mmoNavigator:ExtendedTreeView 
-                ItemsSource="{Binding Locations}"
-                PreviewMouseLeftButtonDown="LocationTree_PreviewMouseLeftButtonDown"
-                KeyDown="LocationTree_KeyDown"
-                Width="180" MaxHeight="220"
-                Background="Transparent">
-                <TreeView.Resources>
-                    <HierarchicalDataTemplate DataType="{x:Type models:LocationItem}" ItemsSource="{Binding Items}">
-                        <StackPanel Orientation="Horizontal" Margin="0,1">
-                            <TextBlock Text="{Binding DisplayName}" FontSize="8pt" Foreground="White" />
+
+            <Grid Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                  Visibility="{Binding MainContentVisibility, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Name="destinationRow">
+                        <RowDefinition.Style>
+                            <Style TargetType="RowDefinition">
+                                <Setter Property="Height" Value="30" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowSettings}" Value="False">
+                                        <Setter Property="Height" Value="0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </RowDefinition.Style>
+                    </RowDefinition>
+                    <RowDefinition Name="targetRow">
+                        <RowDefinition.Style>
+                            <Style TargetType="RowDefinition">
+                                <Setter Property="Height" Value="30" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowSettings}" Value="False">
+                                        <Setter Property="Height" Value="0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </RowDefinition.Style>
+                    </RowDefinition>
+                    <RowDefinition Name="timerRow">
+                        <RowDefinition.Style>
+                            <Style TargetType="RowDefinition">
+                                <Setter Property="Height" Value="30" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowTimers}" Value="False">
+                                        <Setter Property="Height" Value="0" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </RowDefinition.Style>
+                    </RowDefinition>
+                    <RowDefinition Height="50" Name="directionRow" />
+                    <RowDefinition Height="Auto" Name="compassRow" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" FlowDirection="LeftToRight"
+                            Orientation="Horizontal"
+                            Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <controls:OutlinedTextBlock
+                        Text="Location:"
+                        FontFamily="Verdana" FontSize="10pt"
+                        FontWeight="ExtraBold"
+                        TextWrapping="Wrap"
+                        StrokeThickness=".5"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        TextAlignment="Left"
+                        Width="100"
+                        Margin="5,1,0,0"
+                        Stroke="{StaticResource TextStroke}"
+                        Fill="{StaticResource TextFill}" />
+
+                    <TextBox
+                        Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                        Height="20" Margin="0,1,4,0"
+                        FontSize="8pt"
+                        VerticalAlignment="Center" Width="120"
+                        ToolTip="{Binding LocationTooltip}"
+                        helpers:ClickThroughBehavior.IsEnabled="True" />
+
+                    <Button Width="20" Height="20" Margin="3"
+                            Content="&#xF272;"
+                            FontFamily="Segoe MDL2 Assets"
+                            PreviewMouseLeftButtonDown="Close_Popup"
+                            ToolTip="Copy Location to Destination" FontWeight="ExtraBold"
+                            Command="{Binding CopyLocationToDestinationCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}">
+                    </Button>
+
+                    <!-- <Button Width="20" Height="20" Margin="0,3,3,3" -->
+                    <!--         Content="&#xE77B;" -->
+                    <!--         FontFamily="Segoe MDL2 Assets" -->
+                    <!--         PreviewMouseLeftButtonDown="Close_Popup" -->
+                    <!--         ToolTip="Configure Location Watcher" FontWeight="ExtraBold" -->
+                    <!--         Click="ConfigureWatcher_Click" Style="{StaticResource PrimaryButtonStyle}"> -->
+                    <!-- </Button> -->
+
+                </StackPanel>
+
+                <!-- Destination Bar Row (First overlay removed from here) -->
+                <StackPanel Grid.Row="1" Grid.Column="0" FlowDirection="LeftToRight"
+                            Orientation="Horizontal"
+                            Visibility="{Binding ShowSettings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <controls:OutlinedTextBlock
+                        Text="Destination:"
+                        FontFamily="Verdana" FontSize="10pt" FontWeight="ExtraBold"
+                        TextWrapping="Wrap" StrokeThickness=".5" VerticalAlignment="Center"
+                        HorizontalAlignment="Center" TextAlignment="Left" Width="100" Margin="5,1,0,0"
+                        Stroke="{StaticResource TextStroke}" Fill="{StaticResource TextFill}" />
+
+                    <TextBox x:Name="TargetCoordinates"
+                             Text="{Binding TargetCoordinates, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                             Height="22" Width="99" FontSize="8pt" Margin="0,0,0,0" VerticalAlignment="Center"
+                             ToolTip="{Binding DestinationTooltip}" helpers:ClickThroughBehavior.IsEnabled="True" />
+
+                    <ToggleButton x:Name="LocationExpanderButton"
+                                  Width="20" Height="22" Margin="1,0,0,0"
+                                  IsChecked="{Binding IsExpanded, Mode=TwoWay}"
+                                  Visibility="{Binding HasLocations, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                  Style="{StaticResource PrimaryToggleButtonStyle}"
+                                  ToolTip="Toggle Locations Tree">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="border"
+                                        Background="{DynamicResource PrimaryButtonBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PrimaryButtonBackgroundBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="0,2,2,0"
+                                        SnapsToDevicePixels="True">
+                                    <!-- Dropdown Arrow Icon -->
+                                    <TextBlock x:Name="arrow"
+                                               Text="&#xE70D;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="8pt"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource PrimaryButtonForegroundBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <!-- Mouse Hover State -->
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="#3F3F46" />
+                                        <Setter TargetName="border" Property="BorderBrush" Value="#007ACC" />
+                                        <Setter TargetName="arrow" Property="Foreground" Value="White" />
+                                    </Trigger>
+                                    <!-- Checked / Active Open State -->
+                                    <Trigger Property="IsChecked" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="#007ACC" />
+                                        <Setter TargetName="border" Property="BorderBrush" Value="#007ACC" />
+                                        <Setter TargetName="arrow" Property="Foreground" Value="White" />
+                                        <!-- Flips arrow upside down when open -->
+                                        <Setter TargetName="arrow" Property="Text" Value="&#xE70E;" />
+                                    </Trigger>
+                                    <!-- Pressed State -->
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="border" Property="Background" Value="#005A9E" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                    </ToggleButton>
+
+                    <Button x:Name="addlocation" Width="20" Height="20" Margin="3,0,0,0"
+                            Content="&#xE710;" FontFamily="Segoe MDL2 Assets" ToolTip="Remember Destination"
+                            FontWeight="ExtraBold"
+                            PreviewMouseLeftButtonDown="Close_Popup"
+                            Visibility="{Binding IsItemInListAndHasValue, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Command="{Binding AddLocationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+
+                    <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE70F;"
+                            FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup"
+                            ToolTip="Edit Destination"
+                            FontWeight="ExtraBold"
+                            Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Command="{Binding EditLocationCommand}" Style="{StaticResource PrimaryButtonStyle}" />
+
+                    <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE74D;"
+                            FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup"
+                            ToolTip="Forget Destination"
+                            FontWeight="ExtraBold"
+                            Visibility="{Binding IsItemInList, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Command="{Binding RemoveLocationCommand}" Style="{StaticResource DeleteButtonStyle}" />
+
+                    <Button Width="20" Height="20" Margin="3,0,0,0" Content="&#xE8E5;"
+                            FontFamily="Segoe MDL2 Assets" PreviewMouseLeftButtonDown="Close_Popup"
+                            ToolTip="Select Locations File"
+                            FontWeight="ExtraBold" Command="{Binding SelectLocationFileCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" />
+                </StackPanel>
+
+
+                <StackPanel Grid.Row="2" Grid.Column="0" FlowDirection="LeftToRight"
+                            Orientation="Horizontal" HorizontalAlignment="Center"
+                            Visibility="{Binding ShowTimers, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button Width="60" Height="24" Margin="13,3,3,3"
+                            Background="{Binding Timer5.Background}"
+                            Foreground="{Binding Timer5.Foreground}"
+                            PreviewMouseLeftButtonDown="Close_Popup"
+                            Command="{Binding TimerCommand}" CommandParameter="{Binding Timer5}" FontWeight="Bold">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                       Margin="0,0,5,0" />
+                            <TextBlock Text="{Binding Timer5.DisplayText}" VerticalAlignment="Center" />
                         </StackPanel>
-                    </HierarchicalDataTemplate>
-                </TreeView.Resources>
-            </mmoNavigator:ExtendedTreeView>
+                    </Button>
+                    <Button Width="60" Height="24" Margin="3"
+                            Background="{Binding Timer10.Background}"
+                            Foreground="{Binding Timer10.Foreground}"
+                            PreviewMouseLeftButtonDown="Close_Popup"
+                            Command="{Binding TimerCommand}" CommandParameter="{Binding Timer10}" FontWeight="Bold">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                       Margin="0,0,5,0" />
+                            <TextBlock Text="{Binding Timer10.DisplayText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Width="60" Height="24" Margin="3"
+                            Background="{Binding Timer15.Background}"
+                            Foreground="{Binding Timer15.Foreground}"
+                            PreviewMouseLeftButtonDown="Close_Popup"
+                            Command="{Binding TimerCommand}" CommandParameter="{Binding Timer15}" FontWeight="Bold">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                       Margin="0,0,5,0" />
+                            <TextBlock Text="{Binding Timer15.DisplayText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Width="60" Height="24" Margin="3"
+                            Background="{Binding Timer20.Background}"
+                            Foreground="{Binding Timer20.Foreground}"
+
+                            PreviewMouseLeftButtonDown="Close_Popup"
+                            Command="{Binding TimerCommand}" CommandParameter="{Binding Timer20}" FontWeight="Bold">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xED5A;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center"
+                                       Margin="0,0,5,0" />
+                            <TextBlock Text="{Binding Timer20.DisplayText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel Grid.Row="3" Grid.Column="0" FlowDirection="LeftToRight"
+                            Orientation="Horizontal" Background="Transparent"
+                            Visibility="{Binding HasCoordinates, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            helpers:ClickThroughBehavior.IsEnabled="True">
+
+                    <TextBox x:Name="leftbutton" Width="20" Height="20" Margin="3"
+                             VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
+                             Text="&#xF0D5;" FontFamily="Segoe MDL2 Assets"
+                             ToolTip="Turn left" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
+                             Visibility="{Binding LeftButtonVisibility}"
+                             IsReadOnly="True">
+                    </TextBox>
+
+                    <controls:OutlinedTextBlock x:Name="labelDirection"
+                                                Text="{Binding GoDirection , UpdateSourceTrigger=PropertyChanged}"
+                                                FontFamily="Verdana" FontSize="12pt"
+                                                FontWeight="ExtraBold"
+                                                TextWrapping="Wrap"
+                                                StrokeThickness="1"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                TextAlignment="Center"
+                                                Width="245"
+                                                Stroke="{StaticResource TextStroke}"
+                                                Fill="{Binding LabelDirectionFill}" />
+                    <TextBox x:Name="rightbutton"
+                             VerticalAlignment="Center" VerticalContentAlignment="Center" TextAlignment="Center"
+                             Width="20" Height="20" Margin="3" Text="&#xF0D6;" FontFamily="Segoe MDL2 Assets"
+                             ToolTip="Turn right" FontWeight="ExtraBold" Foreground="White" Background="Chartreuse"
+                             Visibility="{Binding RightButtonVisibility}"
+                             IsReadOnly="True">
+                    </TextBox>
+                </StackPanel>
+
+                <Grid Grid.Row="4" Background="Transparent"
+                      helpers:ClickThroughBehavior.IsEnabled="True">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <!-- <DataTrigger Binding="{Binding IsExpanded}" Value="True"> -->
+                                <!--     <Setter Property="Visibility" Value="Visible" /> -->
+                                <!-- </DataTrigger> -->
+                                <DataTrigger Binding="{Binding HasCoordinates}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid IsHitTestVisible="False">
+                        <!-- Compass Circle -->
+                        <Ellipse Width="80" Height="80" Stroke="{Binding CompassBrush}" StrokeThickness="3"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+
+                        <!-- Distance in center -->
+                        <TextBlock Text="{Binding DistanceInt}" Foreground="{Binding CompassBrush}" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14pt"
+                                   IsHitTestVisible="False" />
+                    </Grid>
+
+
+                    <!-- Indicators -->
+                    <Grid Width="120" Height="120" HorizontalAlignment="Center" Background="{x:Null}"
+                          VerticalAlignment="Center" IsHitTestVisible="False">
+                        <Grid.RenderTransform>
+                            <RotateTransform Angle="{Binding NorthRotation}" CenterX="60" CenterY="60" />
+                        </Grid.RenderTransform>
+
+                        <!-- North -->
+                        <Line X1="60" Y1="20" X2="60" Y2="30" Stroke="{Binding CompassBrush}" StrokeThickness="3"
+                              IsHitTestVisible="False" />
+                        <TextBlock Text="N" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="14pt"
+                                   HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-5,0,0"
+                                   IsHitTestVisible="False" />
+
+                        <!-- NorthEast -->
+                        <Grid Width="120" Height="120" IsHitTestVisible="False">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="45" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="NE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <!-- East -->
+                        <Grid Width="120" Height="120">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="90" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="E" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <!-- SouthEast -->
+                        <Grid Width="120" Height="120">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="135" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="SE" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <!-- South -->
+                        <Grid Width="120" Height="120">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="180" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="S" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <!-- SouthWest -->
+                        <Grid Width="120" Height="120">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="225" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="SW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <!-- West -->
+                        <Grid Width="120" Height="120">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="270" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="W" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+
+                        <!-- NorthWest -->
+                        <Grid Width="120" Height="120">
+                            <Grid.RenderTransform>
+                                <RotateTransform Angle="315" CenterX="60" CenterY="60" />
+                            </Grid.RenderTransform>
+                            <Line X1="60" Y1="20" X2="60" Y2="25" Stroke="{Binding CompassBrush}" StrokeThickness="2" />
+                            <TextBlock Text="NW" Foreground="{Binding CompassBrush}" FontWeight="Bold" FontSize="10pt"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" />
+                        </Grid>
+                    </Grid>
+
+                    <!-- Destination Dot -->
+                    <Grid Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center"
+                          IsHitTestVisible="False"
+                          Visibility="{Binding DestinationVisibility}">
+                        <Grid.RenderTransform>
+                            <TransformGroup>
+                                <TranslateTransform Y="{Binding DestinationOffset}" />
+                                <RotateTransform Angle="{Binding DestinationRotation}" CenterX="40" CenterY="40" />
+                            </TransformGroup>
+                        </Grid.RenderTransform>
+                        <Ellipse Width="10" Height="10" Fill="LimeGreen" HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+
+
+            </Grid>
+
+            <!-- Floating TreeView Overlay (Placed on Root Grid to Floating Over Content) -->
+            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                    Panel.ZIndex="999"
+                    Margin="105,56,0,0"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Background="#2D2D30" BorderBrush="CornflowerBlue" BorderThickness="1"
+                    CornerRadius="3"
+                    Visibility="{Binding IsExpanded, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                <mmoNavigator:ExtendedTreeView
+                    ItemsSource="{Binding Locations}"
+                    PreviewMouseLeftButtonDown="LocationTree_PreviewMouseLeftButtonDown"
+                    KeyDown="LocationTree_KeyDown"
+                    Width="180" MaxHeight="220"
+                    Background="Transparent">
+                    <TreeView.Resources>
+                        <HierarchicalDataTemplate DataType="{x:Type models:LocationItem}" ItemsSource="{Binding Items}">
+                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                <TextBlock Text="{Binding DisplayName}" FontSize="8pt" Foreground="White" />
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.Resources>
+                </mmoNavigator:ExtendedTreeView>
+            </Border>
+        </Grid>
+        <!-- Floating Tip Popup Overlay at Bottom of Window -->
+        <!-- Floating Tip Popup Overlay (Spans 500px wide across the bottom) -->
+        <Border Grid.Row="1" Width="480"
+                Margin="0,10,0,10"
+                Background="#252526"
+                BorderBrush="#3E3E42"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="12"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Panel.ZIndex="1000">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <!-- If you only want it to hide when coordinates are present, adjust conditions here -->
+                        <DataTrigger Binding="{Binding HideLocHint}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding HasEitherCoordinates}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <!-- If you only want it to hide when coordinates are present, adjust conditions here -->
+                            <DataTrigger Binding="{Binding HideLocHint}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasEitherCoordinates}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <!-- Tip Content -->
+                <StackPanel Grid.Column="0" Orientation="Vertical">
+                    <TextBlock Text="- Execute /loc to capture current coordinates. "
+                               FontSize="11"
+                               Foreground="Goldenrod"
+                               Margin="0,2,0,10"
+                               FontStyle="Italic"
+                               TextWrapping="Wrap" />
+                    <TextBlock
+                        Text="- Use a macro in your game (like /loc along with /wait 1) and repeat as often as game tool allows."
+                        FontSize="11"
+                        Foreground="Goldenrod"
+                        Margin="0,0,0,10"
+                        FontStyle="Italic"
+                        TextWrapping="Wrap" />
+                    <TextBlock Text="- Enter known or copy current coordinates in appropriate order as a destination."
+                               FontSize="11"
+                               Foreground="Goldenrod"
+                               Margin="0,0,0,10"
+                               FontStyle="Italic"
+                               TextWrapping="Wrap" />
+                    <TextBlock
+                        Text="- Compass and radar will appear once you have both current and destination coordinates."
+                        FontSize="11"
+                        Foreground="Goldenrod"
+                        Margin="0,0,0,10"
+                        FontStyle="Italic"
+                        TextWrapping="Wrap" />
+                    <TextBlock Text="- Buttons in the toolbar allow you to show/hide controls."
+                               FontSize="11"
+                               Foreground="Goldenrod"
+                               Margin="0,0,0,2"
+                               FontStyle="Italic"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- Close / Dismiss Button -->
+                <Button Grid.Column="1" Click="HideLocHint_Click"
+                        Margin="10,0,0,0"
+                        Padding="4,0"
+                        Background="Transparent"
+                        Foreground="Gold"
+                        BorderThickness="0"
+                        Content="×"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        VerticalAlignment="Center"
+                        Cursor="Hand"
+                        ToolTip="Hide this hint">
+                </Button>
+            </Grid>
         </Border>
+
     </Grid>
 </Window>

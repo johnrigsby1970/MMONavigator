@@ -102,6 +102,7 @@ public static class NativeMethods {
     public const uint SWP_FRAMECHANGED = 0x0020; // Forces non-client recalculation
     public const int WM_NCHITTEST = 0x0084;
     public const int HTTRANSPARENT = -1;
+    public const int HT_CAPTION = 0x2;
     
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();

@@ -1,0 +1,102 @@
+﻿<Window x:Class="MMONavigator.Views.ActivationPromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Unlock 3D Map"
+        Width="420" Height="Auto" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True">
+    
+    <Border Background="#FF1E1E1E" 
+            BorderBrush="#FF3F3F46" 
+            BorderThickness="1" 
+            CornerRadius="10" 
+            Padding="20"
+            >
+        <!-- <Border.Effect> -->
+        <!--     <DropShadowEffect Color="Black"  -->
+        <!--                       BlurRadius="10"  -->
+        <!--                       ShadowDepth="3"  -->
+        <!--                       Opacity="0.4" /> -->
+        <!-- </Border.Effect> -->
+        <StackPanel Orientation="Vertical">
+            
+            <!-- Header Icon & Title -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
+                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="#FF007ACC" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="Unlock 3D Map Viewer" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Promotional Description -->
+            <TextBlock Text="Take your navigation to the next dimension! Upgrade to unlock real-time 3D terrain rendering, immersive camera controls, and spatial elevation tracking."
+                       FontSize="12" Foreground="#FFD1D1D1" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,20"/>
+
+            <!-- Features Bullet Grid -->
+            <Border Background="#FF252526" CornerRadius="6" Padding="12" Margin="0,0,0,20">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="✨ What's Included in Premium:" FontSize="12" FontWeight="Bold" Foreground="Gold" Margin="0,0,0,8"/>
+                    <TextBlock Text="• Interactive 3D perspective camera angles" FontSize="11" Foreground="#FFCCCCCC" Margin="0,2"/>
+                    <TextBlock Text="• Track character position to destination across mutliple maps and levels." FontSize="11" Foreground="#FFCCCCCC" Margin="0,2"/>
+                    <TextBlock Text="• Never get lost again in a new area using breadcrumbs." FontSize="11" Foreground="#FFCCCCCC" Margin="0,2"/>
+                    <TextBlock Text="• Build a world with your own scaled maps." FontSize="11" Foreground="#FFCCCCCC" Margin="0,2"/>
+                    <TextBlock Text="• Seamless Microsoft Store licensing &amp; sync" FontSize="11" Foreground="#FFCCCCCC" Margin="0,2"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Action Buttons -->
+            <Button Content="Get 3D Map via Microsoft Store" 
+                    Height="35" 
+                    Background="#FF007ACC" 
+                    Foreground="White" 
+                    FontWeight="Bold"
+                    Cursor="Hand"
+                    Click="PurchaseButton_Click"
+                    Margin="0,0,0,10">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+
+            <!-- Secondary Actions (Cancel & Toggle Code Input) -->
+            <Grid Margin="0,5,0,0">
+                <Button Content="Have an override code?" 
+                        Background="Transparent" 
+                        Foreground="#FF3794FF" 
+                        BorderThickness="0"
+                        HorizontalAlignment="Left"
+                        Cursor="Hand"
+                        Click="ToggleCodePanel_Click"/>
+                
+                <Button Content="Not Now" 
+                        Background="Transparent" 
+                        Foreground="#FF888888" 
+                        BorderThickness="0"
+                        HorizontalAlignment="Right"
+                        Cursor="Hand"
+                        Click="CancelButton_Click"/>
+            </Grid>
+
+            <!-- Hidden Code Entry Panel (Expands when clicked) -->
+            <StackPanel x:Name="CodeEntryPanel" Orientation="Vertical" Visibility="Collapsed" Margin="0,15,0,0">
+                <Separator Background="#FF3F3F46" Margin="0,0,0,10"/>
+                <TextBlock Text="Enter Promotional or Beta Code:" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,0,5"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBox x:Name="TxtOverrideCode" Height="26" VerticalContentAlignment="Center" Background="#FF333333" Foreground="White" BorderBrush="#FF555555" Margin="0,0,5,0"/>
+                    <Button Grid.Column="1" Content="Apply" Width="60" Height="26" Background="#FF3F3F46" Foreground="White" Click="ApplyCodeButton_Click"/>
+                </Grid>
+                <TextBlock x:Name="TxtErrorMsg" Text="" FontSize="10" Foreground="#FFFF5555" Margin="0,5,0,0"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Border>
+</Window>

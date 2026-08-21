@@ -71,6 +71,10 @@ public class SettingsService : ISettingsService {
             if (settings.MapWindowPlacement?.State == WindowState.Minimized) {
                 settings.MapWindowPlacement.State = WindowState.Normal;
             }
+            
+            if (settings.ThreeDMapWindowPlacement?.State == WindowState.Minimized) {
+                settings.ThreeDMapWindowPlacement.State = WindowState.Normal;
+            }
 
             var options = new JsonSerializerOptions { WriteIndented = true };
             var json = JsonSerializer.Serialize(settings, options);

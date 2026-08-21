@@ -50,6 +50,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     public MainWindow() {
         InitializeComponent();
         _viewModel = new MainViewModel();
+        DataContext = _viewModel;
         myGrid.DataContext = _viewModel;
 
         Topmost = true;
@@ -74,7 +75,20 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             _viewModel.Settings.PropertyChanged += Settings_PropertyChanged;
         }
     }
-
+    
+    #region Premium Features
+    
+    private void EnterCode_Click(object sender, RoutedEventArgs e)
+    {
+        // Simple input dialog or custom text prompt implementation
+        // Once you get the string from the user:
+        // var viewModel = DataContext as MainViewModel;
+        // viewModel?.ValidateAndApplyOverrideCode(userInput);
+    }
+    
+    #endregion
+    
+    
     #region Location Controls & Tree Interactivity
 
     private void LocationTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
@@ -107,7 +121,17 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             Log.Error(ex, "Error in LocationTree_PreviewMouseLeftButtonDown.");
         }
     }
-
+    private void HideLocHint_Click(object sender, RoutedEventArgs e) {
+        try {
+            if (DataContext is MainViewModel vm) {
+                vm.HideLocHint = true;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error hiding location hint.");
+        }
+    }
+    
     private void LocationTree_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
         try {
             if (myGrid.DataContext is not MainViewModel vm) return;
@@ -335,6 +359,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             togglebutton.Visibility = Visibility.Visible;
             licensebutton.Visibility = Visibility.Visible;
             closebutton.Visibility = Visibility.Visible;
+            coffebutton.Visibility = Visibility.Visible;
         }
         catch (Exception ex) {
             Log.Warning(ex, "Error showing title bar buttons on MouseEnter.");
@@ -348,6 +373,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
             togglebutton.Visibility = Visibility.Collapsed;
             licensebutton.Visibility = Visibility.Collapsed;
             closebutton.Visibility = Visibility.Collapsed;
+            coffebutton.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex) {
             Log.Warning(ex, "Error hiding title bar buttons on MouseLeave.");
