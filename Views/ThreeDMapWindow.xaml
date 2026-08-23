@@ -594,21 +594,21 @@
                            Focusable="False" />
                 <Slider Width="100" Minimum="0.1" Maximum="1.0" Value="{Binding Opacity}" VerticalAlignment="Center"
                         TickFrequency="0.05" IsSnapToTickEnabled="True" Focusable="False">
-                    <Slider.Style>
-                        <Style TargetType="Slider">
-                            <Setter Property="IsEnabled" Value="True" />
-                            <Style.Triggers>
-                                <MultiDataTrigger>
-                                    <MultiDataTrigger.Conditions>
-                                        <Condition
-                                            Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}"
-                                            Value="Visible" />
-                                    </MultiDataTrigger.Conditions>
-                                    <Setter Property="IsEnabled" Value="False" />
-                                </MultiDataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Slider.Style>
+                    <!-- <Slider.Style> -->
+                    <!--     <Style TargetType="Slider"> -->
+                    <!--         <Setter Property="IsEnabled" Value="True" /> -->
+                    <!--         <Style.Triggers> -->
+                    <!--             <MultiDataTrigger> -->
+                    <!--                 <MultiDataTrigger.Conditions> -->
+                    <!--                     <Condition -->
+                    <!--                         Binding="{Binding MapImage, Converter={StaticResource NullToVisibilityConverter}}" -->
+                    <!--                         Value="Visible" /> -->
+                    <!--                 </MultiDataTrigger.Conditions> -->
+                    <!--                 <Setter Property="IsEnabled" Value="False" /> -->
+                    <!--             </MultiDataTrigger> -->
+                    <!--         </Style.Triggers> -->
+                    <!--     </Style> -->
+                    <!-- </Slider.Style> -->
                 </Slider>
 
                 <TextBlock x:Name="StatusTextBlock" Foreground="White" VerticalAlignment="Center" Margin="20,0,10,0"

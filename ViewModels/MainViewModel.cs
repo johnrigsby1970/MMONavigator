@@ -824,154 +824,115 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     private void AddLocation(CoordinateData? customCoords) {
-        try {
-            string? scrubbedTarget;
-            if (customCoords.HasValue) {
-                var coords = customCoords.Value;
-                if (Settings.SelectedProfile.CoordinateOrder == "y x") {
-                    scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
-                }
-                else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
-                    scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
-                }
-                else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
-                    scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
-                }
-                else {
-                    // Default x z y d
-                    scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
-                }
+    try {
+        string? scrubbedTarget;
+        if (customCoords.HasValue) {
+            var coords = customCoords.Value;
+            if (Settings.SelectedProfile.CoordinateOrder == "y x") {
+                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
+            }
+            else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
+                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
+            }
+            else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
+                scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
             }
             else {
-                scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates)
-                    ? ""
-                    : Scrubber.ScrubEntry(TargetCoordinates);
+                // Default x z y d
+                scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
             }
+        }
+        else {
+            scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates)
+                ? ""
+                : Scrubber.ScrubEntry(TargetCoordinates);
+        }
 
-            if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
+        if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
-            var name = string.Empty;
-            var group = string.Empty;
+        var mainWindow = System.Windows.Application.Current.MainWindow;
+        if (mainWindow != null) {
+            Window? helperWindow = null;
+            ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
 
-            List<string> GetAllGroups(IEnumerable<LocationItem> items) {
-                var result = new List<string>();
-                foreach (var item in items) {
-                    if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
-                        result.Add(item.Header);
-                        result.AddRange(GetAllGroups(item.Items));
-                    }
-                }
+            try {
+                var name = string.Empty;
+                var group = string.Empty;
 
-                return result;
-            }
-
-            List<string> groups = GetAllGroups(Locations).Distinct().ToList();
-            var dialog = new DestinationDialog("", "", groups) {
-                Owner = System.Windows.Application.Current.MainWindow
-            };
-            dialog.ShowDialog();
-
-            // Check your manual property instead of the built-in DialogResult
-            if (dialog.ManualDialogResult == true) {
-                name = dialog.Answer;
-                group = dialog.Group;
-            }
-            else {
-                return;
-            }
-
-            var item = new LocationItem {
-                Name = string.IsNullOrWhiteSpace(name) ? null : name,
-                Coordinates = scrubbedTarget,
-                ScrubbedCoordinates = scrubbedTarget,
-                Header = string.IsNullOrWhiteSpace(group) ? null : group,
-            };
-
-            if (!string.IsNullOrWhiteSpace(item.Header)) {
-                LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
-                    foreach (var g in items) {
-                        if (g.Header == header) return g;
-                        if (g.Items != null) {
-                            var found = FindGroup(g.Items, header);
-                            if (found != null) return found;
+                List<string> GetAllGroups(IEnumerable<LocationItem> items) {
+                    var result = new List<string>();
+                    foreach (var item in items) {
+                        if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
+                            result.Add(item.Header);
+                            result.AddRange(GetAllGroups(item.Items));
                         }
                     }
 
-                    return null;
+                    return result;
                 }
 
-                var groupItem = FindGroup(Locations, item.Header);
-                if (groupItem != null) {
-                    groupItem.Items ??= new List<LocationItem>();
-                    groupItem.Items.Add(item);
+                List<string> groups = GetAllGroups(Locations).Distinct().ToList();
+                var dialog = new DestinationDialog("", "", groups) {
+                    WindowStyle = WindowStyle.None,
+                    Owner = helperWindow,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+                dialog.ShowDialog();
+
+                // Check your manual property instead of the built-in DialogResult
+                if (dialog.ManualDialogResult == true) {
+                    name = dialog.Answer;
+                    group = dialog.Group;
                 }
                 else {
-                    Locations.Add(new LocationItem
-                        { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
+                    return;
                 }
-            }
-            else {
-                Locations.Add(item);
-            }
 
-            SelectedLocation = item;
-            SaveLocations();
-            LoadLocations();
+                var item = new LocationItem {
+                    Name = string.IsNullOrWhiteSpace(name) ? null : name,
+                    Coordinates = scrubbedTarget,
+                    ScrubbedCoordinates = scrubbedTarget,
+                    Header = string.IsNullOrWhiteSpace(group) ? null : group,
+                };
 
-            // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
-            LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
-                foreach (var i in items) {
-                    if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates &&
-                        i.Header == target.Header) return i;
-                    if (i.Items != null) {
-                        var found = FindSame(i.Items, target);
-                        if (found != null) return found;
+                if (!string.IsNullOrWhiteSpace(item.Header)) {
+                    LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
+                        foreach (var g in items) {
+                            if (g.Header == header) return g;
+                            if (g.Items != null) {
+                                var found = FindGroup(g.Items, header);
+                                if (found != null) return found;
+                            }
+                        }
+
+                        return null;
+                    }
+
+                    var groupItem = FindGroup(Locations, item.Header);
+                    if (groupItem != null) {
+                        groupItem.Items ??= new List<LocationItem>();
+                        groupItem.Items.Add(item);
+                    }
+                    else {
+                        Locations.Add(new LocationItem
+                            { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
                     }
                 }
+                else {
+                    Locations.Add(item);
+                }
 
-                return null;
-            }
-
-            SelectedLocation = FindSame(Locations, item);
-
-            UpdateHasLocations();
-            UpdateListStatus();
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Error adding location.");
-        }
-    }
-
-    private void EditLocation() {
-        if (SelectedLocation == null) return;
-
-        try {
-            var name = SelectedLocation.Name;
-            var group = SelectedLocation.Header;
-            var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header))
-                .Select(l => l.Header!).ToList();
-
-            var dialog = new DestinationDialog(name, group, groups) {
-                Owner = System.Windows.Application.Current.MainWindow
-            };
-            dialog.ShowDialog();
-
-            // Check your manual property instead of the built-in DialogResult
-            if (dialog.ManualDialogResult == true) {
-                SelectedLocation.Name = dialog.Answer;
-                SelectedLocation.Header = dialog.Group;
-
-                OnPropertyChanged(nameof(SelectedLocation));
-                OnPropertyChanged(nameof(Locations));
+                SelectedLocation = item;
                 SaveLocations();
                 LoadLocations();
 
                 // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
-                LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords, string? header) {
+                LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
                     foreach (var i in items) {
-                        if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
+                        if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates &&
+                            i.Header == target.Header) return i;
                         if (i.Items != null) {
-                            var found = FindSame(i.Items, name, coords, header);
+                            var found = FindSame(i.Items, target);
                             if (found != null) return found;
                         }
                     }
@@ -979,37 +940,114 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
                     return null;
                 }
 
-                SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates,
-                    dialog.Group);
+                SelectedLocation = FindSame(Locations, item);
 
-                TargetCoordinates = SelectedLocation?.DisplayName ?? "";
-                OnPropertyChanged(nameof(TargetCoordinates));
-
+                UpdateHasLocations();
                 UpdateListStatus();
             }
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Error editing location.");
+            finally {
+                helperWindow?.Close();
+            }
         }
     }
+    catch (Exception ex) {
+        Log.Error(ex, "Error adding location.");
+    }
+}
+
+    private void EditLocation() {
+    if (SelectedLocation == null) return;
+
+    try {
+        var mainWindow = System.Windows.Application.Current.MainWindow;
+        if (mainWindow != null) {
+            Window? helperWindow = null;
+            ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
+
+            try {
+                var name = SelectedLocation.Name;
+                var group = SelectedLocation.Header;
+                var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header))
+                    .Select(l => l.Header!).ToList();
+
+                var dialog = new DestinationDialog(name, group, groups) {
+                    WindowStyle = WindowStyle.None,
+                    Owner = helperWindow,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+                dialog.ShowDialog();
+
+                // Check your manual property instead of the built-in DialogResult
+                if (dialog.ManualDialogResult == true) {
+                    SelectedLocation.Name = dialog.Answer;
+                    SelectedLocation.Header = dialog.Group;
+
+                    OnPropertyChanged(nameof(SelectedLocation));
+                    OnPropertyChanged(nameof(Locations));
+                    SaveLocations();
+                    LoadLocations();
+
+                    // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
+                    LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords, string? header) {
+                        foreach (var i in items) {
+                            if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
+                            if (i.Items != null) {
+                                var found = FindSame(i.Items, name, coords, header);
+                                if (found != null) return found;
+                            }
+                        }
+
+                        return null;
+                    }
+
+                    SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates,
+                        dialog.Group);
+
+                    TargetCoordinates = SelectedLocation?.DisplayName ?? "";
+                    OnPropertyChanged(nameof(TargetCoordinates));
+
+                    UpdateListStatus();
+                }
+            }
+            finally {
+                helperWindow?.Close();
+            }
+        }
+    }
+    catch (Exception ex) {
+        Log.Error(ex, "Error editing location.");
+    }
+}
 
     private void SelectLocationFile() {
         try {
-            var dialog = new LocationsFileAssignmentDialog(_settings.SelectedProfile) {
-                Owner = System.Windows.Application.Current.MainWindow
-            };
-            dialog.ShowDialog();
+            var mainWindow = System.Windows.Application.Current.MainWindow;
+            if (mainWindow != null) {
+                Window? helperWindow = null;
+                ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
 
-            // Check your manual property instead of the built-in DialogResult
-            if (dialog.ManualDialogResult == true) {
-                _settings.SelectedProfile.LastLocationsFile = dialog.LocationsPath ?? "";
-                OnPropertyChanged(nameof(SelectedLocation));
-                OnPropertyChanged(nameof(Locations));
-                OnPropertyChanged(nameof(TargetCoordinates));
-                SaveSettings();
-                LoadLocations();
-                UpdateHasLocations();
-                UpdateListStatus();
+                try {
+                    var dialog = new LocationsFileAssignmentDialog(_settings.SelectedProfile) {
+                        WindowStyle = WindowStyle.None,
+                        Owner = helperWindow,
+                        WindowStartupLocation = WindowStartupLocation.CenterScreen
+                    };
+                    dialog.ShowDialog();
+
+                    if (dialog.ManualDialogResult == true) {
+                        _settings.SelectedProfile.LastLocationsFile = dialog.LocationsPath ?? "";
+                        OnPropertyChanged(nameof(SelectedLocation));
+                        OnPropertyChanged(nameof(Locations));
+                        OnPropertyChanged(nameof(TargetCoordinates));
+                        SaveSettings();
+                        LoadLocations();
+                        UpdateHasLocations();
+                        UpdateListStatus();
+                    }
+                }
+                finally {
+                    helperWindow?.Close();
+                }
             }
         }
         catch (Exception ex) {
@@ -1538,7 +1576,6 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
     {
         var mainWindow = System.Windows.Application.Current.MainWindow;
     
-       
         
         // Safely configure a helper owner window if transparency/window style causes issues
         if (mainWindow != null)
@@ -1565,7 +1602,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
             }
             finally
             {
-                helperWindow.Close();
+                try {
+                    helperWindow.Close();
+                }
+                catch {
+                    // Suppress any benign window-lifetime race conditions on close
+                }
             }
         }
     }
