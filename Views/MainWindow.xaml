@@ -248,12 +248,13 @@
                         Fill="{StaticResource TextFill}" />
 
                     <TextBox
-                        Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                        Text="{Binding CurrentCoordinates ,  Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                         Height="20" Margin="0,1,4,0"
                         FontSize="8pt"
                         VerticalAlignment="Center" Width="120"
                         ToolTip="{Binding LocationTooltip}"
-                        helpers:ClickThroughBehavior.IsEnabled="True" />
+                        helpers:ClickThroughBehavior.IsEnabled="True"
+                        KeyDown="CoordinateTextBox_KeyDown"/>
 
                     <Button Width="20" Height="20" Margin="3"
                             Content="&#xF272;"

@@ -1604,7 +1604,7 @@ public partial class MapWindow : ChildWindow {
             IsDialogActive = true;
             try {
                 var inputDialog = new InputDialog("Enter a name for the draw map:", "Start Drawing", "") {
-                    Owner = System.Windows.Application.Current.MainWindow
+                    Owner = this
                 };
                 inputDialog.ShowDialog();
                 if (inputDialog.ManualDialogResult != true) return;
@@ -1614,7 +1614,15 @@ public partial class MapWindow : ChildWindow {
 
                 foreach (char c in Path.GetInvalidFileNameChars())
                     mapName = mapName.Replace(c, '_');
+                
+                // Clear out the main window's coordinate text box for clarity as requested
+                if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm) {
+                    mainVm.CurrentCoordinates = string.Empty;
+                }
 
+                // Clear the local coordinate state so it treats the next valid position as the starting calibration point
+                vm.CurrentPosition = null;
+                
                 vm.StartDrawMode(mapName);
                 StatusTextBlock.Text = $"Status: Drawing mode active — {mapName}";
             }
@@ -1689,7 +1697,7 @@ public partial class MapWindow : ChildWindow {
         try {
             if (DataContext is not MapViewModel vm) return;
             vm.StopDrawMode();
-            StatusTextBlock.Text = "Status: Drawing stopped. Map saved.";
+            StatusTextBlock.Text = "Status: Drawing stopped.";
         }
         catch (Exception ex) {
             Log.Error(ex, "Error in StopDrawMode_Click.");

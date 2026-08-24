@@ -91,6 +91,20 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     
     #region Location Controls & Tree Interactivity
 
+    private void CoordinateTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) {
+        if (e.Key == Key.Enter) {
+            if (sender is System.Windows.Controls.TextBox textBox) {
+                // Force the binding to update immediately
+                var bindingExpression = textBox.GetBindingExpression(System.Windows.Controls.TextBox.TextProperty);
+                bindingExpression?.UpdateSource();
+
+                // Optional: Remove focus or move focus away so it acts like a submission
+                Keyboard.ClearFocus();
+            }
+            e.Handled = true; // Prevents sound dings
+        }
+    }
+    
     private void LocationTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
         try {
             if (e.OriginalSource is DependencyObject clickedObj) {

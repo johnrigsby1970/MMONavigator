@@ -1469,35 +1469,42 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <!-- Bullet 1 -->
             <TextBlock Grid.Row="0" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
             <TextBlock Grid.Row="0" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
+                To prevent a stale starting poist, your current location has been cleared. Start tracking your movement, /loc, to begin drawing.
+            </TextBlock>
+            
+            <!-- Bullet 1 -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
                 You start out in the center of the map. Your initial location coordinates define the center. The map automatically expands as you move toward the edges.
             </TextBlock>
 
             <!-- Bullet 2 -->
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
-            <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
-                Walking defines open space. Trace walls, rivers, or ridges to outline boundaries.
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
+                Trace walls, rivers, or ridges to outline boundaries.
             </TextBlock>
 
             <!-- Bullet 3 -->
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
-            <TextBlock Grid.Row="2" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
                 Use different brush colors for distinct terrain types like edges, walls, and roads.
             </TextBlock>
             
             <!-- Bullet 4 -->
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
-            <TextBlock Grid.Row="3" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
-                Movement will normally drop period circles where you stand. If you want a line, choose the line option and it will connect the dots. It will connect the last dot if you start tracking /loc again. So switch to transparent to avoid bad lines.
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="4" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
+                Movement will normally drop period circles where you stand. If you want a line, choose the line option. It will connect the last location if you start tracking /loc again. Switch to transparent to avoid bad lines after restarting movement.
             </TextBlock>
             
             <!-- Bullet 5 -->
-            <TextBlock Grid.Row="4" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
-            <TextBlock Grid.Row="4" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
+            <TextBlock Grid.Row="5" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap">
                 Once the map is saved, you can stop and restart drawing by re-entering draw mode off the menu.
             </TextBlock>
         </Grid>

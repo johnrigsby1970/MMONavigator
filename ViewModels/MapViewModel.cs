@@ -1720,7 +1720,14 @@ public void UpdateMarkers() {
     public void StopDrawMode() {
         if (!IsDrawModeActive) return;
 
-        SaveDrawMap();
+        // Check if the map was started but never calibrated (user stopped before movement triggered calibration)
+        bool isUncalibratedDraw = _settings == null || !_settings.IsCalibrated;
+        string? targetImagePath = _settings?.ImagePath;
+        string? targetConfigPath = !string.IsNullOrEmpty(targetImagePath) ? Path.ChangeExtension(targetImagePath, ".json") : null;
+        
+        if (!isUncalibratedDraw) {
+            SaveDrawMap();
+        }
 
         // Cleanly stop and unhook the timer
         StopDrawAutoSave();
@@ -1732,7 +1739,26 @@ public void UpdateMarkers() {
         ShowBreadcrumb = _priorBreadcrumbState;
         if (_priorBreadcrumbState) StartFading();
 
-        LoadImage(); // Reload PNG as normal BitmapImage, recreate fog/breadcrumb
+        if (isUncalibratedDraw) {
+            // Delete the orphaned uncalibrated files from disk so they don't leave a blank, broken screen state
+            try {
+                if (!string.IsNullOrEmpty(targetImagePath) && File.Exists(targetImagePath)) {
+                    File.Delete(targetImagePath);
+                }
+                if (!string.IsNullOrEmpty(targetConfigPath) && File.Exists(targetConfigPath)) {
+                    File.Delete(targetConfigPath);
+                }
+            }
+            catch (Exception ex) {
+                Log.Warning(ex, "Failed to clean up uncalibrated draw map files on stop.");
+            }
+
+            // Reset the map state completely so the window shows as if no map is loaded
+            ResetMapState();
+        }
+        else {
+            LoadImage(); // Reload PNG as normal BitmapImage, recreate fog/breadcrumb
+        }
     }
 
     public void SaveDrawMap() {
