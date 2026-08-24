@@ -27,44 +27,52 @@ namespace MMONavigator;
 public partial class App : System.Windows.Application {
     protected override void OnStartup(StartupEventArgs e) {
         base.OnStartup(e);
+
+        string sentryDsn = 
+#if DEBUG
+            string.Empty;
+#else
+            "https://7e437a24c753c741be86020237e35c01@o4511910567149568.ingest.us.sentry.io/4511910578683904";
+#endif
         
         // 1. Initialize Sentry FIRST so it catches any startup failures
-        SentrySdk.Init(o =>
-        {
-            o.Dsn = "https://7e437a24c753c741be86020237e35c01@o4511910567149568.ingest.us.sentry.io/4511910578683904";
-        
+        SentrySdk.Init(o => {
+            
             // Essential for WPF / desktop applications
             o.IsGlobalModeEnabled = true;
 
-            o.SampleRate = 1.0f;        // Capture 100% of crashes
-            o.TracesSampleRate = 0.0;   // Disable performance tracing (focused purely on crashes)
+            o.SampleRate = 1.0f; // Capture 100% of crashes
+            o.TracesSampleRate = 0.0; // Disable performance tracing (focused purely on crashes)
 
 #if DEBUG
-        o.Debug = true;
-        o.Environment = "development";
+            // Blank out the DSN during local debugging so it never sends data to sentry.io
+            o.Dsn = string.Empty;
+            o.Debug = true;
+            o.Environment = "development";
 #else
+            o.Dsn = sentryDsn;
             o.Debug = false;
             o.Environment = "production";
 #endif
         });
-        
-        // 1. Initialize logging first
-        LogConfig.Initialize();
 
+        // Initialize logging first
+        LogConfig.Initialize(sentryDsn);
+        
         Log.Write(LogEventLevel.Debug, "Hello Sentry");
-        
-        
+
+
         // 2. Wire up global exception safety nets
         SetupGlobalExceptionHandling();
-        
+
         // 3. Log session startup details
-        Log.Information("{AppName} session started. OS: {OSVersion}, Version: {AppVersion}", 
+        Log.Information("{AppName} session started. OS: {OSVersion}, Version: {AppVersion}",
             Constants.AppName,
-            Environment.OSVersion, 
+            Environment.OSVersion,
             System.Reflection.Assembly.GetExecutingAssembly().GetName().Version);
-        
+
         // 4. Run directory migration
-        Methods.MigrateAppDataIfNeeded(); 
+        Methods.MigrateAppDataIfNeeded();
     }
 
     protected override void OnExit(ExitEventArgs e) {
@@ -72,7 +80,7 @@ public partial class App : System.Windows.Application {
         Log.CloseAndFlush();
         base.OnExit(e);
     }
-    
+
     /// <summary>
     /// Forcibly re-enables MainWindow at the Win32 level if a modal crash left it disabled.
     /// </summary>
@@ -86,7 +94,7 @@ public partial class App : System.Windows.Application {
 
                     // 2. Force MainWindow to the foreground
                     NativeMethods.SetForegroundWindow(helper.Handle);
-                    
+
                     // 3. Ensure Topmost status is reapplied if needed
                     Current.MainWindow.Topmost = true;
                 }
@@ -96,13 +104,14 @@ public partial class App : System.Windows.Application {
             Log.Error(ex, "Error in ForceUnlockMainWindow during emergency recovery.");
         }
     }
-    
+
     private void SetupGlobalExceptionHandling() {
         // 1. Unhandled WPF UI Thread Exceptions (App stays alive)
         DispatcherUnhandledException += (s, e) => {
             // SPECIAL CASE: Check if the crash happened during modal/dialog teardown
             if (e.Exception is NullReferenceException && e.Exception.StackTrace?.Contains("DoDialogHide") == true) {
                 Log.Error(e.Exception, "Caught modal DoDialogHide crash! Forcibly unlocking MainWindow.");
+                SentrySdk.CaptureException(e.Exception);
 
                 // Recover MainWindow input state so the app doesn't freeze in a beep loop
                 ForceUnlockMainWindow();
@@ -114,6 +123,9 @@ public partial class App : System.Windows.Application {
 
             // GENERAL CASE: Standard unhandled UI exceptions
             Log.Error(e.Exception, "Unhandled UI dispatcher exception.");
+
+            // Explicitly push to Sentry since e.Handled = true prevents a hard crash crash-dump
+            SentrySdk.CaptureException(e.Exception);
 
             // Do NOT call Log.CloseAndFlush() here because e.Handled = true keeps Serilog running!
             MessageBox.Show(
@@ -134,6 +146,7 @@ public partial class App : System.Windows.Application {
 
             Log.Fatal(ex, "Unhandled AppDomain exception. Terminating: {IsTerminating}. Details: {Details}",
                 e.IsTerminating, errorDetails);
+            if (ex != null) SentrySdk.CaptureException(ex);
 
             // Synchronously flush Serilog because process termination is imminent
             Log.CloseAndFlush();
