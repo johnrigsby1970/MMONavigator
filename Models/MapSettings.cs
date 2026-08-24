@@ -18,6 +18,9 @@ public partial class MapPoint : ObservableObject {
 
 public partial class MapSettings : ObservableObject {
     [ObservableProperty]
+    private bool _autoExpandDrawMap = true;
+    
+    [ObservableProperty]
     private string? _imagePath;
 
     [ObservableProperty]

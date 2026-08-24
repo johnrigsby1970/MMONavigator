@@ -75,6 +75,16 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
     
     private double _currentZoomScale = 1.0;
     
+    public bool AutoExpandDrawMap {
+        get => _settings?.AutoExpandDrawMap ?? true;
+        set {
+            if (_settings != null && _settings.AutoExpandDrawMap != value) {
+                _settings.AutoExpandDrawMap = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+    
     private double _markerSize = 12.5;
 
     public double MarkerSize {
@@ -1690,6 +1700,10 @@ public void UpdateMarkers() {
             }
             else {
                 SaveMapImage();
+                // FIX: Ensure the currently loaded image becomes a WriteableBitmap for drawing
+                if (MapImage != null && MapImage is not WriteableBitmap) {
+                    MapImage = LoadAsPbgra32WriteableBitmap(imagePath);
+                }
             }
 
             _drawingRadius = null;
@@ -1891,6 +1905,9 @@ public void UpdateMarkers() {
     }
 
     private bool ExpandDrawMapIfNeeded(double markerX, double markerY) {
+        // If the toggle is turned off, skip expanding entirely
+        if (!AutoExpandDrawMap) return false;
+        
         if (_expandingMap || MapImage is not WriteableBitmap bitmap || _settings == null) return false;
 
         const int threshold = 50;

@@ -281,7 +281,17 @@
                 </Style>
             </Border.Style>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Focusable="False">
-
+                <Border x:Name="DrawAutoExpandBox" Width="65" Height="18" Margin="1,0" BorderThickness="2"
+                        BorderBrush="White" Cursor="Hand" MouseLeftButtonDown="DrawAutoExpand_Click"
+                        ToolTip="Toggle whether the map automatically expands when reaching boundaries"
+                        Focusable="False">
+                    <TextBlock Text="Auto-Expand" FontSize="10" Foreground="White" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Focusable="False" />
+                </Border>
+                
+                <!-- Divider -->
+                <Rectangle Width="1" Height="16" Fill="#666666" Margin="6,0" VerticalAlignment="Center" />
+                
                 <!-- Color Label -->
                 <TextBlock Text="Color:" Foreground="White" VerticalAlignment="Center"
                            Margin="0,0,4,0" FontSize="11" FontWeight="Bold" Focusable="False" />
@@ -1475,7 +1485,7 @@
             <!-- Bullet 1 -->
             <TextBlock Grid.Row="0" Grid.Column="0" Text="•" Foreground="Gold" FontWeight="Bold"/>
             <TextBlock Grid.Row="0" Grid.Column="1" FontSize="11.5" Foreground="#B0B0B0" TextWrapping="Wrap" Margin="0,0,0,6">
-                To prevent a stale starting poist, your current location has been cleared. Start tracking your movement, /loc, to begin drawing.
+                To prevent a stale starting point, your current location has been cleared. Start tracking your movement, /loc, to begin drawing. The map will configure itself based on starting point.
             </TextBlock>
             
             <!-- Bullet 1 -->

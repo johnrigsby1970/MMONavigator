@@ -1294,6 +1294,20 @@ public partial class MapWindow : ChildWindow {
         });
     }
 
+    private void DrawAutoExpand_Click(object sender, MouseButtonEventArgs e) {
+        try {
+            if (DataContext is MapViewModel vm) {
+                vm.AutoExpandDrawMap = !vm.AutoExpandDrawMap;
+                DrawAutoExpandBox.BorderBrush = vm.AutoExpandDrawMap
+                    ? System.Windows.Media.Brushes.White
+                    : System.Windows.Media.Brushes.Transparent;
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error executing DrawAutoExpand_Click.");
+        }
+    }
+    
     #region Stamp Helpers
 
     private void OnLabelStamped(object? s, MapTextStampEventArgs a) {
@@ -2136,6 +2150,7 @@ public partial class MapWindow : ChildWindow {
             UpdateDrawSizeBoxes(0);
             DrawLineModeBox.BorderBrush = System.Windows.Media.Brushes.Transparent;
             DrawAntiAliasBox.BorderBrush = System.Windows.Media.Brushes.White;
+            DrawAutoExpandBox.BorderBrush = vm.AutoExpandDrawMap ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Transparent;
         }
 
         if (e.PropertyName == nameof(MapViewModel.IsFollowModeActive)) {
