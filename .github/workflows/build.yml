@@ -79,6 +79,17 @@ jobs:
           Copy-Item "Assets" "${{ github.workspace }}/publish/Assets" -Recurse -Force
         }
 
+    - name: Create Sentry Release and Upload Symbols
+      uses: getsentry/action-release@v3
+      env:
+        SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+        SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      with:
+        environment: 'production'
+        sourcemaps: '${{ github.workspace }}/publish'
+        ignore_missing: true
+
     - name: Create Standalone Portable Executable Zip
       run: |
         # Package the self-contained publish folder into a portable zip
