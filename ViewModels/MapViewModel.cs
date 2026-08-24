@@ -1253,12 +1253,14 @@ public void UpdateMarkers() {
             if (CurrentPositionMarkerVisibility == Visibility.Visible) {
                 if (IsDrawModeActive) {
                     if (ExpandDrawMapIfNeeded(MarkerX, MarkerY)) {
+                        // 1. Re-calculates position so MarkerX/Y match the new expanded grid
                         var (expMx, expMy, expVis) = CalculatePixelPosition(CurrentPosition.Value);
                         MarkerX = expMx;
                         MarkerY = expMy;
                         CurrentPositionMarkerVisibility = expVis;
                     }
 
+                    // 2. Draws ONLY after the expansion and coordinate re-calculation are complete
                     if (CurrentPositionMarkerVisibility == Visibility.Visible) {
                         if (!_drawingRadius.HasValue) _drawingRadius = GetDrawBrushRadius();
                         double radius = _drawingRadius.Value;
@@ -1901,6 +1903,17 @@ public void UpdateMarkers() {
             BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(newBitmap);
             MapImage = newBitmap;
             _staticMarkersDirty = true;
+            
+            //We have the last drawpoint, but its now obsolete
+            //_drawLastPoints.Clear();
+            // Shift any existing recent draw points so they align with the new bitmap origin
+            //clearing means ther ecould be a gap when drawing in "lines" as opposed to dots
+            //lets translate the old last position to the new coordinates/pixels in the new map size
+            if (padLeft > 0 || padTop > 0) {
+                for (int i = 0; i < _drawLastPoints.Count; i++) {
+                    _drawLastPoints[i] = (_drawLastPoints[i].X + padLeft, _drawLastPoints[i].Y + padTop);
+                }
+            }
         }
         catch (Exception ex) {
             Log.Error(ex, "Error executing ExpandDrawMapIfNeeded.");

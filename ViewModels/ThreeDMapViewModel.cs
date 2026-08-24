@@ -2508,6 +2508,17 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(newBitmap);
             MapImage = newBitmap;
             _staticMarkersDirty = true;
+            
+            //We have the last drawpoint, but its now obsolete
+            //_drawLastPoints.Clear();
+            // Shift any existing recent draw points so they align with the new bitmap origin
+            //clearing means ther ecould be a gap when drawing in "lines" as opposed to dots
+            //lets translate the old last position to the new coordinates/pixels in the new map size
+            if (padLeft > 0 || padTop > 0) {
+                for (int i = 0; i < _drawLastPoints.Count; i++) {
+                    _drawLastPoints[i] = (_drawLastPoints[i].X + padLeft, _drawLastPoints[i].Y + padTop);
+                }
+            }
         }
         catch (Exception ex) {
             Log.Error(ex, "Error executing ExpandDrawMapIfNeeded.");
