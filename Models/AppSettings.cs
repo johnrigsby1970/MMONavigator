@@ -9,7 +9,8 @@ namespace MMONavigator.Models;
 
 public enum WatchMode {
     Clipboard,
-    File
+    File,
+    SharedMemory
 }
 
 // Used by EverQuest and Project 1999.

@@ -1,4 +1,4 @@
-# MMONavigator
+# MMO Navigator
 
 This app will provide you with a directional indicator from your
 current position to your destination, as defined by the coordinates
@@ -12,7 +12,7 @@ Watch a demonstration video here https://youtu.be/F6D_CjmfEns
 This code is not signed directly and is either not signed or handled through the Microsoft Store.
 
 ## Privacy Policy
-MMONavigator does not collect, store, or transmit any personal data or user information. All application processing (such as monitoring the system clipboard or rendering maps) happens entirely locally on your machine. No data is ever sent over the network to any third-party servers.
+MMO Navigator does not collect, store, or transmit any personal data or user information. All application processing (such as monitoring the system clipboard or rendering maps) happens entirely locally on your machine. No data is ever sent over the network to any third-party servers.
 
 ## Dependencies
 
@@ -194,6 +194,194 @@ In Pantheon, location gives the facing as part of location, it's the fourth numb
 
 While EverQuest does not give facing, this program will try to derive facing as it compares changes in the locations as you move. If you are moving North, it will assume you are facing North.
 
+## Game Developer Inter-Process Communication, IPC, Integration Guide
+
+Game developers can stream live player coordinates directly into MMONavigator by writing to a named shared memory mapped file (`MMONavigator_Telemetry`, 1024 bytes buffer). Plsyers would choose this mode when setting up a game profile.
+
+### C / C++ Integration
+
+#### Option A: Direct Struct Mode (Binary / Low Overhead) (C++)
+
+```cpp
+#include <windows.h>
+#include <cstdint>
+
+struct MapTelemetryStruct {
+    uint32_t StructVersion = 1;
+    uint32_t SequenceId;
+    float X, Y, Z;
+    float Heading;
+    uint64_t ZoneId;
+    uint64_t TimestampMs;
+};
+
+void StreamTelemetry(float x, float y, float z, float heading) {
+    HANDLE hMap = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, "MMONavigator_Telemetry");
+    if (!hMap) return;
+
+    BYTE* pBuffer = (BYTE*)MapViewOfFile(hMap, FILE_MAP_ALL_ACCESS, 0, 0, 1024);
+    if (!pBuffer) {
+        CloseHandle(hMap);
+        return;
+    }
+
+    static uint32_t sequenceCounter = 0;
+
+    pBuffer[0] = 0x02; // Mode 0x02 = Direct Struct
+
+    MapTelemetryStruct data;
+    data.StructVersion = 1;
+    data.SequenceId = ++sequenceCounter;
+    data.X = x;
+    data.Y = y;
+    data.Z = z;
+    data.Heading = heading;
+    data.ZoneId = 0;
+    data.TimestampMs = GetTickCount64();
+
+    memcpy(pBuffer + 1, &data, sizeof(MapTelemetryStruct));
+
+    UnmapViewOfFile(pBuffer);
+    CloseHandle(hMap);
+}
+```
+
+### Raw String Stream Mode (C++)
+
+```cpp
+
+#include <windows.h>
+#include <cstdio>
+
+void StreamRawString(const char* coordStr) {
+    HANDLE hMap = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, "MMONavigator_Telemetry");
+    if (!hMap) return;
+
+    BYTE* pBuffer = (BYTE*)MapViewOfFile(hMap, FILE_MAP_ALL_ACCESS, 0, 0, 1024);
+    if (!pBuffer) {
+        CloseHandle(hMap);
+        return;
+    }
+
+    static uint8_t sequenceCounter = 0;
+
+    pBuffer[0] = 0x01; // Mode 0x01 = Raw String
+    pBuffer[1] = ++sequenceCounter;
+
+    strcpy_s((char*)(pBuffer + 2), 1020, coordStr);
+
+    UnmapViewOfFile(pBuffer);
+    CloseHandle(hMap);
+}
+```
+
+### Direct Struct Mode (Recommended) (C#)
+
+```csharp
+using System;
+using System.IO.MemoryMappedFiles;
+using System.Runtime.InteropServices;
+
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct MapTelemetryStruct
+{
+    public uint StructVersion;  // Set to 1
+    public uint SequenceId;     // Increment per frame tick
+    public float X;
+    public float Y;
+    public float Z;
+    public float Heading;       // Facing angle in degrees (0.0 - 360.0)
+    public ulong ZoneId;
+    public ulong TimestampMs;
+}
+
+public class MMONavigatorTelemetry : IDisposable
+{
+    private const string SharedMemoryName = "MMONavigator_Telemetry";
+    private const int BufferSizeBytes = 1024;
+
+    private MemoryMappedFile? _mmf;
+    private MemoryMappedViewAccessor? _accessor;
+    private uint _sequenceCounter;
+
+    public void Initialize()
+    {
+        _mmf = MemoryMappedFile.CreateOrOpen(SharedMemoryName, BufferSizeBytes, MemoryMappedFileAccess.ReadWrite);
+        _accessor = _mmf.CreateViewAccessor(0, BufferSizeBytes, MemoryMappedFileAccess.ReadWrite);
+    }
+
+    public void SendUpdate(float x, float y, float z, float heading, ulong zoneId = 0)
+    {
+        if (_accessor == null) return;
+
+        // Byte 0 = Mode Discriminator (0x02 = Direct Struct)
+        _accessor.Write(0, (byte)0x02);
+
+        var telemetry = new MapTelemetryStruct
+        {
+            StructVersion = 1,
+            SequenceId = ++_sequenceCounter,
+            X = x,
+            Y = y,
+            Z = z,
+            Heading = heading,
+            ZoneId = zoneId,
+            TimestampMs = (ulong)Environment.TickCount64
+        };
+
+        _accessor.Write(1, ref telemetry);
+    }
+
+    public void Dispose()
+    {
+        _accessor?.Dispose();
+        _mmf?.Dispose();
+    }
+}
+```
+
+### Raw String Stream Mode (c#) 
+```csharp
+
+using System;
+using System.IO.MemoryMappedFiles;
+using System.Text;
+
+public class MMONavigatorStringTelemetry : IDisposable
+{
+    private const string SharedMemoryName = "MMONavigator_Telemetry";
+    private const int BufferSizeBytes = 1024;
+
+    private MemoryMappedFile? _mmf;
+    private MemoryMappedViewAccessor? _accessor;
+    private byte _sequenceCounter;
+
+    public void Initialize()
+    {
+        _mmf = MemoryMappedFile.CreateOrOpen(SharedMemoryName, BufferSizeBytes, MemoryMappedFileAccess.ReadWrite);
+        _accessor = _mmf.CreateViewAccessor(0, BufferSizeBytes, MemoryMappedFileAccess.ReadWrite);
+    }
+
+    public void SendUpdate(string locationString)
+    {
+        if (_accessor == null) return;
+
+        // Byte 0 = Mode Discriminator (0x01 = Raw String)
+        _accessor.Write(0, (byte)0x01);
+        _accessor.Write(1, ++_sequenceCounter);
+
+        byte[] stringBytes = Encoding.UTF8.GetBytes(locationString + "\0");
+        _accessor.WriteArray(2, stringBytes, 0, stringBytes.Length);
+    }
+
+    public void Dispose()
+    {
+        _accessor?.Dispose();
+        _mmf?.Dispose();
+    }
+}
+```
+
 ## Authors
 
 John Rigsby
@@ -202,6 +390,12 @@ John Rigsby
 
 * 0.1
     * Initial Release
+* 0.6.4 
+    * Released via Microsoft Store
+* 0.6.6
+    * Microsoft Store 3D Viewer add-on
+* 0.6.7
+    * Release integration inter-process communication
 
 ## License
 

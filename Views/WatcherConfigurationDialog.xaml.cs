@@ -12,7 +12,11 @@ public partial class WatcherConfigurationDialog : ChildWindow {
     private GameProfile? _currentProfile;
     private bool _isUpdatingUI;
 
-    public WatchMode WatchMode => ClipboardRadio.IsChecked == true ? WatchMode.Clipboard : WatchMode.File;
+    public WatchMode WatchMode =>
+        SharedMemoryRadio.IsChecked == true ? WatchMode.SharedMemory :
+        ClipboardRadio.IsChecked == true    ? WatchMode.Clipboard :
+        WatchMode.File;
+    
     public string LogFilePath => FilePathTextBox.Text;
     public string LogFileRegex => RegexTextBox.Text;
     public string CoordinateOrder => OrderComboBox.SelectedItem?.ToString() ?? "x z y d";
@@ -55,9 +59,13 @@ public partial class WatcherConfigurationDialog : ChildWindow {
             OrderComboBox.ItemsSource = Constants.AvailableCoordinateOrders;
 
             ClipboardRadio.Checked -= WatchMode_Checked;
-            FileRadio.Checked -= WatchMode_Checked;
             ClipboardRadio.Checked += WatchMode_Checked;
+            
+            FileRadio.Checked -= WatchMode_Checked;
             FileRadio.Checked += WatchMode_Checked;
+            
+            SharedMemoryRadio.Checked -= WatchMode_Checked;
+            SharedMemoryRadio.Checked += WatchMode_Checked;
 
             ProfileComboBox.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
                 new TextChangedEventHandler(ProfileComboBox_TextChanged));
@@ -163,6 +171,20 @@ public partial class WatcherConfigurationDialog : ChildWindow {
                     OrderComboBox.SelectedItem = "x z y d";
                 }
             }
+            else if (SharedMemoryRadio.IsChecked == true) {
+                if (CurrentCoordinateSystem == CoordinateSystem.LeftHanded) {
+                    var rightHandedItem = Items.FirstOrDefault(i => i.Value == CoordinateSystem.RightHanded);
+                    if (rightHandedItem != null) {
+                        // Only switch if it matches the "Log File" default we might have just set or was there
+                        //SystemComboBox.SelectedItem = CoordinateSystem.RightHanded;
+                        CurrentCoordinateSystem = rightHandedItem.Value;
+                    }
+                }
+
+                if (OrderComboBox.SelectedItem?.ToString() == "y x" || OrderComboBox.SelectedItem?.ToString() == "y x z") {
+                    OrderComboBox.SelectedItem = "x z y d";
+                }
+            }
         }
         catch (Exception ex) {
             Log.Error(ex, "Error executing WatchMode_Checked logic.");
@@ -179,8 +201,14 @@ public partial class WatcherConfigurationDialog : ChildWindow {
             if (profile.WatchMode == WatchMode.Clipboard) {
                 ClipboardRadio.IsChecked = true;
             }
-            else {
+            else if(profile.WatchMode == WatchMode.File) {
                 FileRadio.IsChecked = true;
+            }
+            else if(profile.WatchMode == WatchMode.SharedMemory) {
+                SharedMemoryRadio.IsChecked = true;
+            }
+            else {
+                ClipboardRadio.IsChecked = true;
             }
 
             FilePathTextBox.Text = profile.LogFilePath ?? string.Empty;

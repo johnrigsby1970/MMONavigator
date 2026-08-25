@@ -237,7 +237,7 @@ public partial class MainWindow : Window, IWindowHandleProvider {
     
     private IntPtr HwndHandler(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam, ref bool handled) {
         if (msg == NativeMethods.WM_CLIPBOARDUPDATE) {
-            _ = ProcessClipboardAsync();
+            //_ = ProcessClipboardAsync(); //DELETEME
             _ = DeferKeepOnTopAsync();
         }
         else if (msg == WM_NCACTIVATE) {
@@ -250,23 +250,24 @@ public partial class MainWindow : Window, IWindowHandleProvider {
         return IntPtr.Zero;
     }
 
-    private async Task ProcessClipboardAsync() {
-        // Give the game 50-75ms to finish its macro write and close its clipboard handle
-        await Task.Delay(75);
-
-        try {
-            // Access the ViewModel safely. If HandleClipboardUpdate reads the clipboard,
-            // make sure it is wrapped in a try/catch for COMException just in case!
-            _viewModel.HandleClipboardUpdate();
-        }
-        catch (COMException ex) {
-            // Log at Debug level so clipboard collisions during game updates don't flood Sentry as errors
-            Log.Debug(ex, "Clipboard access collision occurred (COMException). Continuing gracefully.");
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Unexpected error processing clipboard update.");
-        }
-    }
+    //DELETEME
+    // private async Task ProcessClipboardAsync() {
+    //     // Give the game 50-75ms to finish its macro write and close its clipboard handle
+    //     await Task.Delay(75);
+    //
+    //     try {
+    //         // Access the ViewModel safely. If HandleClipboardUpdate reads the clipboard,
+    //         // make sure it is wrapped in a try/catch for COMException just in case!
+    //         _viewModel.HandleClipboardUpdate();
+    //     }
+    //     catch (COMException ex) {
+    //         // Log at Debug level so clipboard collisions during game updates don't flood Sentry as errors
+    //         Log.Debug(ex, "Clipboard access collision occurred (COMException). Continuing gracefully.");
+    //     }
+    //     catch (Exception ex) {
+    //         Log.Error(ex, "Unexpected error processing clipboard update.");
+    //     }
+    // }
 
     private async Task DeferKeepOnTopAsync() {
         await Task.Delay(10); // Tiny pause to let the OS breathe

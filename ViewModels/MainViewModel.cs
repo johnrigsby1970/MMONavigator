@@ -34,7 +34,9 @@ namespace MMONavigator.ViewModels;
 
 public class MainViewModel : INotifyPropertyChanged, IDisposable {
     private readonly ISettingsService _settingsService;
-    private readonly IWatcherService _watcherService;
+    //private readonly ILocationProvider _locationProvider; //DELETEME
+    private readonly LocationProviderFactory _locationProviderFactory;
+    private ILocationProvider? _activeLocationProvider;
     private const double ProximityDistanceThreshold = 100;
     private const double ArrivalDistance = 10;
     private const double CircleRadius = 40;
@@ -507,9 +509,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
 
     public void Dispose() {
         FlushPendingSave();
-        if (_watcherService != null) {
-            _watcherService.LocationUpdated -= OnLocationUpdated;
-        }
+        StopWatcher();
     }
 
     public void FlushPendingSave() {
@@ -525,13 +525,13 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         }
     }
 
-    public MainViewModel(ISettingsService settingsService, IWatcherService watcherService) {
+    public MainViewModel(ISettingsService settingsService, LocationProviderFactory locationProviderFactory) {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-        _watcherService = watcherService ?? throw new ArgumentNullException(nameof(watcherService));
+        _locationProviderFactory = locationProviderFactory ?? throw new ArgumentNullException(nameof(locationProviderFactory));
 
         // Prevent duplicate subscriptions before subscribing
-        _watcherService.LocationUpdated -= OnLocationUpdated;
-        _watcherService.LocationUpdated += OnLocationUpdated;
+        // _locationProvider.LocationUpdated -= OnLocationUpdated;
+        // _locationProvider.LocationUpdated += OnLocationUpdated;
 
         this.PropertyChanged -= ViewModel_PropertyChanged;
         this.PropertyChanged += ViewModel_PropertyChanged;
@@ -624,32 +624,60 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
     
     #endregion
 
-    public MainViewModel() : this(new SettingsService(), new WatcherService()) { }
+    public MainViewModel() : this(
+        new SettingsService(), 
+        new LocationProviderFactory(new ILocationProvider[] { 
+            new ClipboardLocationProvider(), 
+            new LogFileLocationProvider(),
+            new SharedMemoryLocationProvider() // Add IPC provider here when built
+        })) { }
 
     public void StartWatcher(IntPtr windowHandle) {
         _lastWindowHandle = windowHandle;
+        
+        // STOP and unhook the previous provider strategy first!
+        StopWatcher();
+        
+        if (Settings.SelectedProfile == null) return;
+        
         try {
-            _watcherService.Start(Settings, windowHandle);
+            // 2. Resolve provider strategy based on current WatchMode
+            _activeLocationProvider = _locationProviderFactory.GetProvider(Settings.SelectedProfile.WatchMode);
+
+            // 3. Re-hook event handler safely
+            _activeLocationProvider.LocationUpdated -= OnLocationUpdated;
+            _activeLocationProvider.LocationUpdated += OnLocationUpdated;
+
+            // 4. Start listening
+            _activeLocationProvider.Start(Settings, windowHandle);
+            Log.Information("Successfully started location watcher strategy for mode: {WatchMode}", Settings.SelectedProfile.WatchMode);
         }
         catch (Exception ex) {
-            Log.Error(ex, "Failed to start WatcherService.");
+            Log.Error(ex, "Failed to resolve or start location provider for mode: {WatchMode}", Settings.SelectedProfile?.WatchMode);
         }
     }
 
     public void StopWatcher() {
-        try {
-            _watcherService.Stop();
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Failed to stop WatcherService.");
+        if (_activeLocationProvider != null) {
+            try {
+                _activeLocationProvider.LocationUpdated -= OnLocationUpdated;
+                _activeLocationProvider.Stop();
+            }
+            catch (Exception ex) {
+                Log.Error(ex, "Failed to stop active location provider.");
+            }
+            finally {
+                _activeLocationProvider = null;
+            }
         }
     }
 
-    public void HandleClipboardUpdate() {
-        if (_watcherService is WatcherService ws) {
-            ws.HandleClipboardUpdate();
-        }
-    }
+    //DELETEME
+    // public void HandleClipboardUpdate() {
+    //     if (_locationProvider is LocationProvider ws) {
+    //         ws.HandleClipboardUpdate();
+    //     }
+    // }
 
     public void LoadSettings() {
         try {

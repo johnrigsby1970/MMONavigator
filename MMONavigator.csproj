@@ -38,6 +38,10 @@
         <None Remove="MMONavigator.Tests\**" />
         <Page Remove="MMONavigator.Tests\**" />
     </ItemGroup>
+    <PropertyGroup>
+        <DefaultItemExcludes>$(DefaultItemExcludes);MMONavigator.TelemetryTestApp\**</DefaultItemExcludes>
+        <DefaultItemExcludes>$(DefaultItemExcludes);MMONavigator.ClipboardTestApp\**</DefaultItemExcludes>
+    </PropertyGroup>
     <ItemGroup>
       <Folder Include="Resources\hot\" />
     </ItemGroup>

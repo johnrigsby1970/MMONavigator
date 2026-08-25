@@ -61,6 +61,9 @@
                         <LineBreak />
                         This program does not packet sniff. Many games can be made to write coordinates to a log file. Consult your game to determine how. 
                         This program is regularly used with Pantheon and has been used with Project 1999.
+                        <LineBreak />
+                        <LineBreak />
+                        Named Shared Memory allows game developers to call directly into this application instead of this application reading game log files or clipboard. You would have special instructions from your game to use this setting.
                     </TextBlock>
 
                     <Button Style="{StaticResource MainButtonStyle}"
@@ -111,6 +114,8 @@
                     <RadioButton x:Name="ClipboardRadio" Content="System Clipboard" Foreground="White"
                                  Margin="0,0,20,0" VerticalAlignment="Center" />
                     <RadioButton x:Name="FileRadio" Content="Log File" Foreground="White"
+                                 Margin="0,0,20,0" VerticalAlignment="Center" />
+                    <RadioButton x:Name="SharedMemoryRadio" Content="Named Shared Memory" Foreground="White"
                                  VerticalAlignment="Center" />
                 </StackPanel>
 

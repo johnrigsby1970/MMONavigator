@@ -14,8 +14,14 @@ public class HeadingEstimationTests
     public void MainViewModel_EstimatesHeading_WhenMoving()
     {
         var settingsService = new MoqSettingsService();
-        var watcherService = new MoqWatcherService();
-        var vm = new MainViewModel(settingsService, watcherService);
+        var providers = new ILocationProvider[] 
+        { 
+            new MoqClipboardLocationProvider(), 
+            new MoqLogFileLocationProvider(),
+            new MoqSharedMemoryLocationProvider()
+        };
+        var factory = new LocationProviderFactory(providers);
+        var vm = new MainViewModel(settingsService, factory);
         
         vm.Settings.SelectedProfile.CoordinateOrder = "x y";
         vm.TargetCoordinates = "100 100"; // Ensure target is set so ShowDirection proceeds
@@ -38,8 +44,14 @@ public class HeadingEstimationTests
     public void MainViewModel_MaintainsHeading_WhenStationary()
     {
         var settingsService = new MoqSettingsService();
-        var watcherService = new MoqWatcherService();
-        var vm = new MainViewModel(settingsService, watcherService);
+        var providers = new ILocationProvider[] 
+        { 
+            new MoqClipboardLocationProvider(), 
+            new MoqLogFileLocationProvider(),
+            new MoqSharedMemoryLocationProvider()
+        };
+        var factory = new LocationProviderFactory(providers);
+        var vm = new MainViewModel(settingsService, factory);
         
         vm.Settings.SelectedProfile.CoordinateOrder = "x y";
         vm.TargetCoordinates = "100 100";
@@ -60,8 +72,14 @@ public class HeadingEstimationTests
     public void MainViewModel_UsesRealHeading_WhenAvailable()
     {
         var settingsService = new MoqSettingsService();
-        var watcherService = new MoqWatcherService();
-        var vm = new MainViewModel(settingsService, watcherService);
+        var providers = new ILocationProvider[] 
+        { 
+            new MoqClipboardLocationProvider(), 
+            new MoqLogFileLocationProvider(),
+            new MoqSharedMemoryLocationProvider()
+        };
+        var factory = new LocationProviderFactory(providers);
+        var vm = new MainViewModel(settingsService, factory);
         
         vm.Settings.SelectedProfile.CoordinateOrder = "x z y d"; // Default order with 4th component
         vm.TargetCoordinates = "100 100 100";
@@ -85,13 +103,34 @@ public class HeadingEstimationTests
         public void SaveLocations(IEnumerable<LocationItem> locations, GameProfile profile) { }
     }
 
-    private class MoqWatcherService : IWatcherService
+//     private class MoqLocationProvider : ILocationProvider
+//     {
+// #pragma warning disable CS0067
+//         public event EventHandler<string>? LocationUpdated;
+// #pragma warning restore CS0067
+//         public void Start(AppSettings settings, IntPtr windowHandle) { }
+//         public void Stop() { }
+//         public void Dispose() { }
+//     }
+
+    private class MoqClipboardLocationProvider : ClipboardLocationProvider
     {
-#pragma warning disable CS0067
-        public event EventHandler<string>? LocationUpdated;
-#pragma warning restore CS0067
-        public void Start(AppSettings settings, IntPtr windowHandle) { }
-        public void Stop() { }
-        public void Dispose() { }
+        public new void Start(AppSettings settings, IntPtr windowHandle) { }
+        public new void Stop() { }
+        public new void Dispose() { }
+    }
+
+    private class MoqLogFileLocationProvider : LogFileLocationProvider
+    {
+        public new void Start(AppSettings settings, IntPtr windowHandle) { }
+        public new void Stop() { }
+        public new void Dispose() { }
+    }
+
+    private class MoqSharedMemoryLocationProvider : SharedMemoryLocationProvider
+    {
+        public new void Start(AppSettings settings, IntPtr windowHandle) { }
+        public new void Stop() { }
+        public new void Dispose() { }
     }
 }
