@@ -32,11 +32,8 @@ public class SettingsService : ISettingsService {
                 }
                 catch (JsonException ex) {
                     Log.Error(ex, "JSON deserialization error loading settings from '{Path}'.", _settingsPath);
-                    
-                    System.Windows.MessageBox.Show(
-                        $"The settings file appears to be corrupted and could not be loaded. Default settings will be used.\n\nError: {ex.Message}", 
-                        "Settings Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    
+                    Log.Information(ex, "The settings file appears to be corrupted and could not be loaded. Default settings will be used.");
+                   
                     try {
                         File.Move(_settingsPath, _settingsPath + ".bak", overwrite: true);
                         Log.Information("Corrupted settings file moved to '{Path}.bak'.", _settingsPath);

@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MMONavigator.Base;
 
 namespace MMONavigator.Models;
 
-public class LocationItem : INotifyPropertyChanged {
+public class LocationItem : ViewModelBase {
     private string? _name;
     public string? Name {
         get => _name;
@@ -40,10 +41,5 @@ public class LocationItem : INotifyPropertyChanged {
     public List<LocationItem>? Items {
         get => _items;
         set { _items = value; OnPropertyChanged(); OnPropertyChanged(nameof(DisplayName)); }
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

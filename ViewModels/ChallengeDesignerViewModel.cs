@@ -4,12 +4,13 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
+using MMONavigator.Base;
 using MMONavigator.Helpers;
 using MMONavigator.Services;
 
 namespace MMONavigator.ViewModels;
 
-public class ChallengeDesignerViewModel : INotifyPropertyChanged {
+public class ChallengeDesignerViewModel : ViewModelBase {
     private ChallengeOverview? _challengeOVerview;
 
     public ChallengeOverview? ChallengeOverview {
@@ -318,17 +319,4 @@ public class ChallengeDesignerViewModel : INotifyPropertyChanged {
 
     // TODO: FlattenTree() — walk RootNodes recursively, assign ParentId from
     // each node's Parent reference, return List<ChallengeSpecs> for serialization.
-
-    // ── INotifyPropertyChanged ───────────────────────────────────────────────
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
 }

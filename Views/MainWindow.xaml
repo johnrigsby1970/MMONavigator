@@ -264,6 +264,16 @@
                             Command="{Binding CopyLocationToDestinationCommand}"
                             Style="{StaticResource PrimaryButtonStyle}">
                     </Button>
+                    
+                    <Button Width="20" Height="20" Margin="3"
+                            Content="?"
+                            ToolTip="Show Help Tips" FontWeight="ExtraBold"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding ShowHelpTipsCommand}"
+                            >
+                    </Button>
+                    
+                    
 
                     <!-- <Button Width="20" Height="20" Margin="0,3,3,3" -->
                     <!--         Content="&#xE77B;" -->

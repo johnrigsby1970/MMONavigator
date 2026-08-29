@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using MMONavigator.Base;
 
 namespace MMONavigator.Models;
 
-public class MapLocation3D : INotifyPropertyChanged
+public class MapLocation3D : ViewModelBase
 {
     private string _name = string.Empty;
     public string Name
@@ -40,8 +41,4 @@ public class MapLocation3D : INotifyPropertyChanged
         get => _visibility;
         set { _visibility = value; OnPropertyChanged(); }
     }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

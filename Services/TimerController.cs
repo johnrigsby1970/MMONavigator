@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel;
 using System.Media;
+using System.Runtime.CompilerServices;
 using System.Windows.Threading;
+using MMONavigator.Base;
 
 namespace MMONavigator.Services;
 
-public class TimerController : INotifyPropertyChanged {
+public class TimerController : ViewModelBase {
     private readonly int _initialMinutes;
     private int _secondsLeft;
     private DispatcherTimer? _timer;
@@ -15,8 +17,6 @@ public class TimerController : INotifyPropertyChanged {
     private const int WarningSecondsThreshold = 60;
     private const int UrgentSecondsThreshold = 30;
     
-    public event PropertyChangedEventHandler? PropertyChanged;
-
     public TimerController(int minutes) {
         if (minutes <= 0) {
             Log.Warning("TimerController initialized with invalid minutes ({Minutes}); defaulting to 1 minute.", minutes);
@@ -160,9 +160,5 @@ public class TimerController : INotifyPropertyChanged {
         catch (Exception ex) {
             Log.Error(ex, "Error updating timer display properties.");
         }
-    }
-
-    protected virtual void OnPropertyChanged(string propertyName) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

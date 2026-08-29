@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using MMONavigator.Base;
 using MMONavigator.Helpers;
 
 namespace MMONavigator.Models;
@@ -34,7 +35,7 @@ public enum CoordinateSystem {
     LeftHanded   // +X = West, +Y = North
 }
 
-public class AppSettings : INotifyPropertyChanged {
+public class AppSettings : ViewModelBase {
     private ObservableCollection<GameProfile> _profiles = new();
     public ObservableCollection<GameProfile> Profiles {
         get => _profiles;
@@ -156,11 +157,5 @@ public class AppSettings : INotifyPropertyChanged {
                 OnPropertyChanged();
             }
         }
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

@@ -985,7 +985,7 @@
                         Margin="0,0,0,0"
                         Focusable="False">
                         <TextBlock Text="{Binding HoverCoordinatesLabel}"
-                                   Foreground="#AAAAAA" VerticalAlignment="Center"
+                                   Foreground="Gold" VerticalAlignment="Center"
                                    FontSize="11"
                                    Margin="0,0,0,0" Focusable="False">
                         </TextBlock>

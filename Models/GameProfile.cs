@@ -1,11 +1,11 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-
+using MMONavigator.Base;
 using MMONavigator.Helpers;
 
 namespace MMONavigator.Models;
 
-public class GameProfile : INotifyPropertyChanged {
+public class GameProfile : ViewModelBase {
     private string _name = "Default";
     public string Name {
         get => _name;
@@ -93,13 +93,7 @@ public class GameProfile : INotifyPropertyChanged {
             }
         }
     }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
+    
     public GameProfile Clone(string newName) {
         return new GameProfile {
             Name = newName,

@@ -8,13 +8,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
+using MMONavigator.Base;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.Services;
 
 namespace MMONavigator.ViewModels;
 
-public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
+public class ThreeDMapViewModel : ViewModelBase, IDisposable {
     private MapSettings? _settings;
     private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
     private CoordinateData? _currentPosition;
@@ -35,8 +36,10 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     private Visibility _targetMarkerVisibility = Visibility.Collapsed;
     private ObservableCollection<MapLocation> _locations = new();
     private bool _loadingFile;
+
     private bool _staticMarkersDirty = true;
-   // private bool _locationMarkersShowing = false;
+
+    // private bool _locationMarkersShowing = false;
     private DispatcherTimer? _fadeTimer;
     private bool _isDrawModeActive;
     private bool _drawModeNeedsCalibration;
@@ -100,9 +103,9 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             OnPropertyChanged();
         }
     }
-    
-    public bool HasWorld =>  ActiveSetLayers.Any();
-    
+
+    public bool HasWorld => ActiveSetLayers.Any();
+
     #endregion
 
     #region 3D map properties
@@ -155,9 +158,9 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             appSettings.ThreeDMapWindowPlacement.Height = 600;
             appSettings.ThreeDMapWindowPlacement.Width = 800;
         }
-        
+
         CoordinateSystem = appSettings.SelectedProfile.CoordinateSystem;
-        
+
         AppSettings = appSettings;
 
         _settings.PropertyChanged -= Settings_PropertyChanged;
@@ -225,7 +228,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     public event Action? RequestTogglePerspectiveRest;
-        
+
     public event Action? RequestRecenterCamera;
 
     public void TogglePerspectiveRest() {
@@ -233,7 +236,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
         IsHeadingSyncedMode = true;
         RequestTogglePerspectiveRest?.Invoke();
     }
-    
+
     /// <summary>
     /// Triggers an event to re-center the 3D camera onto the player's current position.
     /// </summary>
@@ -244,6 +247,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     private bool _isGridVisible = false;
+
     public bool IsGridVisible {
         get => _isGridVisible;
         set {
@@ -260,7 +264,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     public void ToggleGrid() {
         IsGridVisible = !IsGridVisible;
     }
-    
+
     /// <summary>
     /// Calculates 3D world parameters using a specific map layer's calibration settings.
     /// </summary>
@@ -548,6 +552,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     #endregion
 
     private bool _zoomToCenter;
+
     public bool ZoomToCenter {
         get => _zoomToCenter;
         set {
@@ -555,7 +560,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             OnPropertyChanged();
         }
     }
-    
+
     private double _markerSize = 12.5;
 
     public double MarkerSize {
@@ -594,10 +599,10 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
         bitmap.UriSource = new Uri(imagePath);
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
         bitmap.EndInit();
-    
+
         double imgWidth = bitmap.PixelWidth;
         double imgHeight = bitmap.PixelHeight;
-        
+
         string layerId = Path.GetFileNameWithoutExtension(imagePath);
 
         // Remove existing entry if re-adding
@@ -611,7 +616,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             ZElevation = zElevation,
             Opacity = opacity,
             IsActiveDrawLayer = setAsActiveDraw,
-            Width = imgWidth,   // Store if your config supports it
+            Width = imgWidth, // Store if your config supports it
             Height = imgHeight
         };
 
@@ -620,10 +625,10 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
         if (setAsActiveDraw || ActiveDrawLayer == null) {
             ActiveDrawLayer = newLayer;
         }
-        
+
         OnPropertyChanged(nameof(ActiveSetLayers));
         OnPropertyChanged(nameof(HasWorld));
-        
+
         _staticMarkersDirty = true;
         UpdateMarkers();
     }
@@ -656,7 +661,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
         ActiveSetLayers.Clear();
         double maxLayerWidth = 0;
         double maxLayerHeight = 0;
-        
+
         foreach (var layer in set.Layers) {
             // Fallback or re-measure if the file exists on disk to catch external edits
             if (File.Exists(layer.ImagePath)) {
@@ -672,20 +677,20 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
 
             if (layer.Width > maxLayerWidth) maxLayerWidth = layer.Width;
             if (layer.Height > maxLayerHeight) maxLayerHeight = layer.Height;
-            
+
             ActiveSetLayers.Add(layer);
             if (layer.IsActiveDrawLayer) {
                 ActiveDrawLayer = layer;
             }
         }
-        
+
         OnPropertyChanged(nameof(ActiveSetLayers));
         OnPropertyChanged(nameof(HasWorld));
-        
+
         _staticMarkersDirty = true;
         IsLoadingFile = false;
         UpdateMarkers();
-        
+
         // Immediately configure bounds based on the actual active map dimensions
         if (maxLayerWidth > 0 && maxLayerHeight > 0) {
             // Assuming you expose a reference or event to the viewport from the VM, 
@@ -695,7 +700,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     public event Action<double, double>? RequestConfigureBounds;
-    
+
     /// <summary>
     /// Saves the current multi-layer configuration to disk.
     /// </summary>
@@ -1937,82 +1942,86 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
     //The "Left-Handed" coordinate system by negating curDx. This flips the
     //X-axis across the Y-axis. See: double dpy = py1 - py2;
     private (double x, double y, Visibility vis) CalculatePixelPosition(CoordinateData pos) {
-        try {
-            //Is the coordinate on the map?
-            //If it is, what is the translated position in terms of the image's pixel coordinates.
+    try {
+        //Is the coordinate on the map?
+        //If it is, what is the translated position in terms of the image's pixel coordinates.
 
-            if (MapImage == null || _settings == null)
-                return (0, 0, Visibility.Collapsed);
+        if (MapImage == null || _settings == null)
+            return (0, 0, Visibility.Collapsed);
 
-            double x1 = _settings.Point1.X;
-            double y1 = _settings.Point1.Y;
-            double px1 = _settings.Point1.PixelX;
-            double py1 = _settings.Point1.PixelY;
+        double x1 = _settings.Point1.X;
+        double y1 = _settings.Point1.Y;
+        double px1 = _settings.Point1.PixelX;
+        double py1 = _settings.Point1.PixelY;
 
-            double x2 = _settings.Point2.X;
-            double y2 = _settings.Point2.Y;
-            double px2 = _settings.Point2.PixelX;
-            double py2 = _settings.Point2.PixelY;
+        double x2 = _settings.Point2.X;
+        double y2 = _settings.Point2.Y;
+        double px2 = _settings.Point2.PixelX;
+        double py2 = _settings.Point2.PixelY;
 
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            double dpx = px2 - px1;
-            double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double dpx = px2 - px1;
+        double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
 
-            if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) {
-                return (0, 0, Visibility.Collapsed);
-            }
-
-            double dReal = Math.Sqrt(dx * dx + dy * dy);
-            double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
-
-            if (dReal < 0.0001) {
-                return (0, 0, Visibility.Collapsed);
-            }
-
-            double scale = dPixel / dReal;
-
-            // Apply a safe limit to the scale factor to prevent WPF layout overflows
-            // A scale of 10,000 pixels per game unit is extremely high and should be sufficient.
-            if (scale > 10000) {
-                return (0, 0, Visibility.Collapsed);
-            }
-
-            double angleReal = Math.Atan2(dy, dx);
-            double anglePixel = Math.Atan2(dpy, dpx);
-            double rotation = anglePixel - angleReal;
-
-            double curDx = pos.X - x1;
-            double curDy = pos.Y - y1;
-
-            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
-                curDx = -curDx;
-            }
-
-            double cosR = Math.Cos(rotation);
-            double sinR = Math.Sin(rotation);
-
-            double rotX = curDx * cosR - curDy * sinR;
-            double rotY = curDx * sinR + curDy * cosR;
-
-            double px = px1 + rotX * scale;
-            double py = py1 - rotY * scale;
-
-            //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
-            //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
-            //getting the right coordinates but deciding that the coordinates didn't fit on the image.
-            if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
-                return (px, py, Visibility.Visible);
-            }
-            else {
-                return (0, 0, Visibility.Collapsed);
-            }
+        if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+            dx = -dx;
         }
-        catch (Exception ex) {
-            Log.Error(ex, "Error updating marker position in CalculatePixelPosition.");
+        
+        if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) {
+            return (0, 0, Visibility.Collapsed);
+        }
+
+        double dReal = Math.Sqrt(dx * dx + dy * dy);
+        double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
+
+        if (dReal < 0.0001) {
+            return (0, 0, Visibility.Collapsed);
+        }
+
+        double scale = dPixel / dReal;
+
+        // Apply a safe limit to the scale factor to prevent WPF layout overflows
+        // A scale of 10,000 pixels per game unit is extremely high and should be sufficient.
+        if (scale > 10000) {
+            return (0, 0, Visibility.Collapsed);
+        }
+
+        double angleReal = Math.Atan2(dy, dx);
+        double anglePixel = Math.Atan2(dpy, dpx);
+        double rotation = anglePixel - angleReal;
+
+        double curDx = pos.X - x1;
+        double curDy = pos.Y - y1;
+
+        if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+            curDx = -curDx;
+        }
+
+        double cosR = Math.Cos(rotation);
+        double sinR = Math.Sin(rotation);
+
+        double rotX = curDx * cosR - curDy * sinR;
+        double rotY = curDx * sinR + curDy * cosR;
+
+        double px = px1 + rotX * scale;
+        double py = py1 - rotY * scale;
+
+        //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
+        //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
+        //getting the right coordinates but deciding that the coordinates didn't fit on the image.
+        if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
+            return (px, py, Visibility.Visible);
+        }
+        else {
             return (0, 0, Visibility.Collapsed);
         }
     }
+    catch (Exception ex) {
+        Log.Error(ex, "Error updating marker position in CalculatePixelPosition.");
+        return (0, 0, Visibility.Collapsed);
+    }
+}
 
     private double CalculatePixelHeading(double gameHeading) {
         try {
@@ -2035,10 +2044,12 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
 
             if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) return 0;
 
+            // Standard Cartesian reference vector angle
             double angleReal = Math.Atan2(dy, dx);
             double anglePixel = Math.Atan2(dpy, dpx);
             double rotation = anglePixel - angleReal;
 
+            // Convert compass heading to standard Cartesian angle
             // gameHeading: 0 is North (+Y), 90 is East (+X)
             // We want angle in radians where 0 is +X, PI/2 is +Y (standard Cartesian)
             // gameHeading 0 -> angle PI/2
@@ -2047,13 +2058,14 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             double gameHeadingRad = gameHeading * (Math.PI / 180.0);
             double cartesianAngle = (Math.PI / 2.0) - gameHeadingRad;
 
+            // Invert heading angle ONLY for Left-Handed horizontal reflection
             if (CoordinateSystem == CoordinateSystem.LeftHanded) {
                 // In left-handed, +X is West. gameHeading 90 is still East (+X, in the game),
                 // but our dx was negated in GetDirection? No, NavigationCalculator says:
                 // if (coordinateSystem == CoordinateSystem.LeftHanded) dx = -dx;
                 // This means "game +X" is actually "-X in Cartesian".
                 // So if facing East (90), in Cartesian it's facing West (PI).
-                cartesianAngle = Math.PI - cartesianAngle;
+                cartesianAngle = -cartesianAngle;
             }
 
             double rotatedAngle = cartesianAngle + rotation;
@@ -2077,74 +2089,28 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             HoverCoordinatesLabel = string.Empty;
             return;
         }
-
-        try {
-            double x1 = _settings.Point1.X;
-            double y1 = _settings.Point1.Y;
-            double px1 = _settings.Point1.PixelX;
-            double py1 = _settings.Point1.PixelY;
-
-            double x2 = _settings.Point2.X;
-            double y2 = _settings.Point2.Y;
-            double px2 = _settings.Point2.PixelX;
-            double py2 = _settings.Point2.PixelY;
-
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            double dpx = px2 - px1;
-            double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
-
-            if (Math.Abs(dpx) < 0.0001 && Math.Abs(dpy) < 0.0001) {
-                HoverCoordinatesLabel = string.Empty;
-                return;
-            }
-
-            double dReal = Math.Sqrt(dx * dx + dy * dy);
-            double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
-
-            if (dPixel < 0.0001) {
-                HoverCoordinatesLabel = string.Empty;
-                return;
-            }
-
-            double scale = dReal / dPixel;
-
-            // Apply a safe limit to the scale factor. 
-            // 10,000 game units per pixel is extremely large (one pixel jump = 10km).
-            if (scale > 10000) {
-                HoverCoordinatesLabel = string.Empty;
-                return;
-            }
-
-            double angleReal = Math.Atan2(dy, dx);
-            double anglePixel = Math.Atan2(dpy, dpx);
-            double rotation = angleReal - anglePixel;
-
-            double curDpx = px - px1;
-            double curDpy = py1 - py; // Screen Y is inverted compared to Game Y
-
-            double cosR = Math.Cos(rotation);
-            double sinR = Math.Sin(rotation);
-
-            double rotX = curDpx * cosR - curDpy * sinR;
-            double rotY = curDpx * sinR + curDpy * cosR;
-
-            double x = x1 + rotX * scale;
-            double y = y1 + rotY * scale;
-
-            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
-                x = x1 - rotX * scale;
-            }
-
-            HoverCoordinatesLabel = $"{x:F1}, {y:F1}";
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Error calculating hover coordinates.");
+        
+        var coords = GetCoordinatesFromPixels(px, py); // Uses the verified, calibrated math
+        if (!coords.HasValue) {
             HoverCoordinatesLabel = string.Empty;
+            return;
+        }
+
+        double x = coords.Value.X;
+        double y = coords.Value.Y;
+        string order = AppSettings.SelectedProfile?.CoordinateOrder?.ToLowerInvariant() ?? "x y";
+
+        if (order.StartsWith("y x")) {
+            // Output Game Y (North) first, then Game X (West) for EverQuest
+            HoverCoordinatesLabel = $"{y:F1}, {x:F1}";
+        }
+        else {
+            // Standard X first, then Y[cite: 12]
+            HoverCoordinatesLabel = $"{x:F1}, {y:F1}";
         }
     }
 
-    public CoordinateData? GetCoordinatesFromPixels(double px, double py) {
+     public CoordinateData? GetCoordinatesFromPixels(double px, double py) {
         if (_settings == null || !_settings.IsCalibrated || MapImage == null) {
             return null;
         }
@@ -2163,8 +2129,12 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             double dx = x2 - x1;
             double dy = y2 - y1;
             double dpx = px2 - px1;
-            double dpy = py1 - py2;
+            double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
 
+            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+                dx = -dx;
+            }
+            
             if (Math.Abs(dpx) < 0.0001 && Math.Abs(dpy) < 0.0001) {
                 return null;
             }
@@ -2508,7 +2478,7 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
             BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(newBitmap);
             MapImage = newBitmap;
             _staticMarkersDirty = true;
-            
+
             //We have the last drawpoint, but its now obsolete
             //_drawLastPoints.Clear();
             // Shift any existing recent draw points so they align with the new bitmap origin
@@ -2704,12 +2674,6 @@ public class ThreeDMapViewModel : INotifyPropertyChanged, IDisposable {
         converted.EndInit();
 
         return new WriteableBitmap(converted);
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     public void Dispose() {

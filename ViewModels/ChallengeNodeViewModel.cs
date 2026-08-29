@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using MMONavigator.Base;
 using MMONavigator.Services;
 
 namespace MMONavigator.ViewModels;
 
-public class ChallengeNodeViewModel : INotifyPropertyChanged {
+public class ChallengeNodeViewModel : ViewModelBase {
     public ChallengeSpecs Specs { get; }
     public ObservableCollection<ChallengeNodeViewModel> Children { get; } = [];
 
@@ -41,15 +42,4 @@ public class ChallengeNodeViewModel : INotifyPropertyChanged {
 
     // Call this after editing Name or LocationId to refresh the tree label.
     public void RefreshDisplayName() => OnPropertyChanged(nameof(DisplayName));
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
 }

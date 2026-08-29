@@ -279,4 +279,16 @@ public class LogParserTests
         public new void Stop() { }
         public new void Dispose() { }
     }
+    
+    [Theory]
+    [InlineData("[01:23] Your Location is 100.5, 200.2, 15.0", "", "100.5 200.2 15.0")]
+    [InlineData("Corrupted text... Your Location is 10.0 20.0", "", "10.0 20.0")]
+    [InlineData("Your Location is 1.0 2.0 ... Your Location is 99.0 88.0", "", "99.0 88.0")]
+    public void TryParseLogLine_ValidInputs_ParsesCorrectCoordinates(string line, string regex, string expected)
+    {
+        bool result = LogParser.TryParseLogLine(line, regex, out string parsedCoordinates);
+
+        Assert.True(result);
+        Assert.Equal(expected, parsedCoordinates);
+    }
 }

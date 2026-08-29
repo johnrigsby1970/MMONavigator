@@ -25,13 +25,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.Input;
+using MMONavigator.Base;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
 using MMONavigator.Services;
 
 namespace MMONavigator.ViewModels;
 
-public class MapViewModel : INotifyPropertyChanged, IDisposable {
+public class MapViewModel : ViewModelBase, IDisposable {
     private MapSettings? _settings;
     private CoordinateSystem _coordinateSystem = CoordinateSystem.RightHanded;
     private CoordinateData? _currentPosition;
@@ -63,8 +64,8 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
     private bool _expandingMap;
     private bool _calibratingNewDrawMap;
     private double? _drawingRadius;
-    private int _drawColorIndex;           // 0=white, 1=dodger blue, ..., 12=transparent
-    private int _drawSizeMode;             // 0=default, 1=+3, 2=+5, 3=+10, -1=2px fixed
+    private int _drawColorIndex; // 0=white, 1=dodger blue, ..., 12=transparent
+    private int _drawSizeMode; // 0=default, 1=+3, 2=+5, 3=+10, -1=2px fixed
     private bool _drawAntiAlias = true;
     private byte _drawBrushB = 255, _drawBrushG = 255, _drawBrushR = 255;
     private bool _drawLineMode;
@@ -72,9 +73,9 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
     private const double CursorPositionTopMargin = 5;
 
     private const double HowFarCanAPersonSee = 30;
-    
+
     private double _currentZoomScale = 1.0;
-    
+
     public bool AutoExpandDrawMap {
         get => _settings?.AutoExpandDrawMap ?? true;
         set {
@@ -84,7 +85,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             }
         }
     }
-    
+
     private double _markerSize = 12.5;
 
     public double MarkerSize {
@@ -96,13 +97,11 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     private bool _isCalibrationTipDismissed;
-    public bool IsCalibrationTipDismissed
-    {
+
+    public bool IsCalibrationTipDismissed {
         get => _isCalibrationTipDismissed;
-        set
-        {
-            if (_isCalibrationTipDismissed != value)
-            {
+        set {
+            if (_isCalibrationTipDismissed != value) {
                 _isCalibrationTipDismissed = value;
                 OnPropertyChanged();
             }
@@ -111,7 +110,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
 
 // Command bound to the close "✕" button
     public ICommand DismissCalibrationTipCommand { get; }
-    
+
     private Thickness _markerMargin = new Thickness(-6.25, -6.25, 0, 0);
 
     public Thickness MarkerMargin {
@@ -286,7 +285,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             }
         }
     }
-    
+
     private bool _isFollowModeActive;
 
     public bool IsFollowModeActive {
@@ -296,7 +295,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             OnPropertyChanged();
         }
     }
-    
+
     public bool IsDrawModeActive {
         get => _isDrawModeActive;
         set {
@@ -361,18 +360,18 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
     public void SetDrawColor(int index) {
         DrawColorIndex = index;
         (_drawBrushB, _drawBrushG, _drawBrushR) = index switch {
-            1  => ((byte)255, (byte)144, (byte)30),   // Dodger Blue  #1E90FF
-            2  => ((byte)0,   (byte)128, (byte)0),    // Green        #008000
-            3  => ((byte)255, (byte)255, (byte)0),    // Cyan         #00FFFF
-            4  => ((byte)42,  (byte)42,  (byte)165),  // Brown        #A52A2A
-            5  => ((byte)140, (byte)180, (byte)210),  // Tan          #D2B48C
-            6  => ((byte)0,   (byte)255, (byte)255),  // Yellow       #FFFF00
-            7  => ((byte)0,   (byte)165, (byte)255),  // Orange       #FFA500
-            8  => ((byte)128, (byte)0,   (byte)128),  // Purple       #800080
-            9  => ((byte)0,   (byte)0,   (byte)255),  // Red          #FF0000
-            10 => ((byte)0,   (byte)0,   (byte)0),    // Black        #000000
-            11 => ((byte)128, (byte)128, (byte)128),  // Gray         #808080
-            _  => ((byte)255, (byte)255, (byte)255),  // White (default / transparent ignored)
+            1 => ((byte)255, (byte)144, (byte)30), // Dodger Blue  #1E90FF
+            2 => ((byte)0, (byte)128, (byte)0), // Green        #008000
+            3 => ((byte)255, (byte)255, (byte)0), // Cyan         #00FFFF
+            4 => ((byte)42, (byte)42, (byte)165), // Brown        #A52A2A
+            5 => ((byte)140, (byte)180, (byte)210), // Tan          #D2B48C
+            6 => ((byte)0, (byte)255, (byte)255), // Yellow       #FFFF00
+            7 => ((byte)0, (byte)165, (byte)255), // Orange       #FFA500
+            8 => ((byte)128, (byte)0, (byte)128), // Purple       #800080
+            9 => ((byte)0, (byte)0, (byte)255), // Red          #FF0000
+            10 => ((byte)0, (byte)0, (byte)0), // Black        #000000
+            11 => ((byte)128, (byte)128, (byte)128), // Gray         #808080
+            _ => ((byte)255, (byte)255, (byte)255), // White (default / transparent ignored)
         };
     }
 
@@ -493,7 +492,8 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
         get {
             // Assume _opacityLevel is your 0.0 - 1.0 double
             byte alpha = (byte)(EffectiveOpacity * 255);
-            return new SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha, 62, 62, 66)); // Black with variable transparency
+            return new SolidColorBrush(
+                System.Windows.Media.Color.FromArgb(alpha, 62, 62, 66)); // Black with variable transparency
         }
     }
 
@@ -503,7 +503,8 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             byte alpha = 255;
             return !IsHovered && Opacity < 1
                 ? System.Windows.Media.Brushes.Transparent
-                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(alpha, 62, 62, 66)); // Black with variable transparency
+                : new SolidColorBrush(
+                    System.Windows.Media.Color.FromArgb(alpha, 62, 62, 66)); // Black with variable transparency
         }
     }
 
@@ -564,13 +565,13 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
         _settings.PropertyChanged -= Settings_PropertyChanged;
         _settings.Point1.PropertyChanged -= MapPoint_PropertyChanged;
         _settings.Point2.PropertyChanged -= MapPoint_PropertyChanged;
-        
+
         _settings.PropertyChanged += Settings_PropertyChanged;
         _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
         _settings.Point2.PropertyChanged += MapPoint_PropertyChanged;
 
         DismissCalibrationTipCommand = new MMONavigator.Helpers.RelayCommand(_ => IsCalibrationTipDismissed = true);
-    
+
         LoadImage();
 
         if (ShowBreadcrumb) {
@@ -587,7 +588,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             UpdateMarkers();
         }
         else if (e.PropertyName == nameof(MapSettings.Point1) || e.PropertyName == nameof(MapSettings.Point2)) {
-            if(_settings==null) return;
+            if (_settings == null) return;
             if (e.PropertyName == nameof(MapSettings.Point1)) {
                 _settings.Point1.PropertyChanged -= MapPoint_PropertyChanged;
                 _settings.Point1.PropertyChanged += MapPoint_PropertyChanged;
@@ -669,7 +670,8 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
         get => _currentPosition;
         set {
             // Prevent infinite property loop if the position value hasn't changed
-            if (Nullable.Equals(_currentPosition, value)) return;_currentPosition = value;
+            if (Nullable.Equals(_currentPosition, value)) return;
+            _currentPosition = value;
             OnPropertyChanged();
             UpdateMarkers();
         }
@@ -702,7 +704,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             OnPropertyChanged(nameof(ShowBreadcrumb));
         }
     }
-    
+
     public WriteableBitmap? FogImage {
         get => _fogImage;
         private set {
@@ -730,7 +732,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             OnPropertyChanged();
         }
     }
-    
+
     public BitmapSource? MapImage {
         get => _mapImage;
         set {
@@ -738,7 +740,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             OnPropertyChanged();
         }
     }
-    
+
     public BitmapSource? OriginalMapImage {
         get => _originalMapImage;
         set {
@@ -1026,6 +1028,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             IsCalibrationTipDismissed = false;
             calibrated = false;
         }
+
         return calibrated;
     }
 
@@ -1190,7 +1193,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
             int stride = BreadcrumbImage.BackBufferStride;
             int height = BreadcrumbImage.PixelHeight;
             int width = BreadcrumbImage.PixelWidth;
-        
+
             unsafe {
                 byte* pBuffer = (byte*)BreadcrumbImage.BackBuffer;
 
@@ -1209,6 +1212,7 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
                     }
                 }
             }
+
             // Notify WPF to redraw the entire bitmap
             try {
                 BreadcrumbImage.AddDirtyRect(new Int32Rect(0, 0, width, height));
@@ -1225,124 +1229,126 @@ public class MapViewModel : INotifyPropertyChanged, IDisposable {
         }
     }
 
-private bool _isUpdatingMarkers;
+    private bool _isUpdatingMarkers;
 
-public void UpdateMarkers() {
-    // Prevent re-entrancy / infinite recursion lockups
-    if (_isUpdatingMarkers || _loadingFile || _expandingMap || _calibratingNewDrawMap) return;
-    if (_settings == null) return;
+    public void UpdateMarkers() {
+        // Prevent re-entrancy / infinite recursion lockups
+        if (_isUpdatingMarkers || _loadingFile || _expandingMap || _calibratingNewDrawMap) return;
+        if (_settings == null) return;
 
-    _isUpdatingMarkers = true;
-    try {
-        if (CurrentPosition.HasValue) {
-            // Auto-calibrate a newly created draw map on the first coordinate read
-            if (IsDrawModeActive && _drawModeNeedsCalibration) {
-                CalibrateNewDrawMap(CurrentPosition.Value);
-                _drawModeNeedsCalibration = false;
-            }
-        }
-
-        if (!_settings.IsCalibrated || MapImage == null) {
-            CurrentPositionMarkerVisibility = Visibility.Collapsed;
-            TargetMarkerVisibility = Visibility.Collapsed;
-            if (_locationMarkersShowing) {
-                foreach (var loc in Locations) {
-                    loc.Visibility = Visibility.Collapsed;
+        _isUpdatingMarkers = true;
+        try {
+            if (CurrentPosition.HasValue) {
+                // Auto-calibrate a newly created draw map on the first coordinate read
+                if (IsDrawModeActive && _drawModeNeedsCalibration) {
+                    CalibrateNewDrawMap(CurrentPosition.Value);
+                    _drawModeNeedsCalibration = false;
                 }
-                _locationMarkersShowing = false;
             }
-            return;
-        }
 
-        if (CurrentPosition.HasValue) {
-            var (mx, my, vis) = CalculatePixelPosition(CurrentPosition.Value);
-            MarkerX = mx;
-            MarkerY = my;
-            CurrentPositionMarkerVisibility = vis;
-
-            if (CurrentPositionMarkerVisibility == Visibility.Visible) {
-                if (IsDrawModeActive) {
-                    if (ExpandDrawMapIfNeeded(MarkerX, MarkerY)) {
-                        // 1. Re-calculates position so MarkerX/Y match the new expanded grid
-                        var (expMx, expMy, expVis) = CalculatePixelPosition(CurrentPosition.Value);
-                        MarkerX = expMx;
-                        MarkerY = expMy;
-                        CurrentPositionMarkerVisibility = expVis;
+            if (!_settings.IsCalibrated || MapImage == null) {
+                CurrentPositionMarkerVisibility = Visibility.Collapsed;
+                TargetMarkerVisibility = Visibility.Collapsed;
+                if (_locationMarkersShowing) {
+                    foreach (var loc in Locations) {
+                        loc.Visibility = Visibility.Collapsed;
                     }
 
-                    // 2. Draws ONLY after the expansion and coordinate re-calculation are complete
-                    if (CurrentPositionMarkerVisibility == Visibility.Visible) {
-                        if (!_drawingRadius.HasValue) _drawingRadius = GetDrawBrushRadius();
-                        double radius = _drawingRadius.Value;
-                        if (_drawLineMode && _drawLastPoints.Count > 0)
-                            PaintDrawLine(_drawLastPoints[^1].X, _drawLastPoints[^1].Y, MarkerX, MarkerY, radius);
-                        else
-                            PaintDrawPixels(MarkerX, MarkerY, radius);
-                        PushDrawPoint(MarkerX, MarkerY);
-                    }
+                    _locationMarkersShowing = false;
                 }
-                else {
-                    double pixelsPerFoot = GetPixelsPerGameUnit();
-                    double radius = HowFarCanAPersonSee;
-                    double radiusInPixels = radius * pixelsPerFoot;
-                    double actualRadius = Math.Max(5.0, radiusInPixels);
-                    PunchTransparentCircle(MarkerX, MarkerY, actualRadius);
 
-                    var currentScale = Settings?.ZoomLevel ?? 1;
-                    var effectiveMarkerDiameter = 6 * currentScale;
-                    PunchBreadcrumbCircle(MarkerX, MarkerY, Math.Max(2.0, effectiveMarkerDiameter / 2.0));
-                }
+                return;
             }
 
-            if (CurrentPosition.Value.Heading.HasValue) {
-                MarkerHeading = CalculatePixelHeading(CurrentPosition.Value.Heading.Value);
-                HeadingVisibility = CurrentPositionMarkerVisibility;
-            }
-            else {
-                HeadingVisibility = Visibility.Collapsed;
-            }
-        }
-        else {
-            CurrentPositionMarkerVisibility = Visibility.Collapsed;
-            HeadingVisibility = Visibility.Collapsed;
-        }
+            if (CurrentPosition.HasValue) {
+                var (mx, my, vis) = CalculatePixelPosition(CurrentPosition.Value);
+                MarkerX = mx;
+                MarkerY = my;
+                CurrentPositionMarkerVisibility = vis;
 
-        if (TargetPosition.HasValue) {
-            var (tx, ty, tvis) = CalculatePixelPosition(TargetPosition.Value);
-            TargetMarkerX = tx;
-            TargetMarkerY = ty;
-            TargetMarkerVisibility = tvis;
-        }
-        else {
-            TargetMarkerVisibility = Visibility.Collapsed;
-        }
+                if (CurrentPositionMarkerVisibility == Visibility.Visible) {
+                    if (IsDrawModeActive) {
+                        if (ExpandDrawMapIfNeeded(MarkerX, MarkerY)) {
+                            // 1. Re-calculates position so MarkerX/Y match the new expanded grid
+                            var (expMx, expMy, expVis) = CalculatePixelPosition(CurrentPosition.Value);
+                            MarkerX = expMx;
+                            MarkerY = expMy;
+                            CurrentPositionMarkerVisibility = expVis;
+                        }
 
-        // Only process static markers if marked dirty AND locations are enabled in settings
-        if (_staticMarkersDirty && _settings.ShowLocations) {
-            foreach (var loc in Locations) {
-                if (Scrubber.TryParse(loc.Coordinates, "x z y d", out var coords)) {
-                    var (x, y, vis) = CalculatePixelPosition(coords);
-                    if (Math.Abs(loc.PixelX - x) > 0.1) loc.PixelX = x;
-                    if (Math.Abs(loc.PixelY - y) > 0.1) loc.PixelY = y;
-                    if (loc.Visibility != vis) {
-                        loc.Visibility = vis;
-                        if (vis == Visibility.Visible) {
-                            _locationMarkersShowing = true;
+                        // 2. Draws ONLY after the expansion and coordinate re-calculation are complete
+                        if (CurrentPositionMarkerVisibility == Visibility.Visible) {
+                            if (!_drawingRadius.HasValue) _drawingRadius = GetDrawBrushRadius();
+                            double radius = _drawingRadius.Value;
+                            if (_drawLineMode && _drawLastPoints.Count > 0)
+                                PaintDrawLine(_drawLastPoints[^1].X, _drawLastPoints[^1].Y, MarkerX, MarkerY, radius);
+                            else
+                                PaintDrawPixels(MarkerX, MarkerY, radius);
+                            PushDrawPoint(MarkerX, MarkerY);
                         }
                     }
+                    else {
+                        double pixelsPerFoot = GetPixelsPerGameUnit();
+                        double radius = HowFarCanAPersonSee;
+                        double radiusInPixels = radius * pixelsPerFoot;
+                        double actualRadius = Math.Max(5.0, radiusInPixels);
+                        PunchTransparentCircle(MarkerX, MarkerY, actualRadius);
+
+                        var currentScale = Settings?.ZoomLevel ?? 1;
+                        var effectiveMarkerDiameter = 6 * currentScale;
+                        PunchBreadcrumbCircle(MarkerX, MarkerY, Math.Max(2.0, effectiveMarkerDiameter / 2.0));
+                    }
+                }
+
+                if (CurrentPosition.Value.Heading.HasValue) {
+                    MarkerHeading = CalculatePixelHeading(CurrentPosition.Value.Heading.Value);
+                    HeadingVisibility = CurrentPositionMarkerVisibility;
                 }
                 else {
-                    if (loc.Visibility != Visibility.Collapsed) loc.Visibility = Visibility.Collapsed;
+                    HeadingVisibility = Visibility.Collapsed;
                 }
             }
+            else {
+                CurrentPositionMarkerVisibility = Visibility.Collapsed;
+                HeadingVisibility = Visibility.Collapsed;
+            }
 
-            _staticMarkersDirty = false;
+            if (TargetPosition.HasValue) {
+                var (tx, ty, tvis) = CalculatePixelPosition(TargetPosition.Value);
+                TargetMarkerX = tx;
+                TargetMarkerY = ty;
+                TargetMarkerVisibility = tvis;
+            }
+            else {
+                TargetMarkerVisibility = Visibility.Collapsed;
+            }
+
+            // Only process static markers if marked dirty AND locations are enabled in settings
+            if (_staticMarkersDirty && _settings.ShowLocations) {
+                foreach (var loc in Locations) {
+                    if (Scrubber.TryParse(loc.Coordinates, "x z y d", out var coords)) {
+                        var (x, y, vis) = CalculatePixelPosition(coords);
+                        if (Math.Abs(loc.PixelX - x) > 0.1) loc.PixelX = x;
+                        if (Math.Abs(loc.PixelY - y) > 0.1) loc.PixelY = y;
+                        if (loc.Visibility != vis) {
+                            loc.Visibility = vis;
+                            if (vis == Visibility.Visible) {
+                                _locationMarkersShowing = true;
+                            }
+                        }
+                    }
+                    else {
+                        if (loc.Visibility != Visibility.Collapsed) loc.Visibility = Visibility.Collapsed;
+                    }
+                }
+
+                _staticMarkersDirty = false;
+            }
+        }
+        finally {
+            _isUpdatingMarkers = false;
         }
     }
-    finally {
-        _isUpdatingMarkers = false;
-    }
-}
 
     // This code uses a 2D Affine Transformation.
     // It is calculating a rotation matrix and a scale factor based on two calibration points.
@@ -1352,82 +1358,86 @@ public void UpdateMarkers() {
     //The "Left-Handed" coordinate system by negating curDx. This flips the
     //X-axis across the Y-axis. See: double dpy = py1 - py2;
     private (double x, double y, Visibility vis) CalculatePixelPosition(CoordinateData pos) {
-        try {
-            //Is the coordinate on the map?
-            //If it is, what is the translated position in terms of the image's pixel coordinates.
+    try {
+        //Is the coordinate on the map?
+        //If it is, what is the translated position in terms of the image's pixel coordinates.
 
-            if (MapImage == null || _settings == null)
-                return (0, 0, Visibility.Collapsed);
+        if (MapImage == null || _settings == null)
+            return (0, 0, Visibility.Collapsed);
 
-            double x1 = _settings.Point1.X;
-            double y1 = _settings.Point1.Y;
-            double px1 = _settings.Point1.PixelX;
-            double py1 = _settings.Point1.PixelY;
+        double x1 = _settings.Point1.X;
+        double y1 = _settings.Point1.Y;
+        double px1 = _settings.Point1.PixelX;
+        double py1 = _settings.Point1.PixelY;
 
-            double x2 = _settings.Point2.X;
-            double y2 = _settings.Point2.Y;
-            double px2 = _settings.Point2.PixelX;
-            double py2 = _settings.Point2.PixelY;
+        double x2 = _settings.Point2.X;
+        double y2 = _settings.Point2.Y;
+        double px2 = _settings.Point2.PixelX;
+        double py2 = _settings.Point2.PixelY;
 
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            double dpx = px2 - px1;
-            double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        double dpx = px2 - px1;
+        double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
 
-            if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) {
-                return (0, 0, Visibility.Collapsed);
-            }
-
-            double dReal = Math.Sqrt(dx * dx + dy * dy);
-            double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
-
-            if (dReal < 0.0001) {
-                return (0, 0, Visibility.Collapsed);
-            }
-
-            double scale = dPixel / dReal;
-
-            // Apply a safe limit to the scale factor to prevent WPF layout overflows
-            // A scale of 10,000 pixels per game unit is extremely high and should be sufficient.
-            if (scale > 10000) {
-                return (0, 0, Visibility.Collapsed);
-            }
-
-            double angleReal = Math.Atan2(dy, dx);
-            double anglePixel = Math.Atan2(dpy, dpx);
-            double rotation = anglePixel - angleReal;
-
-            double curDx = pos.X - x1;
-            double curDy = pos.Y - y1;
-
-            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
-                curDx = -curDx;
-            }
-
-            double cosR = Math.Cos(rotation);
-            double sinR = Math.Sin(rotation);
-
-            double rotX = curDx * cosR - curDy * sinR;
-            double rotY = curDx * sinR + curDy * cosR;
-
-            double px = px1 + rotX * scale;
-            double py = py1 - rotY * scale;
-
-            //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
-            //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
-            //getting the right coordinates but deciding that the coordinates didn't fit on the image.
-            if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
-                return (px, py, Visibility.Visible);
-            }
-            else {
-                return (0, 0, Visibility.Collapsed);
-            }
+        if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+            dx = -dx;
         }
-        catch (Exception ex) {
-            Log.Error(ex, "Error updating marker position in CalculatePixelPosition.");
+        
+        if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) {
+            return (0, 0, Visibility.Collapsed);
+        }
+
+        double dReal = Math.Sqrt(dx * dx + dy * dy);
+        double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
+
+        if (dReal < 0.0001) {
+            return (0, 0, Visibility.Collapsed);
+        }
+
+        double scale = dPixel / dReal;
+
+        // Apply a safe limit to the scale factor to prevent WPF layout overflows
+        // A scale of 10,000 pixels per game unit is extremely high and should be sufficient.
+        if (scale > 10000) {
+            return (0, 0, Visibility.Collapsed);
+        }
+
+        double angleReal = Math.Atan2(dy, dx);
+        double anglePixel = Math.Atan2(dpy, dpx);
+        double rotation = anglePixel - angleReal;
+
+        double curDx = pos.X - x1;
+        double curDy = pos.Y - y1;
+
+        if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+            curDx = -curDx;
+        }
+
+        double cosR = Math.Cos(rotation);
+        double sinR = Math.Sin(rotation);
+
+        double rotX = curDx * cosR - curDy * sinR;
+        double rotY = curDx * sinR + curDy * cosR;
+
+        double px = px1 + rotX * scale;
+        double py = py1 - rotY * scale;
+
+        //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
+        //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
+        //getting the right coordinates but deciding that the coordinates didn't fit on the image.
+        if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
+            return (px, py, Visibility.Visible);
+        }
+        else {
             return (0, 0, Visibility.Collapsed);
         }
     }
+    catch (Exception ex) {
+        Log.Error(ex, "Error updating marker position in CalculatePixelPosition.");
+        return (0, 0, Visibility.Collapsed);
+    }
+}
 
     private double CalculatePixelHeading(double gameHeading) {
         try {
@@ -1450,10 +1460,12 @@ public void UpdateMarkers() {
 
             if (Math.Abs(dx) < 0.0001 && Math.Abs(dy) < 0.0001) return 0;
 
+            // Standard Cartesian reference vector angle
             double angleReal = Math.Atan2(dy, dx);
             double anglePixel = Math.Atan2(dpy, dpx);
             double rotation = anglePixel - angleReal;
 
+            // Convert compass heading to standard Cartesian angle
             // gameHeading: 0 is North (+Y), 90 is East (+X)
             // We want angle in radians where 0 is +X, PI/2 is +Y (standard Cartesian)
             // gameHeading 0 -> angle PI/2
@@ -1462,13 +1474,14 @@ public void UpdateMarkers() {
             double gameHeadingRad = gameHeading * (Math.PI / 180.0);
             double cartesianAngle = (Math.PI / 2.0) - gameHeadingRad;
 
+            // Invert heading angle ONLY for Left-Handed horizontal reflection
             if (CoordinateSystem == CoordinateSystem.LeftHanded) {
                 // In left-handed, +X is West. gameHeading 90 is still East (+X, in the game),
                 // but our dx was negated in GetDirection? No, NavigationCalculator says:
                 // if (coordinateSystem == CoordinateSystem.LeftHanded) dx = -dx;
                 // This means "game +X" is actually "-X in Cartesian".
                 // So if facing East (90), in Cartesian it's facing West (PI).
-                cartesianAngle = Math.PI - cartesianAngle;
+                cartesianAngle = -cartesianAngle;
             }
 
             double rotatedAngle = cartesianAngle + rotation;
@@ -1492,70 +1505,24 @@ public void UpdateMarkers() {
             HoverCoordinatesLabel = string.Empty;
             return;
         }
-
-        try {
-            double x1 = _settings.Point1.X;
-            double y1 = _settings.Point1.Y;
-            double px1 = _settings.Point1.PixelX;
-            double py1 = _settings.Point1.PixelY;
-
-            double x2 = _settings.Point2.X;
-            double y2 = _settings.Point2.Y;
-            double px2 = _settings.Point2.PixelX;
-            double py2 = _settings.Point2.PixelY;
-
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            double dpx = px2 - px1;
-            double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
-
-            if (Math.Abs(dpx) < 0.0001 && Math.Abs(dpy) < 0.0001) {
-                HoverCoordinatesLabel = string.Empty;
-                return;
-            }
-
-            double dReal = Math.Sqrt(dx * dx + dy * dy);
-            double dPixel = Math.Sqrt(dpx * dpx + dpy * dpy);
-
-            if (dPixel < 0.0001) {
-                HoverCoordinatesLabel = string.Empty;
-                return;
-            }
-
-            double scale = dReal / dPixel;
-
-            // Apply a safe limit to the scale factor. 
-            // 10,000 game units per pixel is extremely large (one pixel jump = 10km).
-            if (scale > 10000) {
-                HoverCoordinatesLabel = string.Empty;
-                return;
-            }
-
-            double angleReal = Math.Atan2(dy, dx);
-            double anglePixel = Math.Atan2(dpy, dpx);
-            double rotation = angleReal - anglePixel;
-
-            double curDpx = px - px1;
-            double curDpy = py1 - py; // Screen Y is inverted compared to Game Y
-
-            double cosR = Math.Cos(rotation);
-            double sinR = Math.Sin(rotation);
-
-            double rotX = curDpx * cosR - curDpy * sinR;
-            double rotY = curDpx * sinR + curDpy * cosR;
-
-            double x = x1 + rotX * scale;
-            double y = y1 + rotY * scale;
-
-            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
-                x = x1 - rotX * scale;
-            }
-
-            HoverCoordinatesLabel = $"{x:F1}, {y:F1}";
-        }
-        catch (Exception ex) {
-            Log.Error(ex, "Error calculating hover coordinates.");
+        
+        var coords = GetCoordinatesFromPixels(px, py); // Uses the verified, calibrated math
+        if (!coords.HasValue) {
             HoverCoordinatesLabel = string.Empty;
+            return;
+        }
+
+        double x = coords.Value.X;
+        double y = coords.Value.Y;
+        string order = AppSettings.SelectedProfile?.CoordinateOrder?.ToLowerInvariant() ?? "x y";
+
+        if (order.StartsWith("y x")) {
+            // Output Game Y (North) first, then Game X (West) for EverQuest
+            HoverCoordinatesLabel = $"{y:F1}, {x:F1}";
+        }
+        else {
+            // Standard X first, then Y[cite: 12]
+            HoverCoordinatesLabel = $"{x:F1}, {y:F1}";
         }
     }
 
@@ -1578,8 +1545,12 @@ public void UpdateMarkers() {
             double dx = x2 - x1;
             double dy = y2 - y1;
             double dpx = px2 - px1;
-            double dpy = py1 - py2;
+            double dpy = py1 - py2; // Screen Y is inverted compared to Game Y
 
+            if (CoordinateSystem == CoordinateSystem.LeftHanded) {
+                dx = -dx;
+            }
+            
             if (Math.Abs(dpx) < 0.0001 && Math.Abs(dpy) < 0.0001) {
                 return null;
             }
@@ -1665,11 +1636,13 @@ public void UpdateMarkers() {
             }
         }
     }
-    
+
     // -------------------------------------------------------------------
     // DRAW MODE SUPPORT
     // -------------------------------------------------------------------
+
     #region Draw mode support
+
     public void StartDrawMode(string mapName) {
         if (IsDrawModeActive) StopDrawMode();
         ResetDrawSettings();
@@ -1737,8 +1710,10 @@ public void UpdateMarkers() {
         // Check if the map was started but never calibrated (user stopped before movement triggered calibration)
         bool isUncalibratedDraw = _settings == null || !_settings.IsCalibrated;
         string? targetImagePath = _settings?.ImagePath;
-        string? targetConfigPath = !string.IsNullOrEmpty(targetImagePath) ? Path.ChangeExtension(targetImagePath, ".json") : null;
-        
+        string? targetConfigPath = !string.IsNullOrEmpty(targetImagePath)
+            ? Path.ChangeExtension(targetImagePath, ".json")
+            : null;
+
         if (!isUncalibratedDraw) {
             SaveDrawMap();
         }
@@ -1759,6 +1734,7 @@ public void UpdateMarkers() {
                 if (!string.IsNullOrEmpty(targetImagePath) && File.Exists(targetImagePath)) {
                     File.Delete(targetImagePath);
                 }
+
                 if (!string.IsNullOrEmpty(targetConfigPath) && File.Exists(targetConfigPath)) {
                     File.Delete(targetConfigPath);
                 }
@@ -1831,7 +1807,7 @@ public void UpdateMarkers() {
             Log.Error(ex, "Error executing auto-save in DrawSaveTimer_Tick.");
         }
     }
-    
+
     private void CreateNewDrawMap(string imagePath) {
         const int initialSize = 500;
         var bitmap = ImageHelpers.CreateBlackBitmapSize(initialSize, initialSize, 96, 96);
@@ -1864,7 +1840,7 @@ public void UpdateMarkers() {
 
     private void CalibrateNewDrawMap(CoordinateData initialPos) {
         if (_settings == null || MapImage == null) return;
-    
+
         // 1. Clear the trigger flag FIRST so UpdateMarkers won't try re-entering CalibrateNewDrawMap
         _drawModeNeedsCalibration = false;
         _calibratingNewDrawMap = true;
@@ -1901,13 +1877,13 @@ public void UpdateMarkers() {
 
         // 3. Force an immediate marker and brush stroke update cleanly
         _staticMarkersDirty = true;
-        UpdateMarkers(); 
+        UpdateMarkers();
     }
 
     private bool ExpandDrawMapIfNeeded(double markerX, double markerY) {
         // If the toggle is turned off, skip expanding entirely
         if (!AutoExpandDrawMap) return false;
-        
+
         if (_expandingMap || MapImage is not WriteableBitmap bitmap || _settings == null) return false;
 
         const int threshold = 50;
@@ -1946,7 +1922,7 @@ public void UpdateMarkers() {
             BreadcrumbImage = ImageHelpers.CreateTransparentBitmap(newBitmap);
             MapImage = newBitmap;
             _staticMarkersDirty = true;
-            
+
             //We have the last drawpoint, but its now obsolete
             //_drawLastPoints.Clear();
             // Shift any existing recent draw points so they align with the new bitmap origin
@@ -2122,7 +2098,7 @@ public void UpdateMarkers() {
     }
 
     #endregion
-    
+
     private static WriteableBitmap LoadAsPbgra32WriteableBitmap(string imagePath) {
         var bmp = new BitmapImage();
         bmp.BeginInit();
@@ -2146,16 +2122,10 @@ public void UpdateMarkers() {
         return new WriteableBitmap(converted);
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
     public void Dispose() {
         StopFading();
         StopDrawAutoSave();
-        
+
         // Unhook settings events safely on disposal
         if (_settings != null) {
             _settings.PropertyChanged -= Settings_PropertyChanged;

@@ -24,6 +24,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Windows.Services.Store;
+using MMONavigator.Base;
 using MMONavigator.Helpers;
 using MMONavigator.Interfaces;
 using MMONavigator.Models;
@@ -32,8 +33,9 @@ using MMONavigator.Views;
 
 namespace MMONavigator.ViewModels;
 
-public class MainViewModel : INotifyPropertyChanged, IDisposable {
+public class MainViewModel : ViewModelBase, IDisposable {
     private readonly ISettingsService _settingsService;
+
     //private readonly ILocationProvider _locationProvider; //DELETEME
     private readonly LocationProviderFactory _locationProviderFactory;
     private ILocationProvider? _activeLocationProvider;
@@ -247,15 +249,31 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     private void Profile_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
-        if (sender is GameProfile profile && profile.Name == Settings.LastSelectedProfileName) {
-            ShowDirection();
-            if (e.PropertyName == nameof(GameProfile.MapSettings)) {
-                if (_mapViewModel != null) {
-                    // If the profile has settings, use them; otherwise, provide a safe fallback or new instance
-                    _mapViewModel.Settings = profile.MapSettings ?? new MapSettings();
-                }
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) {
+            dispatcher.BeginInvoke(new Action(() => Profile_PropertyChanged(sender, e)));
+            return;
+        }
 
-                // Safe unhook/re-hook with null checks
+        if (sender is GameProfile profile && profile.Name == Settings.LastSelectedProfileName) {
+            // Sync live profile setting edits directly to active ViewModels
+            if (_mapViewModel != null) {
+                _mapViewModel.CoordinateSystem = profile.CoordinateSystem;
+                _mapViewModel.AppSettings = Settings;
+                if (profile.MapSettings != null) {
+                    _mapViewModel.Settings = profile.MapSettings;
+                }
+            }
+
+            if (_threeDMapViewModel != null) {
+                _threeDMapViewModel.CoordinateSystem = profile.CoordinateSystem;
+                _threeDMapViewModel.AppSettings = Settings;
+                if (profile.MapSettings != null) {
+                    _threeDMapViewModel.Settings = profile.MapSettings;
+                }
+            }
+
+            if (e.PropertyName == nameof(GameProfile.MapSettings)) {
                 if (profile.MapSettings != null) {
                     profile.MapSettings.PropertyChanged -= MapSettings_PropertyChanged;
                     profile.MapSettings.PropertyChanged += MapSettings_PropertyChanged;
@@ -265,12 +283,6 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
 
                     profile.MapSettings.Point2.PropertyChanged -= MapSettings_PropertyChanged;
                     profile.MapSettings.Point2.PropertyChanged += MapSettings_PropertyChanged;
-                }
-            }
-
-            if (e.PropertyName == nameof(GameProfile.CoordinateSystem)) {
-                if (_mapViewModel != null) {
-                    _mapViewModel.CoordinateSystem = profile.CoordinateSystem;
                 }
             }
 
@@ -284,6 +296,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
                 LoadLocations();
             }
 
+            ShowDirection();
             SaveSettings();
         }
     }
@@ -292,6 +305,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         if (e.PropertyName == nameof(AppSettings.LastSelectedProfileName)) {
             // Re-subscribe to the new SelectedProfile if needed, but since we use the property directly,
             // we just need to trigger a refresh of things that depend on it.
+            // Unhook/Re-hook active profile bindings so live edits are caught
+            SwapSettingsSubscriptions(_settings, _settings);
+
+            // Instantly push active profile parameters to open map instances
+            SyncActiveMapViewModels();
+
             if (_lastWindowHandle != IntPtr.Zero) {
                 StartWatcher(_lastWindowHandle);
             }
@@ -306,21 +325,41 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         }
     }
 
+    private void SyncActiveMapViewModels() {
+        var activeProfile = Settings.SelectedProfile;
+        if (activeProfile == null) return;
+
+        if (_mapViewModel != null) {
+            _mapViewModel.CoordinateSystem = activeProfile.CoordinateSystem;
+            _mapViewModel.Settings = activeProfile.MapSettings;
+            _mapViewModel.AppSettings = Settings;
+            _mapViewModel.UpdateMarkers();
+        }
+
+        if (_threeDMapViewModel != null) {
+            _threeDMapViewModel.CoordinateSystem = activeProfile.CoordinateSystem;
+            _threeDMapViewModel.Settings = activeProfile.MapSettings;
+            _threeDMapViewModel.AppSettings = Settings;
+            _threeDMapViewModel.UpdateMarkers();
+        }
+    }
+
     private IntPtr _lastWindowHandle;
 
     public bool HasCoordinates => !string.IsNullOrEmpty(CurrentCoordinates) && !string.IsNullOrEmpty(TargetCoordinates);
-    public bool HasEitherCoordinates => !string.IsNullOrEmpty(CurrentCoordinates) || !string.IsNullOrEmpty(TargetCoordinates);
-    
-    private bool _hideLocHint;
 
-    public  bool HideLocHint {
+    public bool HasEitherCoordinates =>
+        !string.IsNullOrEmpty(CurrentCoordinates) || !string.IsNullOrEmpty(TargetCoordinates);
+
+    private bool _hideLocHint = true;
+
+    public bool HideLocHint {
         get => _hideLocHint;
         set {
-            if (SetField(ref _hideLocHint, value)) {
-            }
+            if (SetField(ref _hideLocHint, value)) { }
         }
     }
-    
+
     private string? _currentCoordinates = "";
 
     public string? CurrentCoordinates {
@@ -337,6 +376,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
                         if (_threeDMapViewModel != null) _threeDMapViewModel.CurrentPosition = current;
                     }
                 }
+
                 OnPropertyChanged(nameof(HasCoordinates));
                 OnPropertyChanged(nameof(HasEitherCoordinates));
             }
@@ -483,6 +523,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         set => SetField(ref _showCoffeeIcon, value);
     }
 
+    public ICommand ShowHelpTipsCommand { get; }
     public ICommand CopyLocationToDestinationCommand { get; }
     public ICommand AddLocationCommand { get; }
     public ICommand EditLocationCommand { get; }
@@ -504,6 +545,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     private void OnLocationUpdated(object? sender, string coords) {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess()) {
+            dispatcher.BeginInvoke(new Action(() => OnLocationUpdated(sender, coords)));
+            return;
+        }
+
         CurrentCoordinates = coords;
     }
 
@@ -527,7 +574,8 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
 
     public MainViewModel(ISettingsService settingsService, LocationProviderFactory locationProviderFactory) {
         _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
-        _locationProviderFactory = locationProviderFactory ?? throw new ArgumentNullException(nameof(locationProviderFactory));
+        _locationProviderFactory =
+            locationProviderFactory ?? throw new ArgumentNullException(nameof(locationProviderFactory));
 
         // Prevent duplicate subscriptions before subscribing
         // _locationProvider.LocationUpdated -= OnLocationUpdated;
@@ -541,6 +589,8 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         LoadLocations();
         UpdateListStatus();
 
+        ShowHelpTipsCommand =
+            new RelayCommand(_ => HideLocHint = !HideLocHint);
         CopyLocationToDestinationCommand =
             new RelayCommand(_ => TargetCoordinates = CurrentCoordinates ?? string.Empty);
         AddLocationCommand = new RelayCommand(_ => AddLocation());
@@ -565,81 +615,78 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
             }
         });
     }
-    
-    
+
+
     #region Premium Feature
-    
+
     private bool _isPremiumOverrideValid;
-    public bool IsPremiumOverrideValid
-    {
+
+    public bool IsPremiumOverrideValid {
         get => _isPremiumOverrideValid;
-        set { _isPremiumOverrideValid = value; OnPropertyChanged(); }
+        set {
+            _isPremiumOverrideValid = value;
+            OnPropertyChanged();
+        }
     }
 
-    public bool ValidateAndApplyOverrideCode(string inputCode)
-    {
+    public bool ValidateAndApplyOverrideCode(string inputCode) {
         if (string.IsNullOrWhiteSpace(inputCode)) return false;
 
         // This is the SHA-256 hash of your secret code (e.g., "ISA-IT-WASSECRET")
         // Generating it once and saving only the hash keeps your actual code out of GitHub entirely.
-        string expectedHash = "60017641e902b42b99c63f1ba5d48e9581833478483115348d85865fcf394610"; 
+        string expectedHash = "60017641e902b42b99c63f1ba5d48e9581833478483115348d85865fcf394610";
 
-        using (SHA256 sha256 = SHA256.Create())
-        {
+        using (SHA256 sha256 = SHA256.Create()) {
             byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(inputCode.Trim()));
             string inputHash = BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
 
-            if (inputHash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
-            {
+            if (inputHash.Equals(expectedHash, StringComparison.OrdinalIgnoreCase)) {
                 IsPremiumOverrideValid = true;
                 MMONavigator.Properties.Settings.Default.ActivationCode = inputCode.Trim();
                 MMONavigator.Properties.Settings.Default.Save();
                 return true;
             }
         }
-    
+
         return false;
     }
-    
-    private async Task<bool> CheckStoreLicenseAsync()
-    {
-        try
-        {
+
+    private async Task<bool> CheckStoreLicenseAsync() {
+        try {
             // Standard Windows Store Context check for MSIX packaged desktop apps
             StoreContext context = StoreContext.GetDefault();
             StoreAppLicense license = await context.GetAppLicenseAsync();
-        
+
             // Check if the specific 3D Map add-on / dlc product ID is active
-            if (license.AddOnLicenses.TryGetValue("3DMap", out StoreLicense? addOnLicense))
-            {
+            if (license.AddOnLicenses.TryGetValue("3DMap", out StoreLicense? addOnLicense)) {
                 return addOnLicense.IsActive;
             }
         }
-        catch 
-        {
+        catch {
             // Fallback if running unpackaged/debug outside the store environment
         }
+
         return false;
     }
-    
+
     #endregion
 
     public MainViewModel() : this(
-        new SettingsService(), 
-        new LocationProviderFactory(new ILocationProvider[] { 
-            new ClipboardLocationProvider(), 
+        new SettingsService(),
+        new LocationProviderFactory(new ILocationProvider[] {
+            new ClipboardLocationProvider(),
             new LogFileLocationProvider(),
             new SharedMemoryLocationProvider() // Add IPC provider here when built
         })) { }
 
     public void StartWatcher(IntPtr windowHandle) {
         _lastWindowHandle = windowHandle;
-        
+
         // STOP and unhook the previous provider strategy first!
         StopWatcher();
-        
+
         if (Settings.SelectedProfile == null) return;
-        
+
         try {
             // 2. Resolve provider strategy based on current WatchMode
             _activeLocationProvider = _locationProviderFactory.GetProvider(Settings.SelectedProfile.WatchMode);
@@ -650,10 +697,12 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
 
             // 4. Start listening
             _activeLocationProvider.Start(Settings, windowHandle);
-            Log.Information("Successfully started location watcher strategy for mode: {WatchMode}", Settings.SelectedProfile.WatchMode);
+            Log.Information("Successfully started location watcher strategy for mode: {WatchMode}",
+                Settings.SelectedProfile.WatchMode);
         }
         catch (Exception ex) {
-            Log.Error(ex, "Failed to resolve or start location provider for mode: {WatchMode}", Settings.SelectedProfile?.WatchMode);
+            Log.Error(ex, "Failed to resolve or start location provider for mode: {WatchMode}",
+                Settings.SelectedProfile?.WatchMode);
         }
     }
 
@@ -852,175 +901,115 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     private void AddLocation(CoordinateData? customCoords) {
-    try {
-        string? scrubbedTarget;
-        if (customCoords.HasValue) {
-            var coords = customCoords.Value;
-            if (Settings.SelectedProfile.CoordinateOrder == "y x") {
-                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
-            }
-            else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
-                scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
-            }
-            else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
-                scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
-            }
-            else {
-                // Default x z y d
-                scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
-            }
-        }
-        else {
-            scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates)
-                ? ""
-                : Scrubber.ScrubEntry(TargetCoordinates);
-        }
-
-        if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
-
-        var mainWindow = System.Windows.Application.Current.MainWindow;
-        if (mainWindow != null) {
-            Window? helperWindow = null;
-            ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
-
-            try {
-                var name = string.Empty;
-                var group = string.Empty;
-
-                List<string> GetAllGroups(IEnumerable<LocationItem> items) {
-                    var result = new List<string>();
-                    foreach (var item in items) {
-                        if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
-                            result.Add(item.Header);
-                            result.AddRange(GetAllGroups(item.Items));
-                        }
-                    }
-
-                    return result;
+        try {
+            string? scrubbedTarget;
+            if (customCoords.HasValue) {
+                var coords = customCoords.Value;
+                if (Settings.SelectedProfile.CoordinateOrder == "y x") {
+                    scrubbedTarget = $"{coords.Y:F1} {coords.X:F1}";
                 }
-
-                List<string> groups = GetAllGroups(Locations).Distinct().ToList();
-                var dialog = new DestinationDialog("", "", groups) {
-                    WindowStyle = WindowStyle.None,
-                    Owner = helperWindow,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen
-                };
-                dialog.ShowDialog();
-
-                // Check your manual property instead of the built-in DialogResult
-                if (dialog.ManualDialogResult == true) {
-                    name = dialog.Answer;
-                    group = dialog.Group;
+                else if (Settings.SelectedProfile.CoordinateOrder == "y x z") {
+                    scrubbedTarget = $"{coords.Y:F1} {coords.X:F1} {coords.Z ?? 0:F1}";
+                }
+                else if (Settings.SelectedProfile.CoordinateOrder == "x y") {
+                    scrubbedTarget = $"{coords.X:F1} {coords.Y:F1}";
                 }
                 else {
-                    return;
+                    // Default x z y d
+                    scrubbedTarget = $"{coords.X:F1} {coords.Z ?? 0:F1} {coords.Y:F1}";
                 }
+            }
+            else {
+                scrubbedTarget = string.IsNullOrWhiteSpace(TargetCoordinates)
+                    ? ""
+                    : Scrubber.ScrubEntry(TargetCoordinates);
+            }
 
-                var item = new LocationItem {
-                    Name = string.IsNullOrWhiteSpace(name) ? null : name,
-                    Coordinates = scrubbedTarget,
-                    ScrubbedCoordinates = scrubbedTarget,
-                    Header = string.IsNullOrWhiteSpace(group) ? null : group,
-                };
+            if (string.IsNullOrWhiteSpace(scrubbedTarget)) return;
 
-                if (!string.IsNullOrWhiteSpace(item.Header)) {
-                    LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
-                        foreach (var g in items) {
-                            if (g.Header == header) return g;
-                            if (g.Items != null) {
-                                var found = FindGroup(g.Items, header);
-                                if (found != null) return found;
+            var mainWindow = System.Windows.Application.Current.MainWindow;
+            if (mainWindow != null) {
+                Window? helperWindow = null;
+                ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
+
+                try {
+                    var name = string.Empty;
+                    var group = string.Empty;
+
+                    List<string> GetAllGroups(IEnumerable<LocationItem> items) {
+                        var result = new List<string>();
+                        foreach (var item in items) {
+                            if (item.Items != null && !string.IsNullOrWhiteSpace(item.Header)) {
+                                result.Add(item.Header);
+                                result.AddRange(GetAllGroups(item.Items));
                             }
                         }
 
-                        return null;
+                        return result;
                     }
 
-                    var groupItem = FindGroup(Locations, item.Header);
-                    if (groupItem != null) {
-                        groupItem.Items ??= new List<LocationItem>();
-                        groupItem.Items.Add(item);
+                    List<string> groups = GetAllGroups(Locations).Distinct().ToList();
+                    var dialog = new DestinationDialog("", "", groups) {
+                        WindowStyle = WindowStyle.None,
+                        Owner = helperWindow,
+                        WindowStartupLocation = WindowStartupLocation.CenterScreen
+                    };
+                    dialog.ShowDialog();
+
+                    // Check your manual property instead of the built-in DialogResult
+                    if (dialog.ManualDialogResult == true) {
+                        name = dialog.Answer;
+                        group = dialog.Group;
                     }
                     else {
-                        Locations.Add(new LocationItem
-                            { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
+                        return;
                     }
-                }
-                else {
-                    Locations.Add(item);
-                }
 
-                SelectedLocation = item;
-                SaveLocations();
-                LoadLocations();
+                    var item = new LocationItem {
+                        Name = string.IsNullOrWhiteSpace(name) ? null : name,
+                        Coordinates = scrubbedTarget,
+                        ScrubbedCoordinates = scrubbedTarget,
+                        Header = string.IsNullOrWhiteSpace(group) ? null : group,
+                    };
 
-                // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
-                LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
-                    foreach (var i in items) {
-                        if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates &&
-                            i.Header == target.Header) return i;
-                        if (i.Items != null) {
-                            var found = FindSame(i.Items, target);
-                            if (found != null) return found;
+                    if (!string.IsNullOrWhiteSpace(item.Header)) {
+                        LocationItem? FindGroup(IEnumerable<LocationItem> items, string header) {
+                            foreach (var g in items) {
+                                if (g.Header == header) return g;
+                                if (g.Items != null) {
+                                    var found = FindGroup(g.Items, header);
+                                    if (found != null) return found;
+                                }
+                            }
+
+                            return null;
+                        }
+
+                        var groupItem = FindGroup(Locations, item.Header);
+                        if (groupItem != null) {
+                            groupItem.Items ??= new List<LocationItem>();
+                            groupItem.Items.Add(item);
+                        }
+                        else {
+                            Locations.Add(new LocationItem
+                                { Header = item.Header, Name = item.Name, Items = new List<LocationItem> { item } });
                         }
                     }
+                    else {
+                        Locations.Add(item);
+                    }
 
-                    return null;
-                }
-
-                SelectedLocation = FindSame(Locations, item);
-
-                UpdateHasLocations();
-                UpdateListStatus();
-            }
-            finally {
-                helperWindow?.Close();
-            }
-        }
-    }
-    catch (Exception ex) {
-        Log.Error(ex, "Error adding location.");
-    }
-}
-
-    private void EditLocation() {
-    if (SelectedLocation == null) return;
-
-    try {
-        var mainWindow = System.Windows.Application.Current.MainWindow;
-        if (mainWindow != null) {
-            Window? helperWindow = null;
-            ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
-
-            try {
-                var name = SelectedLocation.Name;
-                var group = SelectedLocation.Header;
-                var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header))
-                    .Select(l => l.Header!).ToList();
-
-                var dialog = new DestinationDialog(name, group, groups) {
-                    WindowStyle = WindowStyle.None,
-                    Owner = helperWindow,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen
-                };
-                dialog.ShowDialog();
-
-                // Check your manual property instead of the built-in DialogResult
-                if (dialog.ManualDialogResult == true) {
-                    SelectedLocation.Name = dialog.Answer;
-                    SelectedLocation.Header = dialog.Group;
-
-                    OnPropertyChanged(nameof(SelectedLocation));
-                    OnPropertyChanged(nameof(Locations));
+                    SelectedLocation = item;
                     SaveLocations();
                     LoadLocations();
 
                     // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
-                    LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords, string? header) {
+                    LocationItem? FindSame(IEnumerable<LocationItem> items, LocationItem target) {
                         foreach (var i in items) {
-                            if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
+                            if (i.Name == target.Name && i.ScrubbedCoordinates == target.ScrubbedCoordinates &&
+                                i.Header == target.Header) return i;
                             if (i.Items != null) {
-                                var found = FindSame(i.Items, name, coords, header);
+                                var found = FindSame(i.Items, target);
                                 if (found != null) return found;
                             }
                         }
@@ -1028,24 +1017,85 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
                         return null;
                     }
 
-                    SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates,
-                        dialog.Group);
+                    SelectedLocation = FindSame(Locations, item);
 
-                    TargetCoordinates = SelectedLocation?.DisplayName ?? "";
-                    OnPropertyChanged(nameof(TargetCoordinates));
-
+                    UpdateHasLocations();
                     UpdateListStatus();
                 }
-            }
-            finally {
-                helperWindow?.Close();
+                finally {
+                    helperWindow?.Close();
+                }
             }
         }
+        catch (Exception ex) {
+            Log.Error(ex, "Error adding location.");
+        }
     }
-    catch (Exception ex) {
-        Log.Error(ex, "Error editing location.");
+
+    private void EditLocation() {
+        if (SelectedLocation == null) return;
+
+        try {
+            var mainWindow = System.Windows.Application.Current.MainWindow;
+            if (mainWindow != null) {
+                Window? helperWindow = null;
+                ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
+
+                try {
+                    var name = SelectedLocation.Name;
+                    var group = SelectedLocation.Header;
+                    var groups = Locations.Where(x => x.Items != null && !string.IsNullOrWhiteSpace(x.Header))
+                        .Select(l => l.Header!).ToList();
+
+                    var dialog = new DestinationDialog(name, group, groups) {
+                        WindowStyle = WindowStyle.None,
+                        Owner = helperWindow,
+                        WindowStartupLocation = WindowStartupLocation.CenterScreen
+                    };
+                    dialog.ShowDialog();
+
+                    // Check your manual property instead of the built-in DialogResult
+                    if (dialog.ManualDialogResult == true) {
+                        SelectedLocation.Name = dialog.Answer;
+                        SelectedLocation.Header = dialog.Group;
+
+                        OnPropertyChanged(nameof(SelectedLocation));
+                        OnPropertyChanged(nameof(Locations));
+                        SaveLocations();
+                        LoadLocations();
+
+                        // After LoadLocations, SelectedLocation reference is stale. Re-identify it.
+                        LocationItem? FindSame(IEnumerable<LocationItem> items, string? name, string? coords,
+                            string? header) {
+                            foreach (var i in items) {
+                                if (i.Name == name && i.ScrubbedCoordinates == coords && i.Header == header) return i;
+                                if (i.Items != null) {
+                                    var found = FindSame(i.Items, name, coords, header);
+                                    if (found != null) return found;
+                                }
+                            }
+
+                            return null;
+                        }
+
+                        SelectedLocation = FindSame(Locations, dialog.Answer, SelectedLocation.ScrubbedCoordinates,
+                            dialog.Group);
+
+                        TargetCoordinates = SelectedLocation?.DisplayName ?? "";
+                        OnPropertyChanged(nameof(TargetCoordinates));
+
+                        UpdateListStatus();
+                    }
+                }
+                finally {
+                    helperWindow?.Close();
+                }
+            }
+        }
+        catch (Exception ex) {
+            Log.Error(ex, "Error editing location.");
+        }
     }
-}
 
     private void SelectLocationFile() {
         try {
@@ -1294,8 +1344,6 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         }
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
     private MapWindow? _mapWindow;
     private MapViewModel? _mapViewModel;
 
@@ -1491,7 +1539,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
             Log.Error(ex, "Error opening or activating MapWindow.");
         }
     }
-    
+
     private async void OpenThreeDMap() {
         try {
             var code = MMONavigator.Properties.Settings.Default.ActivationCode;
@@ -1589,8 +1637,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
                     _threeDMapWindow.Show();
                 }
             }
-            else
-            {
+            else {
                 // Prompt user to buy or enter an unlock code
                 ShowActivationPrompt();
             }
@@ -1600,36 +1647,30 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
         }
     }
 
-    private void ShowActivationPrompt()
-    {
+    private void ShowActivationPrompt() {
         var mainWindow = System.Windows.Application.Current.MainWindow;
-    
-        
+
+
         // Safely configure a helper owner window if transparency/window style causes issues
-        if (mainWindow != null)
-        {
-            
+        if (mainWindow != null) {
             Window? helperWindow = null;
-            
+
             ConfigureDialogToHaveAValidOwner(mainWindow, out helperWindow);
-            
+
             var prompt = new ActivationPromptWindow(this);
             prompt.WindowStyle = WindowStyle.None;
             prompt.Owner = helperWindow;
             prompt.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            
-            try
-            {
+
+            try {
                 prompt.ShowDialog();
-                
-                if (prompt.IsUnlocked)
-                {
+
+                if (prompt.IsUnlocked) {
                     // Immediately open the 3D Map window since they just unlocked it!
                     OpenThreeDMap();
                 }
             }
-            finally
-            {
+            finally {
                 try {
                     helperWindow.Close();
                 }
@@ -1639,7 +1680,7 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
             }
         }
     }
-    
+
     private void ConfigureDialogToHaveAValidOwner(Window owner, out Window helperWindow) {
         if (owner == null) {
             throw new ArgumentNullException(nameof(owner));
@@ -1662,18 +1703,6 @@ public class MainViewModel : INotifyPropertyChanged, IDisposable {
             Log.Error(ex, "Error in ConfigureDialogToHaveAValidOwner.");
             throw;
         }
-    }
-
-    
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null) {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
     }
 
     public void InitializeWindow(IntPtr windowHandle) {
