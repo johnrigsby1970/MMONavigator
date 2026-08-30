@@ -33,7 +33,9 @@ public partial class MapWindow : ChildWindow {
     private bool _isDragging;
     private System.Windows.Point _lastMousePosition;
     private IntPtr _preDragForegroundWindow;
+
     private System.Drawing.Point _lastMousePos;
+
     //private DispatcherTimer? _dragTimer;
     private DispatcherTimer? _hoverTimer;
     private DateTime _lastMouseOutsideTime = DateTime.MinValue;
@@ -73,12 +75,13 @@ public partial class MapWindow : ChildWindow {
 
     public bool IsCalibratingStep1 => IsCalibrating && CalibrationStep == 1;
     public bool IsCalibratingStep2 => IsCalibrating && CalibrationStep == 2;
-    
+
     private int _calibrationStep;
+
     public int CalibrationStep {
         get => _calibrationStep;
         set {
-            if(_calibrationStep != value) {
+            if (_calibrationStep != value) {
                 _calibrationStep = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsCalibratingStep1));
@@ -86,12 +89,13 @@ public partial class MapWindow : ChildWindow {
             }
         }
     }
-    
+
     private bool _isCalibrating;
+
     public bool IsCalibrating {
         get => _isCalibrating;
         set {
-            if(_isCalibrating != value) {
+            if (_isCalibrating != value) {
                 _isCalibrating = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsCalibratingStep1));
@@ -99,7 +103,7 @@ public partial class MapWindow : ChildWindow {
             }
         }
     }
-    
+
     private void AddPin_Click(object sender, RoutedEventArgs e) {
         try {
             _isAddingPin = AddPinMenuItem.IsChecked;
@@ -136,8 +140,7 @@ public partial class MapWindow : ChildWindow {
         }
     }
 
-   
-    
+
     private void CancelActiveModes() {
         if (_isSettingDestination || _isAddingPin || _isPickingTextLocation || _isPickingCircleLocation ||
             _isPickingEllipseLocation || IsCalibrating) {
@@ -982,9 +985,13 @@ public partial class MapWindow : ChildWindow {
                     : "0, 0";
 
                 try {
-                    var inputDialog =
-                        new InputDialog("Enter coordinates for Point 1 (x, y):", "Calibration Point 1", suggestedCoords)
-                            { Owner = System.Windows.Application.Current.MainWindow };
+                    var inputDialog = new CoordinateInputDialog(
+                            "Enter coordinates for Point 1:",
+                            "Calibration Point 1",
+                            suggestedCoords,
+                            vm.CoordinateSystem,
+                            vm.AppSettings?.SelectedProfile?.CoordinateOrder ?? "x z y d")
+                        { Owner = System.Windows.Application.Current.MainWindow };
 
                     IsDialogActive = true;
                     // Set the owner to the MainWindow BEFORE calling ShowDialog()
@@ -1023,9 +1030,13 @@ public partial class MapWindow : ChildWindow {
                     : "0, 0";
 
                 try {
-                    var inputDialog =
-                        new InputDialog("Enter coordinates for Point 2 (x, y):", "Calibration Point 2", suggestedCoords)
-                            { Owner = System.Windows.Application.Current.MainWindow };
+                    var inputDialog = new CoordinateInputDialog(
+                            "Enter coordinates for Point 2:",
+                            "Calibration Point 2",
+                            suggestedCoords,
+                            vm.CoordinateSystem,
+                            vm.AppSettings?.SelectedProfile?.CoordinateOrder ?? "x z y d")
+                        { Owner = System.Windows.Application.Current.MainWindow };
 
                     // Set the owner to the MainWindow BEFORE calling ShowDialog()
                     // You can access the MainWindow via Application.Current.MainWindow
@@ -1307,7 +1318,7 @@ public partial class MapWindow : ChildWindow {
             Log.Error(ex, "Error executing DrawAutoExpand_Click.");
         }
     }
-    
+
     #region Stamp Helpers
 
     private void OnLabelStamped(object? s, MapTextStampEventArgs a) {
@@ -1628,7 +1639,7 @@ public partial class MapWindow : ChildWindow {
 
                 foreach (char c in Path.GetInvalidFileNameChars())
                     mapName = mapName.Replace(c, '_');
-                
+
                 // Clear out the main window's coordinate text box for clarity as requested
                 if (System.Windows.Application.Current.MainWindow?.DataContext is MainViewModel mainVm) {
                     mainVm.CurrentCoordinates = string.Empty;
@@ -1636,7 +1647,7 @@ public partial class MapWindow : ChildWindow {
 
                 // Clear the local coordinate state so it treats the next valid position as the starting calibration point
                 vm.CurrentPosition = null;
-                
+
                 vm.StartDrawMode(mapName);
                 StatusTextBlock.Text = $"Status: Drawing mode active — {mapName}";
             }
@@ -1971,7 +1982,7 @@ public partial class MapWindow : ChildWindow {
 
             //_dragTimer = new DispatcherTimer {
             //    Interval = TimeSpan.FromMilliseconds(1)
-           // };
+            // };
             //_dragTimer.Tick += DragTimer_Tick;
             //_dragTimer.Start();
         }
@@ -1984,13 +1995,13 @@ public partial class MapWindow : ChildWindow {
         try {
             // Start the timer-based drag instead of DragMove()
             //StartManualDrag();
-           // e.Handled = true;
-           if (e.ChangedButton == MouseButton.Left) {
-               // Release current mouse capture if any, then send native caption hit message
-               Mouse.Capture(null);
-               NativeMethods.SendMessage(_hwnd, NativeMethods.WM_NCLBUTTONDOWN, (int)NativeMethods.HT_CAPTION, 0);
-               e.Handled = true;
-           }
+            // e.Handled = true;
+            if (e.ChangedButton == MouseButton.Left) {
+                // Release current mouse capture if any, then send native caption hit message
+                Mouse.Capture(null);
+                NativeMethods.SendMessage(_hwnd, NativeMethods.WM_NCLBUTTONDOWN, (int)NativeMethods.HT_CAPTION, 0);
+                e.Handled = true;
+            }
         }
         catch (Exception ex) {
             Log.Error(ex, "Error handling TitleBar_MouseLeftButtonDown.");
@@ -2150,7 +2161,9 @@ public partial class MapWindow : ChildWindow {
             UpdateDrawSizeBoxes(0);
             DrawLineModeBox.BorderBrush = System.Windows.Media.Brushes.Transparent;
             DrawAntiAliasBox.BorderBrush = System.Windows.Media.Brushes.White;
-            DrawAutoExpandBox.BorderBrush = vm.AutoExpandDrawMap ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Transparent;
+            DrawAutoExpandBox.BorderBrush = vm.AutoExpandDrawMap
+                ? System.Windows.Media.Brushes.White
+                : System.Windows.Media.Brushes.Transparent;
         }
 
         if (e.PropertyName == nameof(MapViewModel.IsFollowModeActive)) {

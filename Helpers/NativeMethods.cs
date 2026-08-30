@@ -5,6 +5,26 @@ using System.Runtime.InteropServices;
 namespace MMONavigator.Helpers;
 
 public static class NativeMethods {
+    #region for flash window
+    
+    public const int MONITOR_DEFAULTTONEAREST = 0x00000002;
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MONITORINFO {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public int dwFlags;
+    }
+    
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+    
+    #endregion
+    
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_NOACTIVATE = 0x08000000;
     public const int WS_EX_TOPMOST = 0x00000008;

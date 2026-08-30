@@ -3,6 +3,7 @@ using System.Media;
 using System.Runtime.CompilerServices;
 using System.Windows.Threading;
 using MMONavigator.Base;
+using MMONavigator.Views;
 
 namespace MMONavigator.Services;
 
@@ -134,6 +135,11 @@ public class TimerController : ViewModelBase {
     private void PlayExpirationSound() {
         try {
             SystemSounds.Hand.Play();
+            // Trigger visual overlay flash matching MainWindow bounds
+            var mainWindow = System.Windows.Application.Current.MainWindow;
+            if (mainWindow != null) {
+                TimerFlashOverlayWindow.ShowFlash(mainWindow);
+            }
         }
         catch (Exception ex) {
             Log.Warning(ex, "Failed to play expiration system sound.");

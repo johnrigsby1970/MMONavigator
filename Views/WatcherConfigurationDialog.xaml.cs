@@ -1,9 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using MMONavigator.Controls;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
+using MMONavigator.ViewModels;
 
 namespace MMONavigator.Views;
 
@@ -332,7 +334,7 @@ public partial class WatcherConfigurationDialog : ChildWindow {
                 dialog.ShowDialog();
 
                 if (dialog.ManualDialogResult == true) {
-                    string newName = dialog.Answer.Trim();
+                    var newName = dialog.Answer.Trim();
                     if (string.IsNullOrWhiteSpace(newName)) {
                         System.Windows.MessageBox.Show("Please enter a name for the new profile.", "Duplicate Profile",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -382,33 +384,25 @@ public partial class WatcherConfigurationDialog : ChildWindow {
     }
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e) {
+        if (DataContext is not Views.WatcherConfigurationDialog vm) return;
+
+        // Yield control so WPF closes the MenuItem layout cleanly before launching the dialog
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { ExecuteBrowseButton(vm); }));
+    }
+
+    
+    private void ExecuteBrowseButton(Views.WatcherConfigurationDialog vm) {
         IsDialogActive = true;
-        Window? helperWindow = null;
 
         try {
-            ConfigureDialogToHaveAValidOwner(this, out helperWindow);
-
             var openFileDialog = new Microsoft.Win32.OpenFileDialog {
                 Filter = "Log files (*.log;*.txt)|*.log;*.txt|All files (*.*)|*.*",
-                CheckFileExists = true,
-                CheckPathExists = true
+                CheckFileExists = false,
+                CheckPathExists = false
             };
 
-            bool? result = null;
-            // 1. Safely handle owner window handle attachment
-            if (helperWindow != null) {
-                var helper = new WindowInteropHelper(helperWindow);
-                IntPtr ownerHandle = helper.Handle;
-
-                // Pass the handle directly to attach the dialog modally
-                result = ownerHandle != IntPtr.Zero
-                    ? openFileDialog.ShowDialog(helperWindow)
-                    : openFileDialog.ShowDialog();
-            }
-            else {
-                // Fallback if helperWindow is null
-                result = openFileDialog.ShowDialog();
-            }
+            // Pass 'this' directly as the owner window
+            bool? result = openFileDialog.ShowDialog(this);
 
             if (result == true && !string.IsNullOrWhiteSpace(openFileDialog.FileName)) {
                 FilePathTextBox.Text = openFileDialog.FileName;
@@ -426,8 +420,6 @@ public partial class WatcherConfigurationDialog : ChildWindow {
                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally {
-            // ALWAYS close the helper to prevent memory leaks
-            helperWindow?.Close();
             IsDialogActive = false;
         }
     }

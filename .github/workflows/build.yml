@@ -98,7 +98,7 @@ jobs:
 
     - name: Create Store MSIX & MSIXUpload Package
       run: |
-        $version = "0.6.9.0" # Target version for Microsoft Store
+        $version = "0.6.10.0" # Target version for Microsoft Store
         $publishDir = "${{ github.workspace }}/publish"
         $manifestPath = "$publishDir/AppxManifest.xml"
 
