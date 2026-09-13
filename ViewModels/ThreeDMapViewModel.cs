@@ -1,7 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Media;
@@ -2010,7 +2009,10 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
         //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
         //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
         //getting the right coordinates but deciding that the coordinates didn't fit on the image.
-        if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
+        // double width = MapImage.PixelWidth > 0 ? MapImage.PixelWidth : MapImage.Width;
+        // double height = MapImage.PixelHeight > 0 ? MapImage.PixelHeight : MapImage.Height;
+        var bufferMarginToIndicateUserOnMap = 50;
+        if (px >= -bufferMarginToIndicateUserOnMap && px <= MapImage.Width + bufferMarginToIndicateUserOnMap && py >= -bufferMarginToIndicateUserOnMap && py <= MapImage.Height + bufferMarginToIndicateUserOnMap) {
             return (px, py, Visibility.Visible);
         }
         else {
@@ -2203,17 +2205,43 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
         }
     }
 
+    // public void SaveMapImage() {
+    //     if (Settings == null || string.IsNullOrWhiteSpace(Settings.ImagePath)) return;
+    //     string originalPath = Settings.ImagePath;
+    //
+    //     if (File.Exists(originalPath)) {
+    //         // Generate a backup path (e.g., "C:/Maps/world_map.png.bak")
+    //         string backupPath = originalPath + ".bak";
+    //
+    //         try {
+    //             // Copy the original file on disk, overwriting any previous backup
+    //             File.Copy(originalPath, backupPath, overwrite: true);
+    //         }
+    //         catch (Exception ex) {
+    //             Log.Warning(ex, "Failed to create file backup for '{Path}'", originalPath);
+    //         }
+    //     }
+    // }
+    
     public void SaveMapImage() {
         if (Settings == null || string.IsNullOrWhiteSpace(Settings.ImagePath)) return;
         string originalPath = Settings.ImagePath;
 
         if (File.Exists(originalPath)) {
-            // Generate a backup path (e.g., "C:/Maps/world_map.png.bak")
-            string backupPath = originalPath + ".bak";
-
             try {
-                // Copy the original file on disk, overwriting any previous backup
-                File.Copy(originalPath, backupPath, overwrite: true);
+                var mapsDir = Path.GetDirectoryName(originalPath) ?? NativeMethods.AppFolder();
+                var backupDir = Path.Combine(mapsDir, "backups");
+                if (!Directory.Exists(backupDir)) {
+                    Directory.CreateDirectory(backupDir);
+                }
+
+                var fileName = Path.GetFileNameWithoutExtension(originalPath);
+                var ext = Path.GetExtension(originalPath);
+                // Create a timestamped backup so you can roll back to previous versions
+                var timeStamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var backupPath = Path.Combine(backupDir, $"{fileName}_{timeStamp}{ext}.bak");
+
+                File.Copy(originalPath, backupPath, overwrite: false);
             }
             catch (Exception ex) {
                 Log.Warning(ex, "Failed to create file backup for '{Path}'", originalPath);
@@ -2248,7 +2276,8 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
         if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
 
         var imagePath = Path.Combine(mapsDir, mapName + ".png");
-
+        bool isExistingFile = File.Exists(imagePath);
+        
         // Save and clear existing fog so a stale file doesn't conflict after expansion
         if (!string.IsNullOrEmpty(FogOfWarFilePath) && FogImage != null)
             ImageHelpers.SaveWriteableBitMap(FogOfWarFilePath, FogImage.Clone());
@@ -2269,6 +2298,10 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
             }
             else {
                 SaveMapImage();
+                // FIX: Ensure the currently loaded image becomes a WriteableBitmap for drawing
+                if (MapImage != null && MapImage is not WriteableBitmap) {
+                    MapImage = LoadAsPbgra32WriteableBitmap(imagePath);
+                }
             }
 
             _drawingRadius = null;
@@ -2293,13 +2326,24 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
 
         IsDrawModeActive = true;
         StartDrawAutoSave();
-        SaveDrawMap();
+        if (!isExistingFile) {
+            SaveDrawMap();
+        }
     }
 
     public void StopDrawMode() {
         if (!IsDrawModeActive) return;
 
-        SaveDrawMap();
+        // Check if the map was started but never calibrated (user stopped before movement triggered calibration)
+        bool isUncalibratedDraw = _settings == null || !_settings.IsCalibrated;
+        string? targetImagePath = _settings?.ImagePath;
+        string? targetConfigPath = !string.IsNullOrEmpty(targetImagePath)
+            ? Path.ChangeExtension(targetImagePath, ".json")
+            : null;
+
+        if (!isUncalibratedDraw) {
+            SaveDrawMap();
+        }
 
         // Cleanly stop and unhook the timer
         StopDrawAutoSave();
@@ -2311,7 +2355,28 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
         ShowBreadcrumb = _priorBreadcrumbState;
         if (_priorBreadcrumbState) StartFading();
 
-        LoadImage(); // Reload PNG as normal BitmapImage, recreate fog/breadcrumb
+        if (isUncalibratedDraw) {
+            // Delete the orphaned uncalibrated files from disk so they don't leave a blank, broken screen state
+            try {
+                if (!string.IsNullOrEmpty(targetImagePath) && File.Exists(targetImagePath)) {
+                    File.Delete(targetImagePath);
+                }
+
+                if (!string.IsNullOrEmpty(targetConfigPath) && File.Exists(targetConfigPath)) {
+                    File.Delete(targetConfigPath);
+                }
+            }
+            catch (Exception ex) {
+                Log.Warning(ex, "Failed to clean up uncalibrated draw map files on stop.");
+            }
+
+            // Reset the map state completely so the window shows as if no map is loaded
+            ResetMapState();
+        }
+        else {
+            LoadImage(); // Reload PNG as normal BitmapImage, recreate fog/breadcrumb
+            OriginalMapImage = MapImage;
+        }
     }
 
     public void SaveDrawMap() {
@@ -2442,8 +2507,8 @@ public class ThreeDMapViewModel : ViewModelBase, IDisposable {
     private bool ExpandDrawMapIfNeeded(double markerX, double markerY) {
         if (_expandingMap || MapImage is not WriteableBitmap bitmap || _settings == null) return false;
 
-        const int threshold = 50;
-        const int amount = 50;
+        const int threshold = 100;
+        const int amount = 100;
 
         int padLeft = 0, padTop = 0, padRight = 0, padBottom = 0;
         if (markerX < threshold) padLeft = amount;

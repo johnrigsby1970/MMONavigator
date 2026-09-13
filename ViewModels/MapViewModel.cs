@@ -17,14 +17,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using CommunityToolkit.Mvvm.Input;
 using MMONavigator.Base;
 using MMONavigator.Helpers;
 using MMONavigator.Models;
@@ -1426,7 +1424,8 @@ public class MapViewModel : ViewModelBase, IDisposable {
         //Due to DPI of 72, the PixelWidth and rendered Width may differ. Use the rendered with because that it where the marker is going.
         //Maybe if we were writing to the image file itself, it would be different. This clears a bug where it was
         //getting the right coordinates but deciding that the coordinates didn't fit on the image.
-        if (px >= -10 && px <= MapImage.Width + 10 && py >= -10 && py <= MapImage.Height + 10) {
+        var bufferMarginToIndicateUserOnMap = 50;
+        if (px >= -bufferMarginToIndicateUserOnMap && px <= MapImage.Width + bufferMarginToIndicateUserOnMap && py >= -bufferMarginToIndicateUserOnMap && py <= MapImage.Height + bufferMarginToIndicateUserOnMap) {
             return (px, py, Visibility.Visible);
         }
         else {
@@ -1619,17 +1618,43 @@ public class MapViewModel : ViewModelBase, IDisposable {
         }
     }
 
+    // public void SaveMapImage() {
+    //     if (Settings == null || string.IsNullOrWhiteSpace(Settings.ImagePath)) return;
+    //     string originalPath = Settings.ImagePath;
+    //
+    //     if (File.Exists(originalPath)) {
+    //         // Generate a backup path (e.g., "C:/Maps/world_map.png.bak")
+    //         string backupPath = originalPath + ".bak";
+    //
+    //         try {
+    //             // Copy the original file on disk, overwriting any previous backup
+    //             File.Copy(originalPath, backupPath, overwrite: true);
+    //         }
+    //         catch (Exception ex) {
+    //             Log.Warning(ex, "Failed to create file backup for '{Path}'", originalPath);
+    //         }
+    //     }
+    // }
+    
     public void SaveMapImage() {
         if (Settings == null || string.IsNullOrWhiteSpace(Settings.ImagePath)) return;
         string originalPath = Settings.ImagePath;
 
         if (File.Exists(originalPath)) {
-            // Generate a backup path (e.g., "C:/Maps/world_map.png.bak")
-            string backupPath = originalPath + ".bak";
-
             try {
-                // Copy the original file on disk, overwriting any previous backup
-                File.Copy(originalPath, backupPath, overwrite: true);
+                var mapsDir = Path.GetDirectoryName(originalPath) ?? NativeMethods.AppFolder();
+                var backupDir = Path.Combine(mapsDir, "backups");
+                if (!Directory.Exists(backupDir)) {
+                    Directory.CreateDirectory(backupDir);
+                }
+
+                var fileName = Path.GetFileNameWithoutExtension(originalPath);
+                var ext = Path.GetExtension(originalPath);
+                // Create a timestamped backup so you can roll back to previous versions
+                var timeStamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var backupPath = Path.Combine(backupDir, $"{fileName}_{timeStamp}{ext}.bak");
+
+                File.Copy(originalPath, backupPath, overwrite: false);
             }
             catch (Exception ex) {
                 Log.Warning(ex, "Failed to create file backup for '{Path}'", originalPath);
@@ -1652,7 +1677,8 @@ public class MapViewModel : ViewModelBase, IDisposable {
         if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
 
         var imagePath = Path.Combine(mapsDir, mapName + ".png");
-
+        bool isExistingFile = File.Exists(imagePath);
+        
         // Save and clear existing fog so a stale file doesn't conflict after expansion
         if (!string.IsNullOrEmpty(FogOfWarFilePath) && FogImage != null)
             ImageHelpers.SaveWriteableBitMap(FogOfWarFilePath, FogImage.Clone());
@@ -1701,7 +1727,9 @@ public class MapViewModel : ViewModelBase, IDisposable {
 
         IsDrawModeActive = true;
         StartDrawAutoSave();
-        SaveDrawMap();
+        if (!isExistingFile) {
+            SaveDrawMap();
+        }
     }
 
     public void StopDrawMode() {
@@ -1748,6 +1776,7 @@ public class MapViewModel : ViewModelBase, IDisposable {
         }
         else {
             LoadImage(); // Reload PNG as normal BitmapImage, recreate fog/breadcrumb
+            OriginalMapImage = MapImage;
         }
     }
 
@@ -1757,6 +1786,9 @@ public class MapViewModel : ViewModelBase, IDisposable {
         try {
             ImageHelpers.SaveWriteableBitMap(_settings.ImagePath, bitmap.Clone());
 
+            // Keep OriginalMapImage in sync with the saved state
+            OriginalMapImage = bitmap.Clone(); //
+            
             var mapsDir = Path.Combine(NativeMethods.AppFolder(), "maps");
             if (!Directory.Exists(mapsDir)) Directory.CreateDirectory(mapsDir);
             var configPath = Path.Combine(mapsDir,
@@ -1886,8 +1918,8 @@ public class MapViewModel : ViewModelBase, IDisposable {
 
         if (_expandingMap || MapImage is not WriteableBitmap bitmap || _settings == null) return false;
 
-        const int threshold = 50;
-        const int amount = 50;
+        const int threshold = 100;
+        const int amount = 100;
 
         int padLeft = 0, padTop = 0, padRight = 0, padBottom = 0;
         if (markerX < threshold) padLeft = amount;
