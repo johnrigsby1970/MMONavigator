@@ -384,7 +384,7 @@ public class MMONavigatorStringTelemetry : IDisposable
 
 ## Authors
 
-John Rigsby
+John Rigsby at Howling Wolf Labs, HowlingWolfLabs.com
 
 ## Version History
 
@@ -397,9 +397,13 @@ John Rigsby
 * 0.6.7
     * Release integration inter-process communication
 
+## Copyright
+
+© 2026 John Rigsby & Howling Wolf Labs. All rights reserved.
+
 ## License
 
-MMONavigator © 2026 by John Rigsby is licensed under GNU General Public License <https://www.gnu.org/licenses/>
+MMO Navigator is licensed under GNU General Public License <https://www.gnu.org/licenses/>
 
 ## Acknowledgments
 
