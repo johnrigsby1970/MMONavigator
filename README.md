@@ -384,7 +384,7 @@ public class MMONavigatorStringTelemetry : IDisposable
 
 ## Authors
 
-John Rigsby at Howling Wolf Labs, HowlingWolfLabs.com
+John Rigsby & Howling Wolf Labs, HowlingWolfLabs.com
 
 ## Version History
 
